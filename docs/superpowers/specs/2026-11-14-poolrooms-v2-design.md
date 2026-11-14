@@ -20,8 +20,9 @@ v1 (this repo, commit `97ce087`) builds the scene procedurally, but it renders
 ## Goals
 
 1. **Look-match.** At 1080p, a still of the default preset reads as "the same
-   place, same light" when put side by side with reference frame 5 (`docs/ref/ref_f05.jpg`, to be
-   committed). The specific gaps to close, all observed in the comparison:
+   place, same light" when put side by side with the full-resolution reference frames in `docs/ref/` (`ref_t03/08/15/22.jpg`,
+   extracted from the user's clip at 3, 8, 15 and 22 s; `ref_t08.jpg` is the
+   primary comparison frame). The specific gaps to close, all observed in the comparison:
    1. Warm/cool contrast. The alcoves are creamy gold with bright lamp hotspots
       on their back walls, against cyan plaster. In v1 they are white-grey.
    2. Front-to-back sharpness. v1's depth of field (f/5.6 focused on the screen) blurs the
@@ -87,8 +88,14 @@ v1 (this repo, commit `97ce087`) builds the scene procedurally, but it renders
 
 ## Constraints
 
-- Blender 5.x API (bpy pip module 5.3 on CPython 3.13 here; desktop Blender
-  4.2+ must keep working via `scripts/blender_run.py`).
+- **Blender 5.3 is pinned everywhere** (*builder's call*): pip `bpy` 5.3 here,
+  desktop Blender 5.3 on the user's PC (via `scripts/blender_run.py`), and the
+  official 5.3 Linux build on Modal. Support for Blender 4.x is dropped and the
+  README says so, which removes the dual compositor code path.
+- "Identical frames" across backends means the **same version, settings and seeds,
+  so frames are visually indistinguishable** (*builder's call*). Cycles is not
+  bit-exact across GPUs. Mixing local and cloud frames in one run is allowed,
+  because noise differences sit below what a viewer can perceive after the denoiser.
 - This dev environment is **CPU-only** (≈3 min per 720p frame at 40 samples).
   Look-dev happens here on small stills (≈960×540). Full-quality renders run
   on the user's 4070 or Modal.
@@ -137,14 +144,14 @@ Changes to the existing modules (`wavegen/scene/*`, `config.py`, `post.py`):
   default framing.
 - **Computer.** Remodelled to goal 1.6 (still procedural, still generic).
 - **Grade.** Tuned against the reference. The look-dev loop compares stills
-  side by side with `ref_f05.jpg` and also checks the k-means palette of the
+  side by side with `docs/ref/ref_t08.jpg` and also checks the k-means palette of the
   render against the reference palette in `docs/ANALYSIS.md`. The user's eye is
   the final judge; the palette numbers are a sanity check, not a gate.
 
 ### Perfect loop
 
-- New config `render.loop_seconds` (default 60). `render.seconds` is replaced by it
-  for loop renders. Frames rendered: `1 … loop_seconds × fps`, and frame
+- Every render is a loop. There is **no separate non-loop mode** (*builder's call*).
+  `render.seconds` keeps its name and now means the loop length (default 60). Frames rendered: `1 … loop_seconds × fps`, and frame
   `N+1` must equal frame `1`.
 - Every periodic motion uses an **integer number of cycles per loop**. Drift
   helpers take a cycle count instead of a period, and the drift expressions are
@@ -177,8 +184,11 @@ Changes to the existing modules (`wavegen/scene/*`, `config.py`, `post.py`):
 - `post` encodes the loop (H.264 high-quality CRF, yuv420p; 2160p optional).
   The grade must avoid banding on the large smooth gradients: fine grain is kept
   for that reason.
-- `wavegen extend LOOP.mp4 --duration 1h -o long.mp4` concatenates the loop with
-  stream copy.
+- `wavegen extend LOOP.mp4 --duration 1h -o long.mp4` concatenates the
+  **video** with stream copy. The **audio is rebuilt** by tiling the
+  sample-exact loop WAV(s) to the full duration and encoding once
+  (*builder's call*). This avoids the AAC priming/padding clicks that stream-copied
+  audio would put at every join.
 
 ### Rendering backends
 
@@ -198,6 +208,24 @@ Changes to the existing modules (`wavegen/scene/*`, `config.py`, `post.py`):
     estimate first and needs confirmation or `--yes`.
     `wavegen cloud fetch <run_id>` downloads the outputs.
   - Auth is the user's own Modal token on their machine. No secrets in the repo.
+
+## Milestones and sign-off (*builder's call*)
+
+1. Loop and stems foundation: drivers, audio stems, seam tests (cheap, verifiable here).
+2. Look-dev: scene, lighting and grade changes, iterated on ~960×540 stills against
+   `docs/ref/`. **Stop for the user's approval of the look** (side-by-side
+   stills) before anything expensive.
+3. Render budget: settings tuned for the ≤ 15 s/frame 4070 target, using
+   CPU-timing estimates plus a short README benchmark the user can run.
+4. Modal runner and `extend`, tested with stubs. The first real cloud run is
+   the user's.
+
+## Other presets and variants (*builder's call*)
+
+`poolrooms_dusk`, `poolrooms_night` and `variants`/`mutate()` must be
+loop-safe and must render without errors under the new defaults. They get one
+quick coherence pass (one still each) so the new lighting doesn't break their
+mood. They do **not** get a full look-match, because no reference exists for them.
 
 ## Left to the builder
 
