@@ -122,7 +122,7 @@ def _icon(col, pal, parent, pivot_loc, cfg_c, fps, n_frames):
     return pivot
 
 
-def build(cfg: dict) -> dict:
+def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     pal, cc, dc = cfg["palette"], cfg["computer"], cfg["desk"]
     col = collection("Props")
     out: dict = {}
@@ -183,7 +183,14 @@ def build(cfg: dict) -> dict:
     kb_rig.rotation_euler = (math.radians(4), 0, math.radians(-6))
     _parent(kb, kb_rig)
 
-    out["icon"] = _icon(col, pal, rig, (0, front_y - 0.012, (za + zb) / 2), cc, cfg["render"]["fps"], loop_frame_count(cfg))
+    from . import screensaver
+    if cc.get("screensaver", "emblem") == "flower":
+        out["icon"] = _icon(col, pal, rig, (0, front_y - 0.012, (za + zb) / 2), cc, cfg["render"]["fps"],
+                            loop_frame_count(cfg))
+    imgs = None
+    if emblem_images:
+        imgs = tuple(bpy.data.images.load(str(p), check_existing=True) for p in emblem_images)
+    out["screensaver"] = screensaver.build(cfg, screen_mat, imgs)
     out["screen"] = screen
     out["rig"] = rig
     return out

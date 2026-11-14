@@ -10,14 +10,20 @@ def build_scene(cfg: dict, blend_path: str | Path | None = None) -> dict:
 
     from . import architecture, atmosphere, camera, props, render
 
+    emblem_images = None
+    cc = cfg.get("computer", {})
+    if cc.get("enabled", True) and cc.get("screensaver", "emblem") == "emblem":
+        from .emblem import render_emblem
+        emblem_images = render_emblem(cfg)       # cached; resets the session, so do it first
+
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
     sc.name = cfg["name"]
     render.configure(cfg)
     arch = architecture.build(cfg)
-    pr = props.build(cfg)
+    pr = props.build(cfg, emblem_images)
     atmosphere.build(cfg, arch["bounds"])
-    focus = pr.get("icon")
+    focus = pr.get("icon") or pr.get("screen")
     cam = camera.build(cfg, focus)
     if blend_path:
         Path(blend_path).parent.mkdir(parents=True, exist_ok=True)
