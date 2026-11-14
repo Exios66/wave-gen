@@ -1,6 +1,6 @@
 # Poolrooms v2: look-match, seamless loop, sound stems, GPU + Modal rendering
 
-Status: draft for approval · 2026-11-14
+Status: approved by the user · 2026-11-14
 
 ## Intent and why
 
