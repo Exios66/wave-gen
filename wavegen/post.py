@@ -8,6 +8,12 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from .frames import frame_files, loop_frame_count, missing_frames
+
+
+class IncompleteLoopError(RuntimeError):
+    """Not every frame of the loop (1..N) is on disk."""
+
 
 def _ffmpeg() -> str:
     exe = shutil.which("ffmpeg")
@@ -52,24 +58,27 @@ def filtergraph(pc: dict, width: int, height: int) -> str:
     return g
 
 
-def assemble(frames_dir: str | Path, out: str | Path, cfg: dict, audio: str | Path | None = None,
-             pattern: str = "frame_%05d.png", start_number: int = 1) -> Path:
+def assemble(frames_dir: str | Path, out: str | Path, cfg: dict, audio: str | Path | None = None) -> Path:
+    """Encode frames 1..N of the loop (N from the config). Refuses gaps."""
     frames_dir, out = Path(frames_dir), Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    first = sorted(frames_dir.glob("frame_*.*"))
-    if not first:
+    files = frame_files(frames_dir)
+    if not files:
         raise FileNotFoundError(f"no frames in {frames_dir}")
-    ext = first[0].suffix
-    pattern = pattern.replace(".png", ext)
-    start_number = int(first[0].stem.split("_")[-1])
+    n = loop_frame_count(cfg)
+    gone = missing_frames(frames_dir, n)
+    if gone:
+        shown = ", ".join(map(str, gone[:20])) + (" ..." if len(gone) > 20 else "")
+        raise IncompleteLoopError(f"{len(gone)} of {n} loop frames missing in {frames_dir}: {shown}")
+    pattern = f"frame_%05d{files[0].suffix}"
     rc, pc = cfg["render"], cfg["post"]
     w = int(rc["resolution"][0] * rc["percentage"] / 100)
     h = int(rc["resolution"][1] * rc["percentage"] / 100)
-    cmd = [_ffmpeg(), "-y", "-v", "error", "-framerate", str(rc["fps"]), "-start_number", str(start_number),
+    cmd = [_ffmpeg(), "-y", "-v", "error", "-framerate", str(rc["fps"]), "-start_number", "1",
            "-i", str(frames_dir / pattern)]
     if audio:
         cmd += ["-i", str(audio)]
-    cmd += ["-filter_complex", filtergraph(pc, w, h), "-map", "[vout]"]
+    cmd += ["-filter_complex", filtergraph(pc, w, h), "-map", "[vout]", "-frames:v", str(n)]
     if audio:
         cmd += ["-map", "1:a", "-c:a", "aac", "-b:a", "256k", "-shortest"]
     cmd += ["-c:v", "libx264", "-preset", "slow", "-crf", str(pc["crf"]), "-movflags", "+faststart", str(out)]
