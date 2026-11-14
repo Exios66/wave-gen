@@ -86,7 +86,11 @@ def cmd_render(args):
 def cmd_audio(args):
     from . import audio
     cfg = _cfg(args)
-    print(f"wrote {audio.render(cfg, args.out)}")
+    if args.stems:
+        for name, path in audio.write_stems(cfg, args.out).items():
+            print(f"wrote {path}")
+    else:
+        print(f"wrote {audio.render(cfg, args.out)}")
 
 
 def cmd_post(args):
@@ -191,6 +195,7 @@ def main(argv: list[str] | None = None):
 
     p = sub.add_parser("audio", help="synthesize the ambient soundtrack")
     common(p)
+    p.add_argument("--stems", action="store_true", help="write room/crt/bells/pad/bed/mix WAVs into the -o folder")
     p.add_argument("-o", "--out", default="out/ambience.wav")
     p.set_defaults(fn=cmd_audio)
 

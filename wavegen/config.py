@@ -128,21 +128,24 @@ DEFAULTS: dict = {
         "enabled": True,
         "sample_rate": 48000,
         "tempo_slow": 0.975,          # the source audio is ~2.5% "slowed"
-        "chords": [
+        "chords": [                   # one pass per loop: each chord lasts loop / len(chords)
             ["G2", "D3", "F#3", "B3", "A4", "D5"],
             ["E2", "B2", "G3", "D4", "F#4", "B4"],
             ["C3", "G3", "B3", "E4", "F#4", "D5"],
             ["D2", "A2", "E3", "F#3", "C4", "G4"],
         ],
-        "chord_seconds": 6.5,
-        "pad_level": 0.55,
-        "bell_level": 0.22,
-        "bell_density": 0.55,         # bells per second
-        "water_level": 0.16,
-        "hiss_level": 0.012,
         "reverb_seconds": 4.8,
         "reverb_mix": 0.45,
         "wow_depth": 0.0025,
+        # Each layer renders into a stem. Add your own with wavegen.audio.layers.register.
+        "layers": [
+            {"type": "room_tone", "stem": "room", "level": 0.10, "hiss": 0.12},
+            {"type": "water", "stem": "room", "level": 0.16},
+            {"type": "drips", "stem": "room", "level": 0.10, "per_minute": 8},
+            {"type": "crt_hum", "stem": "crt", "level": 0.03, "hum_hz": 60, "whine_hz": 15734},
+            {"type": "bells", "stem": "bells", "level": 0.15, "density": 0.55},
+            {"type": "pad", "stem": "pad", "level": 0.55},
+        ],
     },
     "post": {
         "grade": True,
@@ -196,8 +199,11 @@ def set_dotted(cfg: dict, assignment: str) -> None:
     node = cfg
     parts = key.split(".")
     for p in parts[:-1]:
-        node = node.setdefault(p, {})
-    node[parts[-1]] = value
+        node = node[int(p)] if isinstance(node, list) else node.setdefault(p, {})
+    if isinstance(node, list):
+        node[int(parts[-1])] = value
+    else:
+        node[parts[-1]] = value
 
 
 def min_wall_for(widths: list[float], pier: float = 0.6) -> float:
