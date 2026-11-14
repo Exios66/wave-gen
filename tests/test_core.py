@@ -109,3 +109,18 @@ def test_resolve_engine():
         resolve_engine("cycles", (4, 2, 0))
     with pytest.raises(ValueError):
         resolve_engine("luxcore", (5, 3, 0))
+
+
+def test_audio_reproducible():
+    import numpy as np
+    from wavegen import audio
+    cfg = config.load("poolrooms", ["audio.sample_rate=16000"])
+    a, _ = audio.synthesize(cfg, 4)
+    b, _ = audio.synthesize(cfg, 4)
+    np.testing.assert_array_equal(a, b)
+
+
+def test_bells_zero_density():
+    from wavegen import audio
+    cfg = config.load("poolrooms", ["audio.sample_rate=16000", "audio.bell_density=0"])
+    audio.synthesize(cfg, 3)
