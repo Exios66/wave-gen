@@ -46,7 +46,8 @@ python -m wavegen build   --preset poolrooms_night --blend out/night.blend  # op
 python -m wavegen variants --seeds 11 12 13 -o out/variants                 # "parallel versions"
 python -m wavegen analyze my_reference.mov -o out/ref                       # palette / motion / pitch
 python -m wavegen audio   --preset poolrooms_dusk -o out/dusk.wav
-python -m wavegen post    out/poolrooms/frames -a out/poolrooms/ambience.wav -o out/final.mp4
+python -m wavegen post    out/poolrooms/frames --stems out/poolrooms/stems -o out/final.mp4   # --audio-mix full adds pad + bells
+python -m wavegen extend  out/final.mp4 --stems out/poolrooms/stems --duration 1h -o out/final_1h.mp4
 ```
 
 You can override any value without editing files:
