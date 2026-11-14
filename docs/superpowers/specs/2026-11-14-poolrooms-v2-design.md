@@ -190,6 +190,55 @@ Changes to the existing modules (`wavegen/scene/*`, `config.py`, `post.py`):
   (*builder's call*). This avoids the AAC priming/padding clicks that stream-copied
   audio would put at every join.
 
+### CRT screensaver (user request)
+
+The screen shows an animated, era-appropriate screensaver instead of v1's
+floating 3D icon. It is implemented **in the CRT screen material** (cheap
+to render, perfectly periodic). It sits under the existing scanlines, phosphor glow and glass.
+
+- **Default mode: bouncing emblem (the user's choice).** A chrome italic **"WAVE GEN"**
+  wordmark with a thin bright outline, set across a vaporwave **sunset disc**
+  (a circle with horizontal slits through its lower half and a pink→cyan gradient).
+  The disc colours are drawn from the scene palette so it belongs in the room.
+- The emblem is **rendered once by Blender** (a small separate scene: text
+  object + disc geometry, real chrome material reflecting a pastel sky) to a
+  PNG with alpha. It is cached by a hash of its settings. The screen shader samples
+  it with an animated UV offset.
+- **Bounce:** x and y each follow a triangle wave with an **integer number of
+  wall-to-wall trips per loop** (different counts for x and y), so position at
+  frame N+1 = frame 1. Both axes start at an extreme, which makes the **loop point
+  an exact corner hit**.
+- **Colour on hit:** the disc gradient advances to the next pastel pair from a
+  small palette list on every wall hit. The trip counts and the palette length are chosen
+  so the total hits per loop is a multiple of the palette length, which keeps the colour seamless
+  too.
+- **Other modes** (`computer.screensaver`): `emblem` (default), `starfield`
+  (stars flying toward the viewer), `mystify` (morphing glowing polygon trails),
+  `flower` (v1's spinning icon, kept). All are periodic over the loop.
+  Emblem shape variants: `sun` (default), `triangle`, `orb`.
+- **Originality:** no real-world logos or OS artwork. The DVD Video logo and
+  Microsoft screensaver art are trademarked, and using them risks
+  YouTube claims. Only the *behaviour* is evoked.
+
+### Audio: extensible layers (user request)
+
+Replaces the hard-wired layers in `audio.py`:
+- Preset key `audio.layers`: an ordered list of `{type, level, enabled, …params}`
+  (types: `room_tone`, `water`, `drips`, `crt_hum`, `bells`, `pad`). Stems are
+  grouped by a `stem` field (`room`, `crt`, `bells`, `pad`).
+- Each layer type is one registered function `(cfg, layer, n, sr, rng) → stereo
+  buffer`. Adding a layer (rain, distant traffic, vinyl) means writing one function
+  and adding one preset entry.
+- Length always equals the loop length (`render.seconds`). Every layer is generated
+  loop-aware (wrap tails and fold them back, events scheduled on the loop timeline),
+  so any length works.
+- Quality upgrades: a smoother reverb (a feedback delay network, or the existing
+  convolution with a better-shaped impulse response; builder's call); a pad that
+  evolves through the loop (slow filter and voicing movement rather than a
+  repeating 4-chord cycle); loudness targeted for a background bed
+  (≈ −20 LUFS integrated for `room+crt`, about −16 LUFS for `mix`) with a
+  true-peak ceiling of −1 dBTP.
+
 ### Rendering backends
 
 - **Local GPU.** Cycles with OptiX auto-selected, a sample count and denoiser tuned
@@ -254,10 +303,19 @@ follows (numbers refer to the comment order on the PR).
   installed identifier; fail early with a clear message on Blender < 5.0;
   bloom strength 0 bypasses the Glare node entirely.
 
+### Clearing the PR #1 review threads (user request)
+
+After each fix is pushed and its test passes, resolve the matching review thread(s)
+on PR #1. For the three superseded Blender 4.x findings (#3, #18, #24), post a
+short reply explaining they are superseded by the Blender 5.3 requirement and
+the version-independent engine flag, then resolve them. Replies end with the
+Claude Code footer. Nothing is merged or approved.
+
 ## Milestones and sign-off (*builder's call*)
 
 0. PR #1 review fixes (above), with regression tests for each bug.
-1. Loop and stems foundation: drivers, audio stems, seam tests (cheap, verifiable here).
+1. Loop and audio foundation: periodic drivers, the extensible audio layers + stems, the
+   screensaver (emblem first), seam tests (cheap, verifiable here).
 2. Look-dev: scene, lighting and grade changes, iterated on ~960×540 stills against
    `docs/ref/`. **Stop for the user's approval of the look** (side-by-side
    stills) before anything expensive.
