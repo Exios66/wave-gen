@@ -31,7 +31,9 @@ def configure(cfg: dict) -> None:
     sc = bpy.context.scene
     rc = cfg["render"]
     r = sc.render
-    r.engine = rc["engine"]
+    from .engine import resolve_engine
+    engine = resolve_engine(rc["engine"], tuple(bpy.app.version))
+    r.engine = engine
     r.resolution_x, r.resolution_y = rc["resolution"]
     r.resolution_percentage = int(rc["percentage"])
     r.fps = int(rc["fps"])
@@ -39,7 +41,7 @@ def configure(cfg: dict) -> None:
     sc.frame_end = max(1, round(rc["seconds"] * rc["fps"]))
     r.use_motion_blur = False
 
-    if rc["engine"] == "CYCLES":
+    if engine == "CYCLES":
         cy = sc.cycles
         cy.samples = int(rc["samples"])
         cy.use_adaptive_sampling = True
@@ -88,40 +90,27 @@ def configure(cfg: dict) -> None:
 
 
 def _compositor(cfg: dict) -> None:
-    """RenderLayers -> Bloom -> lens dispersion -> output (Blender 4.x & 5.x)."""
+    """RenderLayers -> Bloom (skipped at strength 0) -> lens dispersion -> output (Blender 5.x)."""
     sc = bpy.context.scene
     b, lens = cfg["render"]["bloom"], cfg["render"]["lens"]
-    if hasattr(sc, "compositing_node_group"):  # 5.x node-group compositor
-        ng = bpy.data.node_groups.new("WaveGenComp", "CompositorNodeTree")
-        ng.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
-        sc.compositing_node_group = ng
-        out = ng.nodes.new("NodeGroupOutput")
-        out_socket = out.inputs[0]
-    else:  # 4.x
-        sc.use_nodes = True
-        ng = sc.node_tree
-        ng.nodes.clear()
-        out = ng.nodes.new("CompositorNodeComposite")
-        out_socket = out.inputs["Image"]
+    ng = bpy.data.node_groups.new("WaveGenComp", "CompositorNodeTree")
+    ng.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+    sc.compositing_node_group = ng
+    out_socket = ng.nodes.new("NodeGroupOutput").inputs[0]
     rl = ng.nodes.new("CompositorNodeRLayers")
-    glare = ng.nodes.new("CompositorNodeGlare")
-    if "Type" in glare.inputs:  # 5.x: options are sockets
-        glare.inputs["Type"].default_value = "Bloom"
-        glare.inputs["Threshold"].default_value = b["threshold"]
-        glare.inputs["Strength"].default_value = b["strength"]
-        glare.inputs["Size"].default_value = b["size"]
-    else:
-        glare.glare_type = "BLOOM" if hasattr(glare, "glare_type") else "FOG_GLOW"
-        glare.threshold = b["threshold"]
-        _set(glare, "strength", b["strength"])
-        _set(glare, "size", 8)
     ld = ng.nodes.new("CompositorNodeLensdist")
-    if "Distortion" in ld.inputs:
-        ld.inputs["Distortion"].default_value = lens["distortion"]
-        ld.inputs["Dispersion"].default_value = lens["dispersion"]
-        if "Fit" in ld.inputs:
-            ld.inputs["Fit"].default_value = True
-    ng.links.new(rl.outputs["Image"], glare.inputs["Image"])
-    ng.links.new(glare.outputs["Image"], ld.inputs["Image"])
+    ld.inputs["Distortion"].default_value = lens["distortion"]
+    ld.inputs["Dispersion"].default_value = lens["dispersion"]
+    ld.inputs["Fit"].default_value = True
     ng.links.new(ld.outputs["Image"], out_socket)
     sc.render.use_compositing = True
+    if b["strength"] <= 0:
+        ng.links.new(rl.outputs["Image"], ld.inputs["Image"])
+        return
+    glare = ng.nodes.new("CompositorNodeGlare")
+    glare.inputs["Type"].default_value = "Bloom"
+    glare.inputs["Threshold"].default_value = b["threshold"]
+    glare.inputs["Strength"].default_value = b["strength"]
+    glare.inputs["Size"].default_value = b["size"]
+    ng.links.new(rl.outputs["Image"], glare.inputs["Image"])
+    ng.links.new(glare.outputs["Image"], ld.inputs["Image"])

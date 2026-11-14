@@ -18,7 +18,7 @@ DEFAULTS: dict = {
     "name": "poolrooms",
     "seed": 4290,
     "render": {
-        "engine": "CYCLES",          # CYCLES | BLENDER_EEVEE
+        "engine": "cycles",          # cycles | eevee
         "device": "AUTO",            # AUTO | CPU | GPU  (Cycles only)
         "resolution": [1920, 1080],
         "percentage": 100,
@@ -200,6 +200,23 @@ def set_dotted(cfg: dict, assignment: str) -> None:
     node[parts[-1]] = value
 
 
+def min_wall_for(widths: list[float], pier: float = 0.6) -> float:
+    """Shortest wall that fits openings of ``widths`` with ``pier`` between/around them."""
+    return sum(widths) + pier * (len(widths) + 1)
+
+
+def _fit(widths: list[float], wall: float, pier: float = 0.6, margin: float = 0.05) -> list[float]:
+    """Drop arches, then shrink the rest proportionally, until they fit ``wall``."""
+    widths = list(widths)
+    while len(widths) > 1 and sum(widths) * 0.6 + pier * (len(widths) + 1) > wall:
+        widths.pop(0 if len(widths) % 2 == 0 else -1)  # keep the wide centre arch
+    room = wall - pier * (len(widths) + 1) - margin
+    if sum(widths) > room:
+        k = room / sum(widths)
+        widths = [round(w * k - 0.005, 2) for w in widths]
+    return widths
+
+
 def _jitter(rng: random.Random, color, amount):
     return [min(1.0, max(0.0, c + rng.uniform(-amount, amount))) for c in color]
 
@@ -222,8 +239,9 @@ def mutate(cfg: dict, seed: int, strength: float = 1.0) -> dict:
     n_back = rng.choice([3, 3, 4, 5])
     widths = [round(rng.uniform(2.0, 3.0), 2) for _ in range(n_back)]
     widths[n_back // 2] = round(rng.uniform(3.4, 4.6), 2)
-    room["back_arches"] = widths
-    room["side_arches"] = [round(rng.uniform(2.4, 3.6), 2) for _ in range(rng.choice([1, 1, 2]))]
+    room["back_arches"] = _fit(widths, room["width"])
+    side = [round(rng.uniform(2.4, 3.6), 2) for _ in range(rng.choice([1, 1, 2]))]
+    room["side_arches"] = _fit(side, room["depth"] - 6.0)
     room["column"] = rng.random() < 0.75
     pool = c["pool"]
     w = room["width"]

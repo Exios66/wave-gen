@@ -54,3 +54,32 @@ def test_walls_have_arch_booleans(scene):
     dg = bpy.context.evaluated_depsgraph_get()
     ev = wall.evaluated_get(dg)
     assert len(ev.data.vertices) > 8 * 10  # boolean actually cut the arches
+
+
+def _all_objects(col):
+    yield from col.objects
+    for ch in col.children:
+        yield from _all_objects(ch)
+
+
+def test_cutters_hidden_in_viewport(scene):
+    cut = bpy.data.collections["Cutters"]
+    objs = list(_all_objects(cut))
+    assert objs
+    assert all(o.hide_viewport for o in objs)
+    dg = bpy.context.evaluated_depsgraph_get()
+    assert len(bpy.data.objects["Wall.back"].evaluated_get(dg).data.vertices) > 80
+
+
+def test_scene_builds_without_computer_and_dof():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=2", "computer.enabled=false", "camera.dof=true"])
+    build_scene(cfg)
+    cam = bpy.data.objects["Camera"]
+    assert cam.data.dof.use_dof and cam.data.dof.focus_object.name == "Camera.target"
+
+
+def test_bloom_zero_bypasses_glare():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=2", "render.bloom.strength=0"])
+    build_scene(cfg)
+    ng = bpy.context.scene.compositing_node_group
+    assert not any(n.bl_idname == "CompositorNodeGlare" for n in ng.nodes)

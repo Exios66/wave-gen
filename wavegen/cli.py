@@ -147,7 +147,7 @@ def main(argv: list[str] | None = None):
         p.add_argument("--set", action="append", metavar="KEY=VALUE", help="override any config value")
         p.add_argument("--preview", action="store_true", help="fast low-res draft settings")
         p.add_argument("--seconds", type=float)
-        p.add_argument("--engine", choices=["CYCLES", "BLENDER_EEVEE"])
+        p.add_argument("--engine", type=str.lower, choices=["cycles", "eevee"])
 
     p = sub.add_parser("analyze", help="analyse a reference video")
     p.add_argument("video")
@@ -212,6 +212,13 @@ def main(argv: list[str] | None = None):
         args.fn(args)
     except (StaleFramesError, IncompleteLoopError) as e:
         raise SystemExit(f"wavegen: {e}") from None
+    except ModuleNotFoundError as e:
+        if e.name != "bpy":
+            raise
+        raise SystemExit(
+            "wavegen: this command needs Blender 5.x. Either `pip install bpy` (Python 3.13), or run it "
+            "inside desktop Blender:\n  blender -b -P scripts/blender_run.py -- " + " ".join(argv or sys.argv[1:])
+        ) from None
 
 
 if __name__ == "__main__":

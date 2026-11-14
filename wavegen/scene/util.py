@@ -101,6 +101,8 @@ def cutter_collection_union(name, cutters, col):
             uc.objects.unlink(c)
         sub.objects.link(c)
         c.hide_render = True
+        c.hide_viewport = True
+        c.display_type = "WIRE"
     sub.hide_render = True
     return sub
 

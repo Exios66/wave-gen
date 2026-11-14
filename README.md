@@ -18,6 +18,8 @@ reference video ──► analyze ──► preset (JSON) ──► Blender scen
 
 ## Install
 
+wave-gen needs **Blender 5.x** (5.3 tested); older versions stop with a clear error.
+
 Option A uses Blender as a Python module (headless, good for servers or CI):
 
 ```bash
@@ -26,7 +28,7 @@ pip install -e '.[blender,dev]'
 # Linux without a GPU also needs software EGL: apt install libegl1 libgl1-mesa-dri
 ```
 
-Option B uses desktop Blender 4.2+ (best for GPU rendering and for opening the result):
+Option B uses desktop Blender 5.x — 5.3 is the tested version (best for GPU rendering and for opening the result):
 
 ```bash
 blender -b -P scripts/blender_run.py -- make --preset poolrooms -o out/poolrooms
@@ -84,7 +86,7 @@ No Python auto-run is needed to open the `.blend`.
 
 Defaults are 1920×1080, Cycles, 96 samples with OIDN denoising, and haze on. On
 a modern GPU that is roughly 5–20 s per frame. On a 4-core CPU it takes several
-minutes per frame, so use `--preview` or `--engine BLENDER_EEVEE` (GPU) for
+minutes per frame, so use `--preview` or `--engine eevee` (GPU) for
 iteration. Setting `atmosphere.haze_density=0` is the biggest single speed-up.
 
 ## Tests
