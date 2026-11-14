@@ -209,8 +209,54 @@ Changes to the existing modules (`wavegen/scene/*`, `config.py`, `post.py`):
     `wavegen cloud fetch <run_id>` downloads the outputs.
   - Auth is the user's own Modal token on their machine. No secrets in the repo.
 
+## PR #1 review fixes (CodeRabbit + CodeAnt, on commit `97ce087`)
+
+All 25 inline comments were checked against the code. They are folded in as
+follows (numbers refer to the comment order on the PR).
+
+**Fix: real bugs**
+- *Variants can crash* (#8, #22): `mutate()` can draw back arches that don't fit
+  the wall with ≥ 0.6 m piers, so `_spread` raises. Fix: sample the arch count and widths
+  against the drawn wall width so the fit is guaranteed for every seed. Add a test
+  that builds the layout for many seeds (no `ValueError`).
+- *Disabling the computer crashes the camera* (#6, #10, #23): `focus_on="computer"` with
+  no computer reaches `float("computer")`. Fix: handle the named modes explicitly and
+  fall back to the look-at target. (DOF is off by default in v2, but the option stays.)
+- *Stale frames are silently reused* (#5, #21): the resume check looks only at file
+  names. Fix: write a render manifest (a config hash, plus scene version) next to the
+  frames; reuse frames only when it matches, otherwise refuse with a clear message;
+  add `--overwrite`. Modal chunks use the same manifest, so mixed or stale
+  frames can't sneak into a cloud run.
+- *Partial/sparse frame selections produce wrong videos* (#7, #9, #17, #19, #20):
+  - Assembly encodes **exactly one complete loop**: frames 1…N must all be present,
+    otherwise it errors and lists the missing frames. It never "succeeds" with gaps.
+  - `make --frames` / `render --frames` render a subset only (that's how local and
+    cloud chunks work); they don't assemble a partial video.
+  - Reject reversed ranges (`10-1`); `frames=[]` means nothing, not everything.
+  - Audio is always the full loop, so no audio offset problem remains.
+- *Bell density 0 crashes the synth* (#16): skip bells when the rate is 0.
+- *Analyzer edge cases* (#1, #12, #13, #14, #15): short clips get at least one
+  FFT window; the palette survives all-dark or tiny inputs and caps its pixel sample
+  (deterministic subsample) so long clips don't use GBs of RAM; the motion path
+  includes the starting position.
+- *Cutters clutter the viewport* (#25): hide boolean cutters in the viewport too
+  (the user will open the `.blend` to inspect it).
+- *README is wrong for desktop-Blender-only installs* (#2): `python -m wavegen`
+  needs pip `bpy`. Document `blender -b -P scripts/blender_run.py -- …` as the
+  path for desktop Blender, plus a clear error when `bpy` is missing.
+- *Night preset comment mismatch* (#4): the cove isn't "off". Reword it to "dimmed".
+- *Audio reproducibility test* (#11): same config twice → identical samples.
+
+**Superseded by this design (Blender 5.3 pinned, 4.x dropped)**
+- EEVEE engine identifier on 4.2–4.5 (#3, #18) and the 4.2 Glare `strength`
+  property (#24). These are 4.x-only problems. Fix instead: accept a
+  version-independent `--engine eevee|cycles` and resolve it to the
+  installed identifier; fail early with a clear message on Blender < 5.0;
+  bloom strength 0 bypasses the Glare node entirely.
+
 ## Milestones and sign-off (*builder's call*)
 
+0. PR #1 review fixes (above), with regression tests for each bug.
 1. Loop and stems foundation: drivers, audio stems, seam tests (cheap, verifiable here).
 2. Look-dev: scene, lighting and grade changes, iterated on ~960×540 stills against
    `docs/ref/`. **Stop for the user's approval of the look** (side-by-side
