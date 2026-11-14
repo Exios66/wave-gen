@@ -8,7 +8,9 @@ import bmesh
 import bpy
 
 from . import materials as M
-from .util import box, collection, drift_expr, drive, obj_from_bmesh
+from ..frames import loop_frame_count
+from ..loop import cycles_for, periodic_expr
+from .util import box, collection, drive, obj_from_bmesh
 
 
 def build(cfg: dict, bounds) -> None:
@@ -69,6 +71,7 @@ def build(cfg: dict, bounds) -> None:
 
     cam = cfg["camera"]["location"]
     speed = at["dust_speed"]
+    n_loop = loop_frame_count(cfg)
     for i in range(n):
         o = bpy.data.objects.new(f"Dust.{i:03d}", mesh)
         col.objects.link(o)
@@ -83,7 +86,5 @@ def build(cfg: dict, bounds) -> None:
         bz = rng.uniform(0.3, 3.2)
         for axis, base, amp in ((0, bx, 0.35), (1, by, 0.25), (2, bz, 0.22)):
             period = rng.uniform(9, 24) / max(speed / 0.06, 1e-3)
-            expr = drift_expr(base, amp, period, rng.uniform(0, 6.283), fps)
-            if axis == 2:  # slow settle + gentle rise, like motes in warm air
-                expr += f" - {0.04 * speed / 0.06 / fps:.6f}*frame"
-            drive(o, "location", expr, axis)
+            cyc = cycles_for(period, n_loop / fps)
+            drive(o, "location", periodic_expr(base, amp, cyc, rng.uniform(0, 6.283), n_loop, 3), axis)

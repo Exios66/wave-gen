@@ -151,11 +151,3 @@ def drive(id_owner, data_path: str, expr: str, index: int = -1):
     fc.driver.type = "SCRIPTED"
     fc.driver.expression = expr
     return fc
-
-
-def drift_expr(base: float, amp: float, period_s: float, phase: float, fps: float) -> str:
-    """Sum of two incommensurate sines: smooth, non-repeating, loop-free."""
-    w1 = 2 * math.pi / (period_s * fps)
-    w2 = w1 * 1.618
-    return (f"{base:.5f} + {amp:.5f}*(0.75*sin(frame*{w1:.7f}+{phase:.4f})"
-            f" + 0.25*sin(frame*{w2:.7f}+{phase * 2.3:.4f}))")

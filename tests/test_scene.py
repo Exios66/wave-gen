@@ -40,7 +40,7 @@ def test_animation_moves_camera_icon_and_water(scene):
     c2, r2, w2 = cam.matrix_world.translation.copy(), icon.rotation_euler.copy(), waves.default_value
     assert (c2 - c1).length > 0.01
     assert abs(r2[1] - r1[1]) > 0.5
-    assert w2 > w1
+    assert abs(w2 - w1) > 1e-3
     # drift is gentle: never more than ~half a metre from the preset location
     for f in range(1, sc.frame_end + 1, 37):
         sc.frame_set(f)
@@ -54,6 +54,15 @@ def test_walls_have_arch_booleans(scene):
     dg = bpy.context.evaluated_depsgraph_get()
     ev = wall.evaluated_get(dg)
     assert len(ev.data.vertices) > 8 * 10  # boolean actually cut the arches
+
+
+
+def test_loop_seam_all_drivers():
+    from wavegen.scene.loopcheck import loop_mismatches
+    cfg = config.load("poolrooms", ["render.seconds=8", "render.fps=15", "atmosphere.dust_count=10"])
+    build_scene(cfg)
+    assert bpy.context.scene.frame_end == 120
+    assert loop_mismatches(cfg) == []
 
 
 def _all_objects(col):
@@ -83,3 +92,12 @@ def test_bloom_zero_bypasses_glare():
     build_scene(cfg)
     ng = bpy.context.scene.compositing_node_group
     assert not any(n.bl_idname == "CompositorNodeGlare" for n in ng.nodes)
+
+
+def test_loopcheck_flags_non_looping_driver():
+    from wavegen.scene.loopcheck import loop_mismatches
+    from wavegen.scene.util import drive
+    cfg = config.load("poolrooms", ["render.seconds=4", "render.fps=15", "atmosphere.dust_count=2"])
+    build_scene(cfg)
+    drive(bpy.data.objects["Camera.target"], "location", "frame*0.01", 0)
+    assert any("Camera.target" in m for m in loop_mismatches(cfg))

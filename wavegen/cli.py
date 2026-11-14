@@ -132,6 +132,21 @@ def cmd_variants(args):
         print(f"variant {seed} -> {d}")
 
 
+def cmd_loopcheck(args):
+    from .scene import build_scene
+    from .scene.loopcheck import driven_values, loop_mismatches
+    cfg = _cfg(args)
+    build_scene(cfg)
+    bad = loop_mismatches(cfg)
+    n = len(driven_values(1))
+    if bad:
+        print(f"loopcheck: {len(bad)} of {n} driven values do not loop:")
+        for line in bad:
+            print("  " + line)
+        raise SystemExit(1)
+    print(f"loopcheck: all {n} driven values match at the loop point")
+
+
 def cmd_presets(args):
     for p in config.list_presets():
         print(p)
@@ -201,6 +216,10 @@ def main(argv: list[str] | None = None):
     p.add_argument("--full", action="store_true", help="render the full video for each variant")
     p.add_argument("-o", "--out", default="out/variants")
     p.set_defaults(fn=cmd_variants)
+
+    p = sub.add_parser("loopcheck", help="verify every animated value returns to its start at the loop point")
+    common(p)
+    p.set_defaults(fn=cmd_loopcheck)
 
     p = sub.add_parser("presets", help="list bundled presets")
     p.set_defaults(fn=cmd_presets)

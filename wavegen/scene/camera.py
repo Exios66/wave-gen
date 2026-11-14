@@ -1,15 +1,19 @@
-"""Slow, floating camera: a dolly that drifts on incommensurate sines and a
-look-at target that wanders independently, so the move never visibly loops."""
+"""Slow, floating camera: a dolly and a look-at target that each drift on
+smooth sines with a whole number of cycles per loop, so the video loops seamlessly."""
 from __future__ import annotations
 
 import bpy
 
 from .focus import resolve_focus
-from .util import collection, drift_expr, drive
+from ..frames import loop_frame_count
+from ..loop import cycles_for, periodic_expr
+from .util import collection, drive
 
 
 def build(cfg: dict, focus_obj=None) -> bpy.types.Object:
-    cc, fps = cfg["camera"], cfg["render"]["fps"]
+    cc = cfg["camera"]
+    n = loop_frame_count(cfg)
+    loop_s = n / cfg["render"]["fps"]
     col = collection("Camera")
     cam_data = bpy.data.cameras.new("Camera")
     cam_data.lens = cc["lens"]
@@ -23,8 +27,10 @@ def build(cfg: dict, focus_obj=None) -> bpy.types.Object:
 
     d = cc["drift"]
     for i in range(3):
-        drive(cam, "location", drift_expr(cc["location"][i], d["amplitude"][i], d["period"][i], 0.7 * i + 0.3, fps), i)
-        drive(target, "location", drift_expr(cc["target"][i], d["target_amplitude"][i], d["target_period"][i], 1.3 * i + 2.0, fps), i)
+        drive(cam, "location", periodic_expr(cc["location"][i], d["amplitude"][i],
+                                             cycles_for(d["period"][i], loop_s), 0.7 * i + 0.3, n), i)
+        drive(target, "location", periodic_expr(cc["target"][i], d["target_amplitude"][i],
+                                                cycles_for(d["target_period"][i], loop_s), 1.3 * i + 2.0, n), i)
     track = cam.constraints.new("TRACK_TO")
     track.target = target
     track.track_axis = "TRACK_NEGATIVE_Z"

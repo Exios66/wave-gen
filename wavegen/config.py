@@ -23,7 +23,7 @@ DEFAULTS: dict = {
         "resolution": [1920, 1080],
         "percentage": 100,
         "fps": 30,
-        "seconds": 26.0,
+        "seconds": 60.0,            # loop length; every motion completes whole cycles
         "samples": 96,
         "denoise": True,
         "max_bounces": 6,
@@ -81,7 +81,7 @@ DEFAULTS: dict = {
         "coping": 0.30,             # width of the raised tiled lip
         "wave_scale": 1.6,
         "wave_strength": 0.18,
-        "wave_speed": 0.08,
+        "wave_cycles": 1,           # ripple evolutions per loop (whole number)
     },
     "computer": {
         "enabled": True,

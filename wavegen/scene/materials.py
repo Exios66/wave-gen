@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import bpy
 
+from ..loop import circle_expr
 from .util import drive
 
 
@@ -184,8 +185,13 @@ def dark(name, color=(0.05, 0.05, 0.06), roughness=0.6):
     return mat
 
 
-def water(name, color, absorb, wave_scale, wave_strength, wave_speed, fps):
-    """Transmissive water surface + absorption volume, waves animated by driver."""
+def water(name, color, absorb, wave_scale, wave_strength, wave_cycles, n_frames):
+    """Transmissive water surface + absorption volume.
+
+    The ripples evolve by moving the 4D noise around a circle in its (W, z)
+    plane, ``wave_cycles`` times per loop, so the water returns exactly to its
+    first state at the loop point without visibly sliding sideways.
+    """
     mat, nt, out = _new(name)
     p = principled(nt, color, 0.015)
     p.inputs["Transmission Weight"].default_value = 1.0
@@ -196,7 +202,15 @@ def water(name, color, absorb, wave_scale, wave_strength, wave_speed, fps):
     noise.inputs["Scale"].default_value = wave_scale
     noise.inputs["Detail"].default_value = 4.0
     noise.inputs["Roughness"].default_value = 0.55
-    drive(nt, f'nodes["{noise.name}"].inputs["W"].default_value', f"frame*{wave_speed / fps:.6f}")
+    radius = 0.6
+    drive(nt, f'nodes["{noise.name}"].inputs["W"].default_value', circle_expr(radius, wave_cycles, n_frames, "cos"))
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    mapping = nt.nodes.new("ShaderNodeMapping")
+    mapping.name = "waves_map"
+    nt.links.new(coord.outputs["Generated"], mapping.inputs["Vector"])
+    nt.links.new(mapping.outputs["Vector"], noise.inputs["Vector"])
+    drive(nt, 'nodes["waves_map"].inputs["Location"].default_value',
+          circle_expr(radius / max(wave_scale, 1e-3), wave_cycles, n_frames, "sin"), 2)
     bump = nt.nodes.new("ShaderNodeBump")
     bump.inputs["Strength"].default_value = wave_strength
     bump.inputs["Distance"].default_value = 0.02

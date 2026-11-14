@@ -14,6 +14,8 @@ import bpy
 from mathutils import Matrix, Vector
 
 from . import materials as M
+from ..frames import loop_frame_count
+from ..loop import cycles_for, periodic_expr, spin_expr
 from .util import bevel, box, boolean_cut, collection, drive, obj_from_bmesh, smooth_shade
 
 BODY_W, BODY_D, BODY_H = 0.34, 0.36, 0.40
@@ -93,18 +95,19 @@ def _keys(col, mat, rows=5, cols=14, pitch=0.0255, size=0.021, h=0.011):
     return obj
 
 
-def _icon(col, pal, parent, pivot_loc, cfg_c, fps):
+def _icon(col, pal, parent, pivot_loc, cfg_c, fps, n_frames):
     """Six emissive petals that spin and tumble like an old 3D screensaver."""
     pivot = bpy.data.objects.new("Icon.pivot", None)
     pivot.empty_display_size = 0.02
     col.objects.link(pivot)
     _parent(pivot, parent)
     pivot.location = pivot_loc
-    spin = 2 * math.pi / (cfg_c["icon_spin_period"] * fps)
-    tumble = 2 * math.pi / (cfg_c["icon_tumble_period"] * fps)
-    drive(pivot, "rotation_euler", f"frame*{spin:.6f}", 1)                  # around screen normal
-    drive(pivot, "rotation_euler", f"0.9*sin(frame*{tumble:.6f})", 2)      # tumble left/right
-    drive(pivot, "rotation_euler", f"0.5*sin(frame*{tumble * 0.61:.6f})", 0)
+    loop_s = n_frames / fps
+    spin = cycles_for(cfg_c["icon_spin_period"], loop_s)
+    tumble = cycles_for(cfg_c["icon_tumble_period"], loop_s)
+    drive(pivot, "rotation_euler", spin_expr(spin, n_frames), 1)                     # around screen normal
+    drive(pivot, "rotation_euler", periodic_expr(0.0, 1.2, tumble, 0.0, n_frames), 2)  # tumble left/right
+    drive(pivot, "rotation_euler", periodic_expr(0.0, 0.67, max(1, round(tumble * 0.61)), 1.1, n_frames), 0)
     colors = pal["icon"]
     for i, c in enumerate(colors):
         mat = M.emission(f"IconPetal.{i}", c, 4.0)
@@ -180,7 +183,7 @@ def build(cfg: dict) -> dict:
     kb_rig.rotation_euler = (math.radians(4), 0, math.radians(-6))
     _parent(kb, kb_rig)
 
-    out["icon"] = _icon(col, pal, rig, (0, front_y - 0.012, (za + zb) / 2), cc, cfg["render"]["fps"])
+    out["icon"] = _icon(col, pal, rig, (0, front_y - 0.012, (za + zb) / 2), cc, cfg["render"]["fps"], loop_frame_count(cfg))
     out["screen"] = screen
     out["rig"] = rig
     return out
