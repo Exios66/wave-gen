@@ -1,0 +1,20 @@
+{
+  "name": "poolrooms_dusk",
+  "_comment": "Same room at 'golden hour': peach plaster, rose water, stronger warm alcoves, slower and sweeter pad.",
+  "palette": {
+    "plaster": [0.92, 0.72, 0.74],
+    "ceiling": [0.85, 0.55, 0.70],
+    "pool_tile": [0.55, 0.75, 0.90],
+    "water": [0.80, 0.80, 0.98],
+    "water_absorb": [0.70, 0.60, 0.90],
+    "world": [0.95, 0.60, 0.70],
+    "cool_light": [1.0, 0.62, 0.78],
+    "accent_light": [0.55, 0.45, 1.0],
+    "warm_light": [1.0, 0.62, 0.32],
+    "screen": [0.20, 0.04, 0.22],
+    "screen_glow": [0.70, 0.25, 0.55]
+  },
+  "lights": {"alcove_power": 240.0, "cove_power": 2600.0},
+  "render": {"exposure": -0.6},
+  "audio": {"tempo_slow": 0.955, "chords": [["F2","C3","E3","A3","G4","C5"],["D2","A2","F3","C4","E4","A4"],["A#2","F3","A3","D4","E4","C5"],["C3","G3","A#3","D4","F4","A4"]]}
+}

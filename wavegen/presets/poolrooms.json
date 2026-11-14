@@ -1,0 +1,4 @@
+{
+  "name": "poolrooms",
+  "_comment": "Faithful parallel of the reference clip. All values live in wavegen/config.py DEFAULTS; override anything here."
+}

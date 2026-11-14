@@ -1,0 +1,21 @@
+{
+  "name": "poolrooms_night",
+  "_comment": "After hours: cove lights off, deep blue room lit by alcove lamps, a magenta neon accent and the CRT glow.",
+  "palette": {
+    "plaster": [0.30, 0.45, 0.75],
+    "ceiling": [0.15, 0.20, 0.50],
+    "world": [0.05, 0.08, 0.25],
+    "cool_light": [0.35, 0.40, 1.0],
+    "accent_light": [1.0, 0.25, 0.85],
+    "warm_light": [1.0, 0.55, 0.30],
+    "water": [0.40, 0.75, 1.0],
+    "water_absorb": [0.15, 0.45, 0.85],
+    "haze": [0.6, 0.6, 1.0],
+    "screen_glow": [0.20, 0.45, 1.0]
+  },
+  "lights": {"cove_power": 500.0, "world_strength": 0.15, "accent_power": 1400.0, "alcove_power": 220.0},
+  "atmosphere": {"haze_density": 0.008, "dust_strength": [2.0, 8.0]},
+  "computer": {"screen_strength": 3.0},
+  "render": {"exposure": 0.2, "bloom": {"threshold": 0.6, "strength": 0.8, "size": 0.75}},
+  "audio": {"tempo_slow": 0.94, "bell_density": 0.3, "reverb_seconds": 6.5, "reverb_mix": 0.55}
+}
