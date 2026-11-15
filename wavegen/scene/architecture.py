@@ -22,6 +22,8 @@ Y0 = -3.5
 
 def _spread(total: float, widths: list[float]) -> list[float]:
     """Centres for openings of ``widths`` spaced with equal piers on a wall."""
+    if not widths:
+        return []                                    # a wall too short for any opening
     gap = (total - sum(widths)) / (len(widths) + 1)
     if gap < 0.6:
         raise ValueError(f"arches ({sum(widths):.1f} m) do not fit a {total:.1f} m wall")

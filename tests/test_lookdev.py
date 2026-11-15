@@ -54,3 +54,33 @@ def test_default_still_frame_fits_short_loop():
     from wavegen.cli import _default_frame
     assert _default_frame(None, config.load("poolrooms", ["render.fps=30", "render.seconds=2"])) <= 60
     assert _default_frame(7, config.load("poolrooms", [])) == 7
+
+
+def test_lookdev_runs_post_effects_with_grade_off(imgs, tmp_path, monkeypatch):
+    """post.grade=false only drops the colour grade; cmd_lookdev still grades the still
+    (vignette etc.) before comparing."""
+    import argparse
+    import shutil as sh
+    from wavegen import cli
+    _, src, _ = imgs
+    monkeypatch.setattr(cli, "cmd_still", lambda a: sh.copy(src, a.out))
+    calls = []
+    real = lookdev.grade_still
+    monkeypatch.setattr(lookdev, "grade_still", lambda s, o, c: calls.append(c["post"]["grade"]) or real(s, o, c))
+    args = argparse.Namespace(preset="poolrooms", ref=str(src), out=str(tmp_path / "ld"), frame=1,
+                              set=["post.grade=false", "post.vignette=0.8", "render.resolution=[320,180]"],
+                              preview=False, seconds=None, seed=None)
+    cli.cmd_lookdev(args)
+    assert calls == [False]
+    assert (tmp_path / "ld_graded.png").exists() and (tmp_path / "ld.json").exists()
+
+
+def test_grade_still_applies_vignette_with_grade_off(imgs, tmp_path):
+    import numpy as np
+    from wavegen import config
+    _, src, _ = imgs
+    cfg = config.load("poolrooms", ["render.resolution=[320,180]", "post.grade=false", "post.vignette=0.8",
+                                    "post.crt_on_tv=false"])
+    a = lookdev._load(src)
+    b = lookdev._load(lookdev.grade_still(src, tmp_path / "v.png", cfg))
+    assert b[:20, :20].mean() < a[:20, :20].mean() - 0.05          # corners darkened
