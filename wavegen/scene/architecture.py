@@ -136,6 +136,8 @@ def build(cfg: dict) -> dict:
 
     def arch(wall: str, centre: float, width: float):
         spring = min(room["spring_height"], H - 0.6 - width / 2)
+        # sconces line up at one height in every alcove, whatever the arch width
+        lamp_z = cfg["lights"]["alcove_height"] * room["spring_height"]
         top = spring + width / 2
         ad = room["alcove_depth"]
         off = width / 2 - 0.35                     # two sconces, one toward each side of the alcove
@@ -144,7 +146,7 @@ def build(cfg: dict) -> dict:
             alc = box(f"Alcove.back.{centre:.1f}", (centre - width / 2 - 0.35, Y1 + T - 0.01, 0),
                       (centre + width / 2 + 0.35, Y1 + T + ad, top + 0.45), col, mats["alcove"],
                       inward=True, skip=("-y",))
-            lamps = [(centre + k, Y1 + T + ad - 0.06, spring * 0.6) for k in (-off, off)]
+            lamps = [(centre + k, Y1 + T + ad - 0.06, lamp_z) for k in (-off, off)]
             sconce_rot = (math.radians(90), 0, 0)
             face = Matrix.Translation((centre, Y1 - sd / 2 + 0.01, 0))
             into = (0, 1, 0)                      # from the room toward the alcove's back wall
@@ -157,7 +159,7 @@ def build(cfg: dict) -> dict:
             alc = box(f"Alcove.{wall}.{centre:.1f}", (min(xa, xb), centre - width / 2 - 0.35, 0),
                       (max(xa, xb), centre + width / 2 + 0.35, top + 0.45), col, mats["alcove"],
                       inward=True, skip=("+x",) if wall == "left" else ("-x",))
-            lamps = [(xb - sign * 0.06, centre + k, spring * 0.6) for k in (-off, off)]
+            lamps = [(xb - sign * 0.06, centre + k, lamp_z) for k in (-off, off)]
             sconce_rot = (math.radians(90), 0, math.radians(90))
             xf = x0 + sd / 2 - 0.01 if wall == "left" else x1 - sd / 2 + 0.01
             face = Matrix.Translation((xf, centre, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z")
