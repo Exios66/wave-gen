@@ -75,13 +75,28 @@
       0.42,
       0.43,
       0.46
+    ],
+    "floor_tile": [
+      0.62,
+      0.64,
+      0.95
+    ],
+    "pool_tile": [
+      0.34,
+      0.74,
+      0.78
+    ],
+    "water_absorb": [
+      0.45,
+      0.82,
+      0.8
     ]
   },
   "lights": {
     "alcove_power": 420.0,
     "alcove_fill": 220.0,
     "accent_power": 250.0,
-    "cove_power": 3800.0,
+    "cove_power": 4400.0,
     "alcove_height": 0.66
   },
   "atmosphere": {

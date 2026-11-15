@@ -102,6 +102,7 @@ def tiles(name, color, grout_color, size, grout, jitter=0.03, roughness=0.12):
     # per-tile brightness variation
     var = _math(nt, "MULTIPLY", _math(nt, "SUBTRACT", noise.outputs["Value"], 0.5), jitter * 2)
     base = nt.nodes.new("ShaderNodeRGB")
+    base.name = "tile_base"
     base.outputs[0].default_value = _rgb(color)
     tint = nt.nodes.new("ShaderNodeMix")
     tint.data_type = "RGBA"

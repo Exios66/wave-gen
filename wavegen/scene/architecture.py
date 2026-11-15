@@ -82,7 +82,7 @@ def build(cfg: dict) -> dict:
     mats = {
         "tile": M.tiles("Tile", pal["tile"], pal["grout"], room["tile_size"], room["grout_width"], pal["tile_jitter"]),
         "pool_tile": M.tiles("PoolTile", pal["pool_tile"], pal["grout"], room["tile_size"], room["grout_width"], 0.02, 0.08),
-        "floor": M.tiles("FloorTile", pal["tile"], pal["grout"], room["floor_tile_size"], room["grout_width"],
+        "floor": M.tiles("FloorTile", pal.get("floor_tile") or pal["tile"], pal["grout"], room["floor_tile_size"], room["grout_width"],
                          pal["tile_jitter"]),
         "plaster": M.plaster("Plaster", pal["plaster"]),
         "ceiling": M.plaster("Ceiling", pal["ceiling"], 0.7),

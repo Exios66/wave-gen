@@ -39,6 +39,7 @@ DEFAULTS: dict = {
     "palette": {
         "tile": [0.90, 0.93, 0.94],
         "tile_jitter": 0.035,
+        "floor_tile": None,                    # None = same as tile
         "grout": [0.34, 0.42, 0.46],
         "alcove_tile": [0.92, 0.91, 0.88],     # white square tile inside the alcoves (lit warm)
         "alcove_grout": [0.55, 0.56, 0.58],

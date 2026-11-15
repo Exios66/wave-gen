@@ -166,3 +166,11 @@ def test_poolrooms_passage_behind_the_pier_is_tall_and_fully_tiled():
     bay = room["bay"]
     assert bay["height"] >= 5.0                    # the opening runs out of the top of the frame, as in the clip
     assert bay["wainscot"] >= bay["height"]        # tile all the way up, no plaster band
+
+
+def test_poolrooms_floor_is_lavender_and_the_pool_is_pale():
+    """Measured against the clip: its floor reads lavender, its water paler than ours was."""
+    pal = config.load("poolrooms")["palette"]
+    r, g, b = pal["floor_tile"]
+    assert b - max(r, g) >= 0.2 and abs(r - g) < 0.06
+    assert pal["pool_tile"][0] >= 0.3 and pal["water_absorb"][0] >= 0.4

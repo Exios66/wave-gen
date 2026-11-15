@@ -564,3 +564,15 @@ def test_poolrooms_passage_has_a_visible_wall_lamp(scene):
     assert lo[0] < dome.location.x < hi[0] and 2.0 < dome.location.z < by["height"] - 0.5
     assert lamp.data.energy == power
     assert lamp.location.y < dome.location.y               # the washer sits in front and aims back at the wall
+
+
+def _tile_colour(name):
+    return tuple(bpy.data.materials[name].node_tree.nodes["tile_base"].outputs[0].default_value)[:3]
+
+
+def test_floor_tile_follows_the_wall_tile_unless_given_its_own_colour():
+    build_scene(config.load(None, ["atmosphere.dust_count=0"]))
+    assert _tile_colour("FloorTile") == pytest.approx(_tile_colour("Tile"))
+    build_scene(config.load(None, ["atmosphere.dust_count=0", "palette.floor_tile=[0.9,0.5,0.7]"]))
+    assert _tile_colour("FloorTile") == pytest.approx((0.9, 0.5, 0.7))
+    assert _tile_colour("Tile") != pytest.approx((0.9, 0.5, 0.7))
