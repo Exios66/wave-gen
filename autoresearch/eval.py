@@ -76,7 +76,10 @@ def components(render: np.ndarray, ref: np.ndarray) -> dict:
     la, lb = lookdev._luma(a), lookdev._luma(b)
     pd = lookdev.palette_distance(_palette(a), _palette(b))
     ga, gb = _grid(la), _grid(lb)
-    corr = float(np.corrcoef(ga, gb)[0, 1]) if ga.std() > 1e-6 and gb.std() > 1e-6 else 0.0
+    if ga.std() > 1e-6 and gb.std() > 1e-6:
+        corr = float(np.corrcoef(ga, gb)[0, 1])
+    else:  # a flat grid has no correlation; identical flat grids still match exactly
+        corr = 1.0 if np.allclose(ga, gb, atol=1e-6) else 0.0
     ea, eb = _edge_density(la), _edge_density(lb)
     return {
         "palette": max(0.0, 1 - pd / 0.5),
@@ -114,6 +117,7 @@ def run(target: str, device: str, out_dir: Path) -> dict:
     bad = unknown_keys(json.loads(preset.read_text()), config.DEFAULTS)
     if bad:
         raise SystemExit(f"CRASH: preset sets keys DEFAULTS does not have: {bad}")
+    out_dir = Path(out_dir).resolve()  # the render runs with cwd=ROOT
     out_dir.mkdir(parents=True, exist_ok=True)
     still = out_dir / f"{target}.png"
     sets = EVAL_SETS + ([f"render.device={json.dumps(device)}"] if device else [])

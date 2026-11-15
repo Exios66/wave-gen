@@ -39,3 +39,24 @@ def test_unknown_preset_keys_are_reported():
     base = {"render": {"samples": 1}, "palette": {"water": [0, 0, 0]}}
     assert ar.unknown_keys({"name": "x", "render": {"samples": 2, "bogus": 1}, "nope": 1}, base) == \
         ["render.bogus", "nope"]
+
+
+def test_identical_flat_images_score_one():
+    flat = np.full((270, 480, 3), 0.5, np.float32)
+    assert ar.components(flat, flat)["layout"] == 1.0
+
+
+def test_relative_out_dir_is_resolved_before_render(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_run(cmd, cwd=None, **kw):
+        seen["out"] = cmd[cmd.index("-o") + 1]
+        raise SystemExit("stop after capturing the render command")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(ar.subprocess, "run", fake_run)
+    try:
+        ar.run("poolrooms", "", Path("rel_out"))
+    except SystemExit:
+        pass
+    assert Path(seen["out"]).is_absolute() and Path(seen["out"]).parent == tmp_path / "rel_out"
