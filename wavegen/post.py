@@ -41,6 +41,19 @@ def filtergraph(pc: dict, width: int, height: int) -> str:
               f"[base][h]blend=all_mode=screen:all_opacity={pc['halation']}[v1];")
     else:
         g += "[glow]nullsink;[base]null[v1];"
+    wash = pc.get("pink_wash") or {}
+    if wash.get("strength", 0) > 0:
+        # multiply a left-to-right gradient (tint colour -> white) over the frame: tints, never brightens
+        k = min(1.0, float(wash["strength"]))
+        rgb = [1 - k * (1 - c) for c in wash.get("color", (1.0, 0.8, 0.92))]
+        x1 = max(1, round(width * wash.get("extent", 0.45)))
+        ramp = f"max(0\\,1-X/{x1})"                     # 1 at the left edge -> 0 at the extent, static per frame
+        ch = {c: f"255*(1-{1 - v:.4f}*{ramp})" for c, v in zip("rgb", rgb)}
+        g += (f"color=white:s={width}x{height},format=gbrp,geq=r='{ch['r']}':g='{ch['g']}':b='{ch['b']}'[wash];"
+              f"[v1]format=gbrp[v1g];[v1g][wash]blend=all_mode=multiply:shortest=1[v1w];")
+        src = "[v1w]"
+    else:
+        src = "[v1]"
     tail = []
     if pc["chroma_shift"]:
         s = int(pc["chroma_shift"])
@@ -57,7 +70,7 @@ def filtergraph(pc: dict, width: int, height: int) -> str:
     if pc["vignette"]:
         tail.append(f"vignette=angle={pc['vignette']}")
     tail.append("format=yuv420p")
-    g += f"[v1]{','.join(tail)}[vout]"
+    g += f"{src}{','.join(tail)}[vout]"
     return g
 
 
