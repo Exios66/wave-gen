@@ -116,7 +116,7 @@ DEFAULTS: dict = {
             "shape": "sun",                # sun | triangle | orb
             "font": None,                  # path to a .ttf/.otf; None = Blender's built-in font
             "scale": 0.56,                 # emblem width as a fraction of the screen width (the text spans it)
-            "speed": 0.12,                 # screen widths per second (rounded to whole bounces per loop)
+            "speed": 0.06,                 # screen widths per second (rounded to whole bounces per loop)
             "margin": 0.04,                # keep clear of the bezel (fraction of the screen)
             "palette": [                   # disc gradient [top, bottom]; steps on every wall hit.
                 [[1.0, 0.45, 0.72], [0.52, 0.26, 0.95]],   # pink -> violet

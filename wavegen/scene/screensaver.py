@@ -57,7 +57,6 @@ def emblem(cfg: dict, mat: bpy.types.Material, images: tuple) -> dict:
     fps = cfg["render"]["fps"]
     palette = ec["palette"]
     p = len(palette)
-    tx, ty = choose_trips(n, fps, ec["speed"], p)
 
     sx = ec["scale"]
     sy = sx * SCREEN_ASPECT / EMBLEM_ASPECT
@@ -65,6 +64,7 @@ def emblem(cfg: dict, mat: bpy.types.Material, images: tuple) -> dict:
     fx, fy = 1 - 2 * m - sx, 1 - 2 * m - sy           # free travel range
     if fx <= 0 or fy <= 0:
         raise ValueError("computer.emblem.scale/margin leave no room to bounce")
+    tx, ty = choose_trips(n, fps, ec["speed"], p, span=fx)
 
     uv = nt.nodes.new("ShaderNodeTexCoord")
     mp = nt.nodes.new("ShaderNodeMapping")

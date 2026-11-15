@@ -11,11 +11,14 @@ from __future__ import annotations
 import math
 
 
-def choose_trips(n_frames: int, fps: int, speed: float, palette_len: int) -> tuple[int, int]:
+def choose_trips(n_frames: int, fps: int, speed: float, palette_len: int, span: float = 1.0) -> tuple[int, int]:
     """Integer round trips ``(tx, ty)`` per loop closest to ``speed`` (screen widths
-    per second): distinct, coprime, with ``(tx + ty) % palette_len == 0``."""
+    per second): distinct, coprime, with ``(tx + ty) % palette_len == 0``.
+
+    ``span`` is the free travel range as a fraction of the screen width (the screen less
+    the emblem and its margins), so a large emblem still moves at the asked speed."""
     loop_s = n_frames / fps
-    want_x = max(1.0, speed * loop_s / 2)           # one round trip = 2 widths of travel
+    want_x = max(1.0, speed * loop_s / (2 * max(span, 1e-6)))   # one round trip = 2 spans of travel
     want_y = want_x * 0.78                          # a different rhythm vertically
     best, best_cost = None, math.inf
     hi = int(want_x * 2 + 2 * palette_len + 4)
