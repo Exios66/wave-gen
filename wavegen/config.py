@@ -1,0 +1,246 @@
+"""Preset / configuration handling.
+
+A preset is a JSON file of nested sections. Every preset is deep-merged on
+top of ``DEFAULTS`` so a preset only has to list what it changes. Values can be
+overridden from the CLI with dotted keys, e.g. ``--set render.samples=32``.
+"""
+from __future__ import annotations
+
+import copy
+import json
+import random
+from pathlib import Path
+
+PRESET_DIR = Path(__file__).parent / "presets"
+
+# Colors are linear-ish RGB in 0..1 (Blender takes scene-linear values).
+DEFAULTS: dict = {
+    "name": "poolrooms",
+    "seed": 4290,
+    "render": {
+        "engine": "CYCLES",          # CYCLES | BLENDER_EEVEE
+        "device": "AUTO",            # AUTO | CPU | GPU  (Cycles only)
+        "resolution": [1920, 1080],
+        "percentage": 100,
+        "fps": 30,
+        "seconds": 26.0,
+        "samples": 96,
+        "denoise": True,
+        "max_bounces": 6,
+        "view_transform": "AgX",
+        "look": "AgX - Base Contrast",
+        "exposure": -0.5,
+        "gamma": 1.0,
+        "bloom": {"threshold": 0.85, "strength": 0.55, "size": 0.7},
+        "lens": {"distortion": -0.012, "dispersion": 0.012},
+        "format": "PNG",             # PNG frames -> post.py assembles MP4
+    },
+    "palette": {
+        "tile": [0.90, 0.93, 0.94],
+        "tile_jitter": 0.035,
+        "grout": [0.62, 0.70, 0.74],
+        "plaster": [0.50, 0.84, 0.95],
+        "ceiling": [0.30, 0.76, 0.90],
+        "pool_tile": [0.30, 0.82, 0.84],
+        "water": [0.55, 0.95, 0.92],
+        "water_absorb": [0.25, 0.80, 0.78],
+        "beige": [0.66, 0.56, 0.50],
+        "key_cap": [0.72, 0.64, 0.58],
+        "desk": [0.74, 0.70, 0.86],
+        "screen": [0.02, 0.04, 0.30],
+        "screen_glow": [0.06, 0.12, 0.62],
+        "warm_light": [1.0, 0.72, 0.42],
+        "cool_light": [0.40, 0.85, 1.0],
+        "accent_light": [0.86, 0.55, 1.0],
+        "world": [0.38, 0.72, 0.92],
+        "haze": [0.78, 0.90, 1.0],
+        "dust": [1.0, 0.97, 0.95],
+        "icon": [[1.0, 0.45, 0.65], [1.0, 0.85, 0.35], [0.45, 1.0, 0.65],
+                 [0.40, 0.75, 1.0], [0.75, 0.50, 1.0], [1.0, 0.60, 0.40]],
+    },
+    "room": {
+        "width": 15.0,
+        "depth": 20.0,
+        "height": 6.4,
+        "wall_thickness": 0.45,
+        "tile_size": 0.16,
+        "grout_width": 0.012,
+        "bevel": 0.05,
+        "spring_height": 3.6,       # height where an arch starts curving
+        "alcove_depth": 2.6,
+        "back_arches": [2.8, 4.6, 2.8],   # widths, left -> right
+        "side_arches": [3.2],             # per side wall
+        "ceiling_tray": {"inset": 2.0, "steps": 3, "step_height": 0.28},
+        "column": True,             # big rounded column on the near-left
+    },
+    "pool": {
+        "x": [-2.6, 6.2],
+        "y": [3.6, 13.0],
+        "depth": 1.35,
+        "water_level": -0.10,
+        "coping": 0.30,             # width of the raised tiled lip
+        "wave_scale": 1.6,
+        "wave_strength": 0.18,
+        "wave_speed": 0.08,
+    },
+    "computer": {
+        "enabled": True,
+        "location": [-0.99, 0.16, 0.86],   # sits on the desk
+        "rotation_z": 38.0,                # degrees
+        "scale": 1.0,
+        "screen_strength": 2.4,
+        "scanlines": 240,
+        "icon_spin_period": 5.0,           # seconds per turn
+        "icon_tumble_period": 7.5,
+    },
+    "desk": {"enabled": True, "size": [1.5, 1.05, 0.06], "top": 0.86, "center": [-1.0, 0.12]},
+    "lights": {
+        "alcove_power": 170.0,
+        "alcove_radius": 0.25,
+        "sconces": True,
+        "cove_power": 3200.0,
+        "accent_power": 650.0,
+        "world_strength": 0.35,
+    },
+    "atmosphere": {
+        "haze_density": 0.0035,      # 0 disables the volume (much faster)
+        "haze_anisotropy": 0.35,
+        "dust_count": 220,
+        "dust_size": [0.002, 0.006],
+        "dust_strength": [1.0, 4.0],
+        "dust_speed": 0.06,
+    },
+    "camera": {
+        "location": [-0.92, -1.02, 1.13],
+        "target": [2.3, 12.0, 2.15],
+        "lens": 24.0,
+        "dof": True,
+        "fstop": 5.6,
+        "focus_on": "computer",       # computer | target | <distance in m>
+        "drift": {                      # slow "floating" camera
+            "amplitude": [0.14, 0.08, 0.03],
+            "period": [26.0, 17.0, 11.0],
+            "target_amplitude": [0.7, 0.25, 0.12],
+            "target_period": [31.0, 19.0, 13.0],
+        },
+    },
+    "audio": {
+        "enabled": True,
+        "sample_rate": 48000,
+        "tempo_slow": 0.975,          # the source audio is ~2.5% "slowed"
+        "chords": [
+            ["G2", "D3", "F#3", "B3", "A4", "D5"],
+            ["E2", "B2", "G3", "D4", "F#4", "B4"],
+            ["C3", "G3", "B3", "E4", "F#4", "D5"],
+            ["D2", "A2", "E3", "F#3", "C4", "G4"],
+        ],
+        "chord_seconds": 6.5,
+        "pad_level": 0.55,
+        "bell_level": 0.22,
+        "bell_density": 0.55,         # bells per second
+        "water_level": 0.16,
+        "hiss_level": 0.012,
+        "reverb_seconds": 4.8,
+        "reverb_mix": 0.45,
+        "wow_depth": 0.0025,
+    },
+    "post": {
+        "grade": True,
+        "halation": 0.22,
+        "grain": 5,
+        "vignette": 0.55,
+        "chroma_shift": 2,
+        "crt_on_tv": False,           # re-photograph look (moire/scan + bezel)
+        "crf": 16,
+    },
+}
+
+
+def deep_merge(base: dict, over: dict) -> dict:
+    out = copy.deepcopy(base)
+    for k, v in over.items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = deep_merge(out[k], v)
+        else:
+            out[k] = copy.deepcopy(v)
+    return out
+
+
+def list_presets() -> list[str]:
+    return sorted(p.stem for p in PRESET_DIR.glob("*.json"))
+
+
+def load(preset: str | None = None, overrides: list[str] | None = None) -> dict:
+    cfg = copy.deepcopy(DEFAULTS)
+    if preset:
+        path = Path(preset)
+        if not path.exists():
+            path = PRESET_DIR / f"{preset}.json"
+        if not path.exists():
+            raise FileNotFoundError(f"preset '{preset}' not found (have: {', '.join(list_presets())})")
+        cfg = deep_merge(cfg, json.loads(path.read_text()))
+    for item in overrides or []:
+        set_dotted(cfg, item)
+    return cfg
+
+
+def set_dotted(cfg: dict, assignment: str) -> None:
+    """Apply ``a.b.c=value``; value is parsed as JSON when possible."""
+    key, _, raw = assignment.partition("=")
+    if not _:
+        raise ValueError(f"override must look like key=value, got {assignment!r}")
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        value = raw
+    node = cfg
+    parts = key.split(".")
+    for p in parts[:-1]:
+        node = node.setdefault(p, {})
+    node[parts[-1]] = value
+
+
+def _jitter(rng: random.Random, color, amount):
+    return [min(1.0, max(0.0, c + rng.uniform(-amount, amount))) for c in color]
+
+
+def mutate(cfg: dict, seed: int, strength: float = 1.0) -> dict:
+    """Make a 'parallel version' of a scene: same language, new layout/colors.
+
+    Deterministic for a given seed, so a good variant can be re-rendered.
+    """
+    rng = random.Random(seed)
+    c = copy.deepcopy(cfg)
+    c["seed"] = seed
+    c["name"] = f"{cfg['name']}-v{seed}"
+    s = strength
+    room = c["room"]
+    room["width"] *= 1 + rng.uniform(-0.15, 0.2) * s
+    room["depth"] *= 1 + rng.uniform(-0.15, 0.25) * s
+    room["height"] *= 1 + rng.uniform(-0.1, 0.2) * s
+    room["spring_height"] = min(room["height"] - 2.0, room["spring_height"] * (1 + rng.uniform(-0.1, 0.15) * s))
+    n_back = rng.choice([3, 3, 4, 5])
+    widths = [round(rng.uniform(2.0, 3.0), 2) for _ in range(n_back)]
+    widths[n_back // 2] = round(rng.uniform(3.4, 4.6), 2)
+    room["back_arches"] = widths
+    room["side_arches"] = [round(rng.uniform(2.4, 3.6), 2) for _ in range(rng.choice([1, 1, 2]))]
+    room["column"] = rng.random() < 0.75
+    pool = c["pool"]
+    w = room["width"]
+    pool["x"] = [round(-w * rng.uniform(0.12, 0.22), 2), round(w * rng.uniform(0.3, 0.42), 2)]
+    pool["y"] = [round(rng.uniform(3.2, 4.4), 2), round(room["depth"] * rng.uniform(0.6, 0.72), 2)]
+    pal = c["palette"]
+    for k in ("plaster", "ceiling", "pool_tile", "water", "world", "cool_light"):
+        pal[k] = _jitter(rng, pal[k], 0.06 * s)
+    pal["warm_light"] = _jitter(rng, pal["warm_light"], 0.05 * s)
+    pal["accent_light"] = _jitter(rng, pal["accent_light"], 0.12 * s)
+    c["lights"]["cove_power"] *= rng.uniform(0.8, 1.25)
+    c["lights"]["alcove_power"] *= rng.uniform(0.8, 1.3)
+    cam = c["camera"]
+    cam["location"] = [cam["location"][0] + rng.uniform(-0.4, 0.4) * s,
+                       cam["location"][1] + rng.uniform(-0.3, 0.3) * s,
+                       cam["location"][2] + rng.uniform(-0.1, 0.2) * s]
+    cam["lens"] = rng.choice([22.0, 24.0, 24.0, 28.0])
+    c["computer"]["rotation_z"] = rng.uniform(18, 36)
+    c["audio"]["chords"] = rng.sample(cfg["audio"]["chords"], len(cfg["audio"]["chords"]))
+    return c

@@ -1,0 +1,27 @@
+[project]
+name = "wavegen"
+version = "0.1.0"
+description = "Procedural vaporwave / liminal poolrooms scene + ambience generator for Blender"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+blender = ["bpy>=4.2"]   # pip bpy wheels track one Python version each (5.x -> CPython 3.13)
+dev = ["pytest>=8"]
+
+[project.scripts]
+wavegen = "wavegen.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["wavegen*"]
+
+[tool.setuptools.package-data]
+wavegen = ["presets/*.json"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
