@@ -312,6 +312,23 @@ def build(cfg: dict) -> dict:
         blo.rotation_euler = look_at_matrix(blo.location, (bx1 - bw / 2, py, bh * 0.5)).to_euler()
         collection("Lights").objects.link(blo)
         lights.append(blo)
+        if by.get("sconce_power", 0.0) > 0:
+            # a visible wall lamp on the passage's back wall, with a washer for its halo on the tile
+            lamp = (bx1 - bw + bw * by.get("sconce_at", 0.5), py + bd - 0.06,
+                    min(by.get("sconce_height") or cfg["lights"]["alcove_height"] * room["spring_height"], bh - 0.8))
+            bm = bmesh.new()
+            bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=0.09)
+            dome = obj_from_bmesh("BaySconce", bm, col, mats["sconce"], smooth=True)
+            dome.location, dome.rotation_euler, dome.scale = lamp, (math.radians(90), 0, 0), (1, 1, 0.45)
+            SL = bpy.data.lights.new("BaySconceLight", "SPOT")
+            SL.energy, SL.color = by["sconce_power"], pal["warm_light"]
+            SL.spot_size, SL.spot_blend = math.radians(150), 1.0
+            SL.shadow_soft_size = cfg["lights"]["alcove_radius"]
+            so = bpy.data.objects.new("BaySconceLight", SL)
+            so.location = (lamp[0], lamp[1] - 0.55, lamp[2])
+            so.rotation_euler = look_at_matrix(so.location, lamp).to_euler()
+            collection("Lights").objects.link(so)
+            lights.append(so)
 
     cut_col.hide_render = True
     return {"materials": mats, "lights": lights, "bounds": (x0, x1, Y0, Y1, H)}
