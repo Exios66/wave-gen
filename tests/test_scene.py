@@ -479,6 +479,13 @@ def test_arch_corner_radius_is_capped_at_half_the_width():
     assert arch_profile(2.0, 2.0, corner_radius=5.0) == arch_profile(2.0, 2.0)
 
 
+def test_arch_profile_with_zero_corner_radius_is_a_plain_rectangle():
+    from wavegen.scene.util import arch_profile
+    pts = arch_profile(4.0, 2.0, corner_radius=0.0)
+    assert len(set(pts)) == len(pts)            # no coincident points, so no zero-length edges
+    assert pts == [(-2.0, -0.05), (2.0, -0.05), (2.0, 2.0), (-2.0, 2.0)]
+
+
 def test_arch_tops_line_up_when_a_corner_radius_is_set():
     cfg = config.load("poolrooms", ["atmosphere.dust_count=0", "room.arch_corner_radius=1.2"])
     build_scene(cfg)
