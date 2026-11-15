@@ -174,3 +174,9 @@ def test_poolrooms_floor_is_lavender_and_the_pool_is_pale():
     r, g, b = pal["floor_tile"]
     assert b - max(r, g) >= 0.2 and abs(r - g) < 0.06
     assert pal["pool_tile"][0] >= 0.3 and pal["water_absorb"][0] >= 0.4
+
+
+def test_poolrooms_screen_background_is_dark_navy():
+    """The clip's screen is near-black; a dark background also sets off the purple emblem."""
+    r, g, b = config.load("poolrooms")["palette"]["screen_glow"]
+    assert b <= 0.2 and b > 2 * max(r, g)
