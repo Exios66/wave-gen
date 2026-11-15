@@ -24,9 +24,11 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
 4. **Arch shape (flat tops fixed; nested recess open).** The arches are now
    flat-topped with rounded corners and end level (`room.arch_corner_radius`).
    Still missing: the smaller arched recess inside the wide centre opening.
-5. **Left of frame.** The reference has a bright tiled passage with a warm lamp
-   behind the rounded pier. Ours shows a plain plaster niche there. The bay
-   exists (`room.bay`) but is not lit or tiled enough to read.
+5. **Left of frame (mostly fixed).** The passage behind the pier is now tall,
+   wider and tiled to the top like the alcoves. Still missing: the reference's
+   warm lamp glow there. A brighter passage light was tried and blew the tile
+   out to flat pink under the left-side wash, so it needs a visible sconce
+   rather than more fill.
 6. **Ceiling.** The reference tray has a round medallion and a brighter cyan
    glow in the cove. Ours has the tray but no medallion and a weaker glow.
 7. **Pool far corner.** The reference pool has a stepped notch at the far-left

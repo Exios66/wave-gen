@@ -180,6 +180,7 @@ def look():
     """Fresh default build (earlier tests rebuild the session and invalidate ``scene``)."""
     cfg = config.load("poolrooms", ["atmosphere.dust_count=12"])
     build_scene(cfg)
+    bpy.context.view_layer.update()        # world matrices are stale until the first update
     return cfg, bpy.context.scene
 
 
@@ -485,3 +486,13 @@ def test_arch_tops_line_up_when_a_corner_radius_is_set():
     tops = {round(max((o.matrix_world @ v.co).z for v in o.data.vertices), 3)
             for o in bpy.data.objects if o.name.startswith("ArchSurround.")}
     assert len(tops) == 1, tops                                             # wide and narrow arches end level
+
+
+def test_bay_is_tiled_like_the_alcoves():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=0", "room.alcove_tile_size=0.31"])
+    build_scene(cfg)
+    assert bpy.data.materials["BayTile"].node_tree.nodes["tile_cell"].inputs[1].default_value[0] == pytest.approx(0.31)
+
+
+def test_bay_light_never_shows_up_as_a_disc_in_the_tiles(scene):
+    assert not bpy.data.objects["BayLight"].visible_glossy
