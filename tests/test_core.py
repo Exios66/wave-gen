@@ -166,3 +166,14 @@ def test_poolrooms_passage_behind_the_pier_is_tall_and_fully_tiled():
     bay = room["bay"]
     assert bay["height"] >= 5.0                    # the opening runs out of the top of the frame, as in the clip
     assert bay["wainscot"] >= bay["height"]        # tile all the way up, no plaster band
+
+
+def test_mutate_keeps_the_nested_arch_in_the_widest_opening():
+    base = config.load("poolrooms")
+    seen = set()
+    for seed in range(40):
+        room = config.mutate(base, seed)["room"]
+        widths = room["back_arches"]
+        seen.add(len(widths))
+        assert widths[room["nested_arch"]["arch"]] == max(widths)
+    assert seen > {3}                                       # layouts with more than three arches were covered
