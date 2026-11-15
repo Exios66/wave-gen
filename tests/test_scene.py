@@ -217,7 +217,7 @@ def test_computer_screen_anchor(look):
         ys.append(v.y)
     sc.frame_set(1)
     assert 0.08 <= min(xs) and max(xs) <= 0.38, (min(xs), max(xs))
-    assert max(xs) - min(xs) <= 0.04
+    assert max(xs) - min(xs) <= 0.10          # the parallax sweep lets the CRT breathe a little
     assert max(ys) <= 0.5
 
 
@@ -308,6 +308,42 @@ def test_twin_sconces_per_alcove(look):
 def test_alcoves_have_tile_wainscot(look):
     mat = bpy.data.materials["AlcoveTile"]
     assert any(n.type == "MIX_SHADER" for n in mat.node_tree.nodes)
+
+
+def test_floor_uses_large_tiles(look):
+    cfg, _ = look
+    assert cfg["room"]["floor_tile_size"] >= 2 * cfg["room"]["tile_size"]
+    assert bpy.data.objects["Floor.0"].data.materials[0].name == "FloorTile"
+    assert cfg["pool"]["depth"] <= 1.0                  # shallow: the tiled pool floor shows through
+
+
+def _driven(mat, node):
+    ad = mat.node_tree.animation_data
+    return ad is not None and any(f'nodes["{node}"]' in d.data_path for d in ad.drivers)
+
+
+def test_water_has_swell_and_fine_ripples(look):
+    water = bpy.data.materials["Water"]
+    assert _driven(water, "waves") and _driven(water, "ripples")
+
+
+def test_pool_floor_has_looping_caustics(look):
+    pool = bpy.data.materials["PoolTile"]
+    assert "caustics" in pool.node_tree.nodes and _driven(pool, "caustics")
+
+
+def test_sweep_keeps_screen_in_frame(look):
+    from wavegen.scene.framing import project_bounds
+    _, sc = look
+    cam = bpy.data.objects["Camera"]
+    xs, bounds = [], []
+    for f in np.linspace(1, sc.frame_end, 12).astype(int):
+        b = project_bounds("Computer.screen", int(f))
+        xs.append(cam.matrix_world.translation.x)
+        bounds.append(b)
+    sc.frame_set(1)
+    assert max(xs) - min(xs) >= 0.3, (min(xs), max(xs))
+    assert all(0.02 <= b[0] and b[1] <= 0.98 and 0.02 <= b[2] and b[3] <= 0.98 for b in bounds), bounds
 
 
 def test_pier_outline_rejects_depth_too_shallow_for_its_round_front():

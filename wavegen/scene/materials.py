@@ -236,10 +236,20 @@ def water(name, color, absorb, wave_scale, wave_strength, wave_cycles, n_frames)
     nt.links.new(mapping.outputs["Vector"], noise.inputs["Vector"])
     drive(nt, 'nodes["waves_map"].inputs["Location"].default_value',
           circle_expr(radius / max(wave_scale, 1e-3), wave_cycles, n_frames, "sin"), 2)
+    # fine wind ripples riding on the slow swell; twice the evolutions per loop, still whole cycles
+    rip = nt.nodes.new("ShaderNodeTexNoise")
+    rip.name = "ripples"
+    rip.noise_dimensions = "4D"
+    rip.inputs["Scale"].default_value = wave_scale * 6.0
+    rip.inputs["Detail"].default_value = 2.0
+    rip.inputs["Roughness"].default_value = 0.5
+    nt.links.new(coord.outputs["Generated"], rip.inputs["Vector"])
+    drive(nt, f'nodes["{rip.name}"].inputs["W"].default_value', circle_expr(0.4, 2 * wave_cycles, n_frames, "sin"))
+    height = _math(nt, "ADD", noise.outputs["Fac"], _math(nt, "MULTIPLY", rip.outputs["Fac"], 0.3))
     bump = nt.nodes.new("ShaderNodeBump")
     bump.inputs["Strength"].default_value = wave_strength
     bump.inputs["Distance"].default_value = 0.02
-    nt.links.new(noise.outputs["Fac"], bump.inputs["Height"])
+    nt.links.new(height, bump.inputs["Height"])
     nt.links.new(bump.outputs[0], p.inputs["Normal"])
     # Shadow rays pass straight through, so lamps light the tiled pool floor directly
     # (bright turquoise basin, visible tiles) without slow, noisy refractive caustics.
@@ -260,6 +270,34 @@ def water(name, color, absorb, wave_scale, wave_strength, wave_cycles, n_frames)
         mat.use_raytrace_refraction = True
     except Exception:
         pass
+    return mat
+
+
+def add_caustics(mat, color, scale, strength, cycles, n_frames):
+    """Bright rippling light lines on a pool basin (cheap stand-in for refractive caustics).
+
+    A 4D Voronoi edge pattern in world space whose W walks a circle ``cycles`` times per
+    loop, so the pattern drifts and returns exactly to its first state at the loop point.
+    """
+    nt = mat.node_tree
+    p = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    vor = nt.nodes.new("ShaderNodeTexVoronoi")
+    vor.name = "caustics"
+    vor.voronoi_dimensions = "4D"
+    vor.feature = "DISTANCE_TO_EDGE"
+    vor.inputs["Scale"].default_value = scale
+    nt.links.new(geo.outputs["Position"], vor.inputs["Vector"])
+    drive(nt, f'nodes["{vor.name}"].inputs["W"].default_value', circle_expr(0.5, cycles, n_frames, "cos"))
+    edge = nt.nodes.new("ShaderNodeMapRange")              # thin bright lines along the cell edges
+    nt.links.new(vor.outputs["Distance"], edge.inputs["Value"])
+    edge.inputs["From Min"].default_value = 0.0
+    edge.inputs["From Max"].default_value = 0.08
+    edge.inputs["To Min"].default_value = 1.0
+    edge.inputs["To Max"].default_value = 0.0
+    lines = _math(nt, "POWER", edge.outputs[0], 2.0)
+    p.inputs["Emission Color"].default_value = _rgb(color)
+    nt.links.new(_math(nt, "MULTIPLY", lines, strength), p.inputs["Emission Strength"])
     return mat
 
 
