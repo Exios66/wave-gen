@@ -144,3 +144,9 @@ def test_poolrooms_sconces_sit_in_the_upper_part_of_the_arch():
 def test_emblem_is_large_enough_to_read_its_lettering():
     em = config.load("poolrooms")["computer"]["emblem"]
     assert 0.5 <= em["scale"] <= 0.7      # the text spans the emblem; under half the screen it blurs at 1080p
+
+
+def test_poolrooms_alcoves_are_tiled_to_the_top_in_large_tile():
+    room = config.load("poolrooms")["room"]
+    assert room["alcove_wainscot"] >= room["height"]            # tile runs up behind the sconces, no plaster band
+    assert room["alcove_tile_size"] >= 1.5 * room["tile_size"]  # large enough for the grid to read across the pool

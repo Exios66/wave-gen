@@ -73,6 +73,7 @@ DEFAULTS: dict = {
         "bevel": 0.05,
         "spring_height": 3.6,       # height where an arch starts curving
         "alcove_depth": 3.2,
+        "alcove_tile_size": None,   # None = same as tile_size; the clip's alcove tiles are larger
         "alcove_wainscot": 2.4,     # alcove walls: tile below this height, plaster above
         "arch_surround": {"width": 0.22, "depth": 0.12},   # moulded reveal around each arch
         "back_arches": [3.0, 5.4, 3.0],   # widths, left -> right

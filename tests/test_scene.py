@@ -448,3 +448,11 @@ def test_keyboard_stays_in_frame_through_the_whole_sweep(scene):
     sc.frame_set(1)
     assert bs[:, 0].min() >= 0.0 and bs[:, 1].max() <= 1.0, bs.round(3)      # left / right edges
     assert bs[:, 2].min() >= 0.0 and bs[:, 3].max() <= 1.0, bs.round(3)      # top / bottom edges
+
+
+def test_alcove_tile_size_is_its_own_setting():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=0", "room.alcove_tile_size=0.31"])
+    build_scene(cfg)
+    size = lambda name: bpy.data.materials[name].node_tree.nodes["tile_cell"].inputs[1].default_value[0]
+    assert size("AlcoveTile") == pytest.approx(0.31)
+    assert size("Tile") == pytest.approx(cfg["room"]["tile_size"])
