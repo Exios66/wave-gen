@@ -74,7 +74,13 @@ def tile_grid(nt, size: float, grout: float):
         f = _math(nt, "FRACT", u)
         edge = _math(nt, "MINIMUM", f, _math(nt, "SUBTRACT", 1.0, f))
         dist = _math(nt, "MULTIPLY", edge, size)            # metres to line
-        line = _math(nt, "LESS_THAN", dist, grout * 0.5)
+        # soft-edged line (anti-aliased, and gives the grout a rounded profile for the bump)
+        line = nt.nodes.new("ShaderNodeMapRange")
+        line.interpolation_type = "SMOOTHSTEP"
+        nt.links.new(dist, line.inputs["Value"])
+        line.inputs["From Min"].default_value = grout * 0.5 + grout * 0.25
+        line.inputs["From Max"].default_value = grout * 0.5 - grout * 0.25
+        line = line.outputs["Result"]
         n_abs = _math(nt, "ABSOLUTE", sep_n.outputs[axis])
         weight = _math(nt, "LESS_THAN", n_abs, 0.5)
         term = _math(nt, "MULTIPLY", line, weight)
@@ -216,7 +222,16 @@ def water(name, color, absorb, wave_scale, wave_strength, wave_cycles, n_frames)
     bump.inputs["Distance"].default_value = 0.02
     nt.links.new(noise.outputs["Fac"], bump.inputs["Height"])
     nt.links.new(bump.outputs[0], p.inputs["Normal"])
-    nt.links.new(p.outputs[0], out.inputs["Surface"])
+    # Shadow rays pass straight through, so lamps light the tiled pool floor directly
+    # (bright turquoise basin, visible tiles) without slow, noisy refractive caustics.
+    lp = nt.nodes.new("ShaderNodeLightPath")
+    clear = nt.nodes.new("ShaderNodeBsdfTransparent")
+    clear.inputs["Color"].default_value = _rgb(absorb)
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    nt.links.new(lp.outputs["Is Shadow Ray"], mix.inputs["Fac"])
+    nt.links.new(p.outputs[0], mix.inputs[1])
+    nt.links.new(clear.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
     vol = nt.nodes.new("ShaderNodeVolumeAbsorption")
     vol.inputs["Color"].default_value = _rgb(absorb)
     vol.inputs["Density"].default_value = 0.35

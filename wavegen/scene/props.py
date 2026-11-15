@@ -148,34 +148,51 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     body = _body(col, beige)
     _parent(body, rig)
     (xa, xb), (za, zb) = SCREEN["x"], SCREEN["z"]
-    recess = box("ScreenRecessCut", (xa - 0.016, -BODY_D / 2 - 0.05, za - 0.016),
-                 (xb + 0.016, -BODY_D / 2 + 0.026, zb + 0.016), col)
+    m_in = 0.016                                        # glass -> recess edge
+    recess = box("ScreenRecessCut", (xa - m_in, -BODY_D / 2 - 0.05, za - m_in),
+                 (xb + m_in, -BODY_D / 2 + 0.04, zb + m_in), col)
     _parent(recess, rig)
     boolean_cut(body, recess)
+    # shadow notch along the base so the unit sits on a recessed foot, not flat on the desk
+    notch = box("BaseNotchCut", (-BODY_W / 2 - 0.05, -BODY_D / 2 - 0.05, -0.01),
+                (BODY_W / 2 + 0.05, -BODY_D / 2 + 0.035, 0.014), col)
+    _parent(notch, rig)
+    boolean_cut(body, notch)
     bevel(body, 0.022, 4, 30)
     smooth_shade(body)
+
+    # thick rounded frame standing proud around the glass (the "deep bezel" look)
+    fy0 = -BODY_D / 2
+    frame = box("Computer.bezel", (xa - m_in - 0.024, fy0 - 0.014, za - m_in - 0.024),
+                (xb + m_in + 0.024, fy0 + 0.004, zb + m_in + 0.024), col, beige)
+    _parent(frame, rig)
+    hole = box("BezelHoleCut", (xa - m_in, fy0 - 0.05, za - m_in), (xb + m_in, fy0 + 0.05, zb + m_in), col)
+    _parent(hole, rig)
+    boolean_cut(frame, hole)
+    bevel(frame, 0.009, 4, 30)
+    smooth_shade(frame)
 
     screen_mat = M.crt_screen("CRT", pal["screen"], pal["screen_glow"], cc["screen_strength"], cc["scanlines"])
     screen, front_y = _screen(col, screen_mat)
     _parent(screen, rig)
 
-    slot_mat = M.dark("SlotDark", (0.08, 0.075, 0.08), 0.7)
+    slot_mat = M.dark("SlotDark", (0.035, 0.032, 0.036), 0.75)
     fy = -BODY_D / 2
     slot = box("Computer.floppy", (0.03, fy - 0.004, 0.105), (0.135, fy + 0.004, 0.113), col, slot_mat)
     _parent(slot, rig)
-    for i in range(7):  # front-left vent slots
-        x = -0.14 + i * 0.011
-        v = box(f"Computer.vent.{i}", (x, fy - 0.003, 0.05), (x + 0.005, fy + 0.004, 0.10), col, slot_mat)
+    for i in range(11):  # front-left vent grille
+        x = -0.148 + i * 0.0085
+        v = box(f"Computer.vent.{i}", (x, fy - 0.003, 0.035), (x + 0.0045, fy + 0.004, 0.098), col, slot_mat)
         _parent(v, rig)
     led = box("Computer.led", (-0.03, fy - 0.003, 0.09), (-0.024, fy + 0.002, 0.096), col,
               M.emission("LED", (0.6, 1.0, 0.7), 3.0))
     _parent(led, rig)
 
-    kb = box("Keyboard.base", (-0.235, -0.085, 0.0), (0.235, 0.085, 0.024), col, beige)
-    bevel(kb, 0.008, 3)
+    kb = box("Keyboard.base", (-0.235, -0.09, 0.0), (0.235, 0.09, 0.034), col, beige)
+    bevel(kb, 0.01, 3)
     keys = _keys(col, M.plastic("KeyCaps", pal["key_cap"], 0.5, 0.02))
     _parent(keys, kb)
-    keys.location = (0.0, 0.0, 0.020)
+    keys.location = (0.0, 0.0, 0.030)
     kb_rig = bpy.data.objects.new("Keyboard.rig", None)
     col.objects.link(kb_rig)
     _parent(kb_rig, rig)

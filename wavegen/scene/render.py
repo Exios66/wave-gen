@@ -39,7 +39,10 @@ def configure(cfg: dict) -> None:
     r.fps = int(rc["fps"])
     sc.frame_start = 1
     sc.frame_end = max(1, round(rc["seconds"] * rc["fps"]))
-    r.use_motion_blur = False
+    mb = float(rc.get("motion_blur", 0.0))
+    r.use_motion_blur = mb > 0
+    if mb > 0:
+        r.motion_blur_shutter = mb
 
     if engine == "CYCLES":
         cy = sc.cycles
@@ -47,6 +50,8 @@ def configure(cfg: dict) -> None:
         cy.use_adaptive_sampling = True
         cy.adaptive_threshold = 0.02
         cy.use_denoising = bool(rc["denoise"])
+        cy.use_animated_seed = False      # same noise pattern every frame: no grain boil
+        cy.seed = 0
         _set(cy, "denoiser", "OPENIMAGEDENOISE")
         cy.max_bounces = int(rc["max_bounces"])
         cy.transmission_bounces = 8
