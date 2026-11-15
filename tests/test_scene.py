@@ -379,3 +379,10 @@ def test_crt_front_face_stays_put_when_depth_changes():
     deep = config.load("poolrooms", ["atmosphere.dust_count=0", "computer.depth=0.5"])
     build_scene(deep)
     assert project_bounds("Computer.screen", 1) == pytest.approx(a, abs=1e-6)
+
+
+def test_crt_depth_shallower_than_the_screen_recess_is_rejected():
+    from wavegen.scene import props
+    shallow = config.load("poolrooms", ["atmosphere.dust_count=0", f"computer.depth={props.RECESS_D}"])
+    with pytest.raises(ValueError, match="depth"):
+        build_scene(shallow)
