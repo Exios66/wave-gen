@@ -201,7 +201,7 @@ def build(cfg: dict) -> dict:
         F.color = pal["warm_light"]
         F.shadow_soft_size = 0.6
         fo = bpy.data.objects.new(F.name, F)
-        fo.visible_glossy = False                       # a fill, not a lamp: no glowing orb in the water
+        fo.visible_glossy = fo.visible_transmission = False   # a fill, not a lamp: no glowing orb in or on the water
         mid = (sum(p[0] for p in lamps) / 2, sum(p[1] for p in lamps) / 2)
         fo.location = tuple(mid[k] - into[k] * (ad * 0.5) for k in range(2)) + (top * 0.75,)
         collection("Lights").objects.link(fo)
