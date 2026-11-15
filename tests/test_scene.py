@@ -415,3 +415,9 @@ def test_crt_depth_shallower_than_the_screen_recess_is_rejected():
     shallow = config.load("poolrooms", ["atmosphere.dust_count=0", f"computer.depth={props.RECESS_D}"])
     with pytest.raises(ValueError, match="depth"):
         build_scene(shallow)
+
+
+def test_alcove_fill_lights_never_show_up_in_reflections(scene):
+    fills = [o for o in bpy.data.objects if o.name.startswith("AlcoveFill.")]
+    assert fills
+    assert all(not o.visible_glossy for o in fills)
