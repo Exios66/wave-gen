@@ -70,6 +70,11 @@
       0.86,
       0.87,
       0.97
+    ],
+    "alcove_grout": [
+      0.42,
+      0.43,
+      0.46
     ]
   },
   "lights": {
@@ -100,5 +105,9 @@
   "desk": {
     "roughness": 0.12,
     "coat": 0.5
+  },
+  "room": {
+    "alcove_wainscot": 9.0,
+    "alcove_tile_size": 0.22
   }
 }

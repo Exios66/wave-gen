@@ -86,6 +86,7 @@ def tile_grid(nt, size: float, grout: float):
         term = _math(nt, "MULTIPLY", line, weight)
         mask = term if mask is None else _math(nt, "MAXIMUM", mask, term)
     cell = nt.nodes.new("ShaderNodeVectorMath")
+    cell.name = "tile_cell"
     cell.operation = "SNAP"
     nt.links.new(geo.outputs["Position"], cell.inputs[0])
     cell.inputs[1].default_value = (size, size, size)

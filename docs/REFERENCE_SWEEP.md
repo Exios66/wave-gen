@@ -18,7 +18,7 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    the whole loop.
 
 ### Architecture
-3. **Alcove tile stops at 2.4 m.** In the reference the square white tile runs
+3. **Alcove tile stopped at 2.4 m (fixed).** In the reference the square white tile runs
    up to the arch, with visible grout, and the sconces sit on tile. Raise
    `room.alcove_wainscot` (or add a full-height option).
 4. **Arch shape.** The reference arches are flatter, with a wide rounded-corner
