@@ -48,6 +48,12 @@ def _frames(spec: str | None, cfg: dict) -> list[int] | None:
         raise SystemExit(f"wavegen: --frames: {e}") from None
 
 
+def _default_frame(frame: int | None, cfg: dict) -> int:
+    """An explicit frame is kept (and validated later); the default stays inside short loops."""
+    from .frames import loop_frame_count
+    return frame if frame is not None else min(90, loop_frame_count(cfg))
+
+
 def cmd_analyze(args):
     from .analyze import analyze
     res = analyze(args.video, args.out)
@@ -70,7 +76,7 @@ def cmd_still(args):
     out = Path(args.out)
     tmp = out.parent / f".{out.stem}_tmp"
     shutil.rmtree(tmp, ignore_errors=True)
-    [p] = render_frames(tmp, cfg, _frames(str(args.frame), cfg), overwrite=True)
+    [p] = render_frames(tmp, cfg, _frames(str(_default_frame(args.frame, cfg)), cfg), overwrite=True)
     out.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(p), out.with_suffix(p.suffix))
     shutil.rmtree(tmp, ignore_errors=True)
@@ -86,10 +92,9 @@ def cmd_lookdev(args):
     still = out.with_suffix(".png")
     cmd_still(argparse.Namespace(**{**vars(args), "set": sets, "out": str(still), "blend": None}))
     cfg = _cfg(argparse.Namespace(**{**vars(args), "set": sets}))
-    if cfg["post"]["grade"]:                       # judge what ships: the graded frame
-        graded = out.with_name(out.stem + "_graded.png")
-        lookdev.grade_still(still, graded, cfg)
-        still = graded
+    graded = out.with_name(out.stem + "_graded.png")    # judge what ships: the post-processed frame
+    lookdev.grade_still(still, graded, cfg)            # (post.grade alone toggles the colour grade)
+    still = graded
     r = lookdev.compare(still, Path(args.ref), out.with_suffix(".jpg"))
     summary = {k: v for k, v in r.items() if not k.startswith("palette_r")}
     out.with_suffix(".json").write_text(json.dumps(r, indent=2))
@@ -167,7 +172,7 @@ def cmd_variants(args):
             _make(cfg, d)
         else:
             build_scene(cfg, d / f"{cfg['name']}.blend")
-            render_frames(d / "frames", cfg, _frames(str(args.frame), cfg))
+            render_frames(d / "frames", cfg, _frames(str(_default_frame(args.frame, cfg)), cfg))
         print(f"variant {seed} -> {d}")
 
 
@@ -215,7 +220,7 @@ def main(argv: list[str] | None = None):
 
     p = sub.add_parser("still", help="render a single frame")
     common(p)
-    p.add_argument("--frame", type=int, default=90)
+    p.add_argument("--frame", type=int, help="default: 90, or the last frame of a shorter loop")
     p.add_argument("--blend")
     p.add_argument("-o", "--out", default="out/still.png")
     p.set_defaults(fn=cmd_still)
@@ -263,7 +268,7 @@ def main(argv: list[str] | None = None):
     common(p)
     p.add_argument("--seeds", type=int, nargs="+", required=True)
     p.add_argument("--strength", type=float, default=1.0)
-    p.add_argument("--frame", type=int, default=90)
+    p.add_argument("--frame", type=int, help="default: 90, or the last frame of a shorter loop")
     p.add_argument("--full", action="store_true", help="render the full video for each variant")
     p.add_argument("-o", "--out", default="out/variants")
     p.set_defaults(fn=cmd_variants)

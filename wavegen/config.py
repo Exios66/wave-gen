@@ -240,6 +240,9 @@ def _fit(widths: list[float], wall: float, pier: float = 0.6, margin: float = 0.
     while len(widths) > 1 and sum(widths) * 0.6 + pier * (len(widths) + 1) > wall:
         widths.pop(0 if len(widths) % 2 == 0 else -1)  # keep the wide centre arch
     room = wall - pier * (len(widths) + 1) - margin
+    if room <= 0.1:
+        widths = [max(0.1, round(wall - 2 * pier - margin, 2))] if wall - 2 * pier - margin > 0.1 else [0.1]
+        return widths
     if sum(widths) > room:
         k = room / sum(widths)
         widths = [round(w * k - 0.005, 2) for w in widths]

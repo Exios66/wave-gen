@@ -56,7 +56,8 @@ def compare(render: Path, ref: Path, out: Path) -> dict:
 def grade_still(src: Path, out: Path, cfg: dict) -> Path:
     """Apply the video's post grade (without temporal grain) to one still."""
     from . import post
-    w, h = cfg["render"]["resolution"]
+    pct = cfg["render"].get("percentage", 100) / 100
+    w, h = (int(v * pct) for v in cfg["render"]["resolution"])
     pc = {**cfg["post"], "grain": 0}
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-filter_complex", post.filtergraph(pc, w, h),
                     "-map", "[vout]", "-pix_fmt", "rgb24", str(out)], check=True)

@@ -88,3 +88,9 @@ def test_resolve_engine():
 def test_set_dotted_list_index():
     cfg = config.load("poolrooms", ["audio.layers.4.density=0.3"])
     assert cfg["audio"]["layers"][4]["type"] == "bells" and cfg["audio"]["layers"][4]["density"] == 0.3
+
+
+def test_fit_never_returns_non_positive_widths():
+    from wavegen.config import _fit
+    for wall in (0.2, 1.0, 1.5, 3.0):
+        assert all(w > 0 for w in _fit([3.2, 4.0, 3.2], wall)), wall

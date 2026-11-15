@@ -39,3 +39,18 @@ def test_inverted_is_far_and_sbs_written(imgs):
     assert r["palette_distance"] > 0.3
     assert out.exists() and _width(out) == 1920
     assert {"palette_render", "palette_ref", "contrast_render", "contrast_ref"} <= set(r)
+
+
+def test_grade_still_uses_render_percentage(imgs, tmp_path):
+    from wavegen import config
+    _, src, _ = imgs                                   # 320x180 = 50 % of 640x360
+    cfg = config.load("poolrooms", ["render.resolution=[640,360]", "render.percentage=50", "post.crt_on_tv=true"])
+    out = lookdev.grade_still(src, tmp_path / "g.png", cfg)
+    assert _width(out) == 320
+
+
+def test_default_still_frame_fits_short_loop():
+    from wavegen import config
+    from wavegen.cli import _default_frame
+    assert _default_frame(None, config.load("poolrooms", ["render.fps=30", "render.seconds=2"])) <= 60
+    assert _default_frame(7, config.load("poolrooms", [])) == 7

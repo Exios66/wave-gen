@@ -106,3 +106,23 @@ def test_grade_keeps_high_key_contrast(tmp_path):
     src = img.mean(2)
     assert got.mean() <= src.mean() + 0.03
     assert got.std() >= 0.9 * src.std()
+
+
+def test_assemble_rejects_mixed_extensions(tmp_path):
+    cfg = config.load("poolrooms", ["render.fps=2", "render.seconds=2", "render.resolution=[64,36]"])
+    d = tmp_path / "frames"
+    d.mkdir()
+    for i, ext in ((1, "png"), (2, "png"), (3, "jpg"), (4, "jpg")):
+        (d / f"frame_{i:05d}.{ext}").write_bytes(b"x")
+    with pytest.raises(post.IncompleteLoopError):
+        post.assemble(d, tmp_path / "o.mp4", cfg)
+
+
+def test_extend_handles_apostrophe_in_path(loop, tmp_path):
+    cfg, d, mp4 = loop
+    odd = tmp_path / "Alice's room"
+    odd.mkdir()
+    src = odd / "loop.mp4"
+    shutil.copy(mp4, src)
+    out = post.extend(src, d / "stems", 3.0, odd / "long.mp4")
+    assert out.exists()

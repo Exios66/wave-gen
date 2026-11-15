@@ -10,7 +10,7 @@ from wavegen import config  # noqa: E402
 from wavegen.scene import build_scene  # noqa: E402
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def scene():
     cfg = config.load("poolrooms", ["atmosphere.dust_count=12"])
     build_scene(cfg)
@@ -257,3 +257,8 @@ def test_motion_blur_and_stable_noise(look):
     assert sc.render.use_motion_blur
     assert sc.render.motion_blur_shutter == pytest.approx(cfg["render"]["motion_blur"])
     assert not sc.cycles.use_animated_seed          # grain stays put, no frame-to-frame boil
+
+
+def test_emblem_images_packed_into_blend(look):
+    imgs = [bpy.data.materials["CRT"].node_tree.nodes[n].image for n in ("emblem_text", "emblem_mask")]
+    assert all(i.packed_file is not None for i in imgs)

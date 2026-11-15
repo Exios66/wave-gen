@@ -1,6 +1,5 @@
 import shutil
 import subprocess
-import time
 
 import numpy as np
 import pytest
@@ -22,11 +21,17 @@ def test_palette_small_and_empty():
     assert abs(sum(x["share"] for x in p) - 1) < 0.01
 
 
-def test_palette_large_is_capped_and_deterministic():
+def test_palette_large_is_capped_and_deterministic(monkeypatch):
     px = np.random.default_rng(1).random((1_000_000, 3), dtype=np.float32)
-    t = time.time()
+    seen = []
+    real = A._kmeans
+
+    def spy(x, *a, **k):
+        seen.append(len(x))
+        return real(x, *a, **k)
+    monkeypatch.setattr(A, "_kmeans", spy)
     a = A._palette(px)
-    assert time.time() - t < 5
+    assert seen and max(seen) <= 200_000
     assert a == A._palette(px)
 
 

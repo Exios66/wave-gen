@@ -207,6 +207,9 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     imgs = None
     if emblem_images:
         imgs = tuple(bpy.data.images.load(str(p), check_existing=True) for p in emblem_images)
+        for img in imgs:                       # embed, so a saved .blend survives a cleared cache
+            if img.packed_file is None:
+                img.pack()
     out["screensaver"] = screensaver.build(cfg, screen_mat, imgs)
     out["screen"] = screen
     out["rig"] = rig

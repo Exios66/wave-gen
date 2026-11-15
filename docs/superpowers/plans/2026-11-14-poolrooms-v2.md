@@ -236,7 +236,7 @@ Covers review #1, #11, #12, #13, #14, #15, #16. The audio fix lands in v1 `audio
 **Interfaces:**
 - Produces:
   - `bounce.choose_trips(n_frames: int, fps: int, speed: float, palette_len: int) -> tuple[int, int]`. Returns integer trips `(tx, ty)` with `tx != ty`, both ≥ 1, `(tx + ty) % palette_len == 0`, and closest to the requested speed (screen-widths per second).
-  - `bounce.position(frame: float, n_frames: int, trips: int) -> float`: a triangle wave in `[0, 1]` starting at `0` on frame 1 (each trip = one wall-to-wall pass).
+  - `bounce.position(frame: float, n_frames: int, trips: int) -> float`: a triangle wave in `[0, 1]` starting at `0` on frame 1 and returning to `0` on frame `n_frames + 1` (each trip = one round trip: wall, far wall, back).
   - `bounce.hit_index(frame, n_frames, tx, ty) -> int`: the number of wall hits so far.
   - `bounce.tri_expr(trips: int, n_frames: int) -> str` and `bounce.hits_expr(tx, ty, n_frames, palette_len) -> str` (driver expressions with the same maths; must agree with the Python versions).
   - `emblem.render_emblem(cfg: dict, cache_dir: Path) -> Path`. Renders a 1024×512 RGBA PNG: chrome italic "WAVE GEN" (bundled `<builtin>` font when no `computer.emblem.font` is set) over a disc of shape `sun|triangle|orb`. The sun is a circle with 5 horizontal slits through its lower half, with a vertical gradient taken from the palette pair. It renders in a temporary scene and restores the main scene afterwards. The cache key is a hash of the emblem config; an existing file is reused.

@@ -86,11 +86,12 @@ def assemble(frames_dir: str | Path, out: str | Path, cfg: dict, stems_dir: str 
     if not files:
         raise FileNotFoundError(f"no frames in {frames_dir}")
     n = loop_frame_count(cfg)
-    gone = missing_frames(frames_dir, n)
+    ext = files[0].suffix                    # ffmpeg reads one exact pattern: every frame must match it
+    gone = [i for i in range(1, n + 1) if not (frames_dir / f"frame_{i:05d}{ext}").exists()]
     if gone:
         shown = ", ".join(map(str, gone[:20])) + (" ..." if len(gone) > 20 else "")
         raise IncompleteLoopError(f"{len(gone)} of {n} loop frames missing in {frames_dir}: {shown}")
-    pattern = f"frame_%05d{files[0].suffix}"
+    pattern = f"frame_%05d{ext}"
     rc, pc = cfg["render"], cfg["post"]
     w = int(rc["resolution"][0] * rc["percentage"] / 100)
     h = int(rc["resolution"][1] * rc["percentage"] / 100)
@@ -139,7 +140,8 @@ def extend(loop_mp4: str | Path, stems_dir: str | Path, duration_s: float, out: 
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         lst = td / "list.txt"
-        lst.write_text("".join(f"file '{loop_mp4.as_posix()}'\n" for _ in range(reps)))
+        quoted = loop_mp4.resolve().as_posix().replace("'", "'\\''")   # concat-list escaping
+        lst.write_text("".join(f"file '{quoted}'\n" for _ in range(reps)))
         tiled = np.tile(x, (reps, 1))[: int(round(duration_s * sr))]
         long_wav = write_wav(td / "long.wav", tiled, sr)
         subprocess.run([_ffmpeg(), "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(lst),
