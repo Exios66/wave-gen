@@ -268,3 +268,19 @@ def test_spread_handles_walls_with_no_openings():
     from wavegen.scene.architecture import _spread
     assert _spread(0.2, []) == []                    # _fit returns [] for walls this short
     assert _spread(5.0, []) == []
+
+
+# Reference framing (docs/superpowers/plans/2026-11-15-poolrooms-rebuild.md): x0, x1, y0, y1, y from top.
+REF_FRAMING = {
+    "Computer.body": (0.01, 0.35, 0.36, 0.88),
+    "Computer.screen": (0.17, 0.32, 0.42, 0.68),
+}
+
+
+def test_reference_framing(look):
+    from wavegen.scene.framing import project_bounds
+    off = {}
+    for name, ref in REF_FRAMING.items():
+        got = project_bounds(name, 1)
+        off[name] = [round(g - r, 3) for g, r in zip(got, ref)]
+    assert all(abs(d) <= 0.06 for ds in off.values() for d in ds), off

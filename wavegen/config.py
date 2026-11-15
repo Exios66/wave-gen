@@ -135,7 +135,7 @@ DEFAULTS: dict = {
     },
     "camera": {
         "location": [-0.5, -1.02, 1.05],
-        "target": [0.8, 12.0, 2.3],
+        "target": [0.0, 12.0, 2.3],
         "lens": 26.0,
         "dof": False,               # the reference is sharp front to back
         "fstop": 5.6,
