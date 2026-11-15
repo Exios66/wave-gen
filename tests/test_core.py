@@ -118,3 +118,11 @@ def test_poolrooms_light_and_surface_hues_match_the_reference():
         assert 184 <= hue(pal[k]) <= 200, (k, round(hue(pal[k])))
     assert 220 <= hue(pal["tile"]) <= 250, round(hue(pal["tile"]))
     assert li["accent_power"] <= 300
+
+
+def test_poolrooms_carries_the_reference_pink_wash():
+    cfg = config.load("poolrooms")
+    wash = cfg["post"]["pink_wash"]
+    r, g, b = wash["color"]
+    assert wash["strength"] > 0 and r > b > g            # pink-lavender: red leads, green lowest
+    assert 0.3 <= wash["extent"] <= 0.7                   # the left of frame, fading out before the right

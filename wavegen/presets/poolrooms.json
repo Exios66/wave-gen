@@ -9,7 +9,16 @@
     }
   },
   "post": {
-    "chroma_shift": 0
+    "chroma_shift": 0,
+    "pink_wash": {
+      "strength": 1.0,
+      "color": [
+        1.0,
+        0.74,
+        0.88
+      ],
+      "extent": 0.5
+    }
   },
   "palette": {
     "plaster": [

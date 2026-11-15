@@ -1,1 +1,1 @@
-{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.7761, "render_seconds_baseline": 23, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the light-colour match (aqua cool light, paler ceiling, periwinkle floor, dim lavender accent) against the clean video frames"}
+{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.8058, "render_seconds_baseline": 23, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the pink wash (post.pink_wash) against the clean video frames"}

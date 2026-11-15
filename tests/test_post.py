@@ -126,3 +126,29 @@ def test_extend_handles_apostrophe_in_path(loop, tmp_path):
     shutil.copy(mp4, src)
     out = post.extend(src, d / "stems", 3.0, odd / "long.mp4")
     assert out.exists()
+
+
+def _grade_flat(pc, h=90, w=160, level=0.6):
+    raw = (np.full((h, w, 3), level) * 255).astype(np.uint8).tobytes()
+    out = subprocess.run(["ffmpeg", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-i", "-",
+                          "-filter_complex", post.filtergraph(pc, w, h), "-map", "[vout]", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                         input=raw, capture_output=True, check=True).stdout
+    return np.frombuffer(out, np.uint8).reshape(h, w, 3).astype(np.float32) / 255
+
+
+def test_pink_wash_tints_the_left_of_frame_only():
+    """The reference carries a pink-lavender wash over its left side that fades out toward the middle."""
+    pc = {**_cfg()["post"], "grade": False, "halation": 0, "grain": 0, "chroma_shift": 0, "vignette": 0,
+          "crt_on_tv": False, "pink_wash": {"strength": 1.0, "color": [1.0, 0.78, 0.92], "extent": 0.5}}
+    img = _grade_flat(pc)
+    w = img.shape[1]
+    left, right = img[:, : w // 10].mean((0, 1)), img[:, -w // 10:].mean((0, 1))
+    assert left[0] - left[1] >= 0.08                 # red over green: pink
+    assert abs(right[0] - right[1]) <= 0.01          # the right side is untouched
+    assert left.mean() <= right.mean() + 0.01       # a tint, not a light: it never brightens
+
+
+def test_pink_wash_off_by_default_is_identity():
+    pc = {**config.DEFAULTS["post"], "grade": False, "halation": 0, "grain": 0, "chroma_shift": 0, "vignette": 0, "crt_on_tv": False}
+    img = _grade_flat(pc)
+    assert np.ptp(img[..., 0] - img[..., 1]) <= 0.01
