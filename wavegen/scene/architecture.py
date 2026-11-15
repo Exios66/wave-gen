@@ -272,8 +272,9 @@ def build(cfg: dict) -> dict:
         by = room["bay"]
         bw, bd, bh = by["width"], by["depth"], by["height"]
         bx1 = px - pw / 2                                    # the passage opens just left of the pier
-        bay_mat = M.wainscot("BayTile", pal.get("alcove_tile", pal["tile"]), pal["grout"], pal["plaster"],
-                             room["tile_size"], room["grout_width"], by["wainscot"])
+        bay_mat = M.wainscot("BayTile", pal.get("alcove_tile", pal["tile"]), pal.get("alcove_grout", pal["grout"]),
+                             pal["plaster"], room.get("alcove_tile_size") or room["tile_size"], room["grout_width"],
+                             by["wainscot"])
         box("Bay", (bx1 - bw, py, 0.0), (bx1, py + bd, bh), col, bay_mat,
             inward=True, skip=("+x", "-y", "-z"))
         # plaster front wall through the pier's middle; the passage arch springs off the pier
@@ -289,6 +290,7 @@ def build(cfg: dict) -> dict:
         BL.energy = cfg["lights"]["alcove_power"] * 0.8
         BL.color = pal["warm_light"]
         blo = bpy.data.objects.new("BayLight", BL)
+        blo.visible_glossy = False                         # a soft fill: no glowing disc mirrored in the glossy tile
         blo.location = (bx1 - bw / 2, py + bd - 0.4, bh * 0.7)
         blo.rotation_euler = look_at_matrix(blo.location, (bx1 - bw / 2, py, bh * 0.5)).to_euler()
         collection("Lights").objects.link(blo)

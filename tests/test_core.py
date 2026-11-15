@@ -159,3 +159,10 @@ def test_poolrooms_arches_are_flat_topped_with_rounded_corners():
     rc = room["arch_corner_radius"]
     assert rc is not None and rc < min(room["back_arches"]) / 2       # every arch gets a flat top
     assert room["spring_height"] + rc <= room["height"] - 0.6           # and still clears the ceiling tray
+
+
+def test_poolrooms_passage_behind_the_pier_is_tall_and_fully_tiled():
+    room = config.load("poolrooms")["room"]
+    bay = room["bay"]
+    assert bay["height"] >= 5.0                    # the opening runs out of the top of the frame, as in the clip
+    assert bay["wainscot"] >= bay["height"]        # tile all the way up, no plaster band

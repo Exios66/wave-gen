@@ -1,1 +1,1 @@
-{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.8017, "render_seconds_baseline": 25, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after flat-topped arches (room.arch_corner_radius 1.2, spring 4.5)"}
+{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.8129, "render_seconds_baseline": 24, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the tall, fully tiled passage behind the pier"}
