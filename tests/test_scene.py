@@ -599,5 +599,16 @@ def test_poolrooms_alcove_lamps_have_a_soft_wall_halo(scene):
         assert (h.location - lamp.location).length < 0.1            # centred on its lamp, against the wall
         assert max(h.dimensions) == pytest.approx(2 * radius, rel=0.05)
         assert not h.visible_shadow                                  # a glow must not block the lamp's light
-    nodes = {n.bl_idname for n in halos[0].active_material.node_tree.nodes}
-    assert {"ShaderNodeEmission", "ShaderNodeBsdfTransparent", "ShaderNodeTexGradient"} <= nodes   # fades to nothing
+    nt = halos[0].active_material.node_tree
+    src = lambda sock: sock.links[0].from_node              # the node feeding a socket
+    out = next(n for n in nt.nodes if n.bl_idname == "ShaderNodeOutputMaterial")
+    add = src(out.inputs["Surface"])
+    assert {src(i).bl_idname for i in add.inputs} == {"ShaderNodeBsdfTransparent", "ShaderNodeEmission"}
+    em = next(src(i) for i in add.inputs if src(i).bl_idname == "ShaderNodeEmission")
+    scale = src(em.inputs["Strength"])                      # strength x falloff
+    assert scale.operation == "MULTIPLY" and scale.inputs[1].default_value == pytest.approx(cfg["lights"]["halo_strength"])
+    power = src(scale.inputs[0])
+    assert power.operation == "POWER" and power.inputs[1].default_value > 1     # soft, not a hard-edged disc
+    grad = src(power.inputs[0])
+    assert grad.bl_idname == "ShaderNodeTexGradient" and grad.gradient_type == "SPHERICAL"   # 1 at the centre, 0 at the rim
+    assert grad.inputs["Vector"].links[0].from_socket.name == "Object"
