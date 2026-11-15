@@ -45,6 +45,36 @@ def _kmeans(px: np.ndarray, k: int, seed: int = 0, iters: int = 25):
     return c[order], counts[order] / counts.sum()
 
 
+def _palette(px: np.ndarray, k: int = 7, cap: int = 200_000, seed: int = 0) -> list[dict]:
+    """Dominant colours of ``px`` (N x 3, sRGB 0..1). Empty input -> []."""
+    px = np.asarray(px, np.float32).reshape(-1, 3)
+    if len(px) == 0:
+        return []
+    rng = np.random.default_rng(seed)
+    if len(px) > cap:
+        px = px[rng.choice(len(px), cap, replace=False)]
+    k = min(k, len(np.unique(px, axis=0)))
+    centers, share = _kmeans(px, k, seed)
+    return [{"hex": "#%02x%02x%02x" % tuple(int(round(float(v) * 255)) for v in c), "share": round(float(p), 3),
+             "linear": [round(float(x), 3) for x in _srgb_to_linear(c)]} for c, p in zip(centers, share) if p > 0]
+
+
+def _motion_path(shifts: list[tuple[float, float]]) -> np.ndarray:
+    """Cumulative camera path, starting at the origin."""
+    steps = np.array(shifts, dtype=float).reshape(-1, 2)
+    return np.vstack([np.zeros((1, 2)), np.cumsum(steps, axis=0)])
+
+
+def _spectrum_windows(n: int, seg: int) -> list[tuple[int, int]]:
+    """Half-overlapping analysis windows; a clip shorter than ``seg`` gets one short window."""
+    if n <= seg:
+        return [(0, n)] if n > 0 else []
+    starts = list(range(0, n - seg + 1, seg // 2))
+    if starts[-1] + seg < n:
+        starts.append(n - seg)
+    return [(i, i + seg) for i in starts]
+
+
 def _phase_shift(a: np.ndarray, b: np.ndarray):
     """Global translation between two grey frames (phase correlation)."""
     win = np.outer(np.hanning(a.shape[0]), np.hanning(a.shape[1]))
@@ -78,14 +108,15 @@ def _audio(path: Path, sr: int = 16000) -> dict | None:
     except subprocess.CalledProcessError:
         return None
     a = np.frombuffer(raw, np.int16).astype(np.float32) / 32768
-    if len(a) < sr:
+    if len(a) < sr // 4:
         return None
     rms_db = 20 * math.log10(float(np.sqrt(np.mean(a ** 2))) + 1e-12)
     # long-window spectrum -> sustained tonal peaks
     seg = 1 << 15
     spec = np.zeros(seg // 2 + 1)
-    for i in range(0, len(a) - seg, seg // 2):
-        spec += np.abs(np.fft.rfft(a[i:i + seg] * np.hanning(seg)))
+    for i, j in _spectrum_windows(len(a), seg):
+        chunk = a[i:j] * np.hanning(j - i)
+        spec += np.abs(np.fft.rfft(chunk, n=seg))  # zero-pad short windows to a fixed grid
     f = np.fft.rfftfreq(seg, 1 / sr)
     band = (f > 60) & (f < 2000)
     s, fb = spec[band], f[band]
@@ -115,15 +146,13 @@ def analyze(video: str | Path, out_dir: str | Path) -> dict:
 
     fr = _frames(video, 2.0, 256, 144)
     px = fr[:, ::2, ::2].reshape(-1, 3)
-    px = px[px.sum(1) > 0.12]                       # ignore black letterbox/bezel
-    centers, share = _kmeans(px, 7)
-    palette = [{"hex": "#%02x%02x%02x" % tuple(int(v * 255) for v in c), "share": round(float(p), 3),
-                "linear": [round(float(x), 3) for x in _srgb_to_linear(c)]} for c, p in zip(centers, share)]
+    lit = px[px.sum(1) > 0.12]                      # ignore black letterbox/bezel
+    palette = _palette(lit if len(lit) else px)
     lum = fr.mean(-1)
     shifts = [_phase_shift(lum[i], lum[i + 1]) for i in range(len(lum) - 1)]
-    path = np.cumsum(np.array(shifts), axis=0) if shifts else np.zeros((1, 2))
-    flicker = float(np.std(lum.mean((1, 2))))
-    mean_rgb = fr.reshape(-1, 3).mean(0)
+    path = _motion_path(shifts)
+    flicker = float(np.std(lum.mean((1, 2)))) if lum.size else 0.0
+    mean_rgb = fr.reshape(-1, 3).mean(0) if fr.size else np.zeros(3)
     result = {
         "file": video.name,
         "duration_s": round(dur, 2),
@@ -131,7 +160,7 @@ def analyze(video: str | Path, out_dir: str | Path) -> dict:
         "fps": vs.get("r_frame_rate"),
         "palette": palette,
         "mean_rgb": [round(float(v), 3) for v in mean_rgb],
-        "brightness": round(float(lum.mean()), 3),
+        "brightness": round(float(lum.mean()), 3) if lum.size else 0.0,
         "camera_motion": {
             "sample_rate_hz": 2.0,
             "max_excursion_px_at_256w": [round(float(np.ptp(path[:, 0])), 1), round(float(np.ptp(path[:, 1])), 1)],
@@ -143,7 +172,7 @@ def analyze(video: str | Path, out_dir: str | Path) -> dict:
     }
     (out_dir / "analysis.json").write_text(json.dumps(result, indent=2))
     # preset fragment: map the dominant colours onto scene slots by hue/brightness
-    lin = [np.array(p["linear"]) for p in palette]
+    lin = [np.array(p["linear"]) for p in palette] or [np.zeros(3)]
     bright = sorted(lin, key=lambda c: -c.sum())
     cyan = sorted(lin, key=lambda c: -(c[2] + c[1] - 2 * c[0]))
     frag = {"palette": {"plaster": bright[0].round(3).tolist(), "ceiling": cyan[0].round(3).tolist(),

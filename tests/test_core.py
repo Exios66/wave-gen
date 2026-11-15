@@ -75,3 +75,52 @@ def test_post_filtergraph_variants():
     pc = dict(cfg["post"], halation=0, grade=False, crt_on_tv=True)
     g2 = post.filtergraph(pc, 1280, 720)
     assert "nullsink" in g2 and "lenscorrection" in g2 and "pad=1280:720" in g2
+
+
+def test_mutate_layouts_always_fit():
+    base = config.load("poolrooms")
+    for seed in range(500):
+        c = config.mutate(base, seed)
+        r = c["room"]
+        assert config.min_wall_for(r["back_arches"]) <= r["width"], seed
+        assert config.min_wall_for(r["side_arches"]) <= r["depth"] - 6.0, seed
+
+
+def test_resolve_focus():
+    import pytest
+    from wavegen.scene.focus import resolve_focus
+    assert resolve_focus("computer", False) == ("target", None)
+    assert resolve_focus("computer", True) == ("object", None)
+    assert resolve_focus("target", True) == ("target", None)
+    assert resolve_focus(2.5, False) == ("distance", 2.5)
+    assert resolve_focus("2.5", False) == ("distance", 2.5)
+    with pytest.raises(ValueError, match="computer"):
+        resolve_focus("banana", True)
+
+
+def test_resolve_engine():
+    import pytest
+    from wavegen.scene.engine import resolve_engine
+    assert resolve_engine("eevee", (5, 3, 0)) == "BLENDER_EEVEE"
+    assert resolve_engine("cycles", (5, 3, 0)) == "CYCLES"
+    assert resolve_engine("CYCLES", (5, 3, 0)) == "CYCLES"
+    assert resolve_engine("BLENDER_EEVEE_NEXT", (5, 3, 0)) == "BLENDER_EEVEE"
+    with pytest.raises(RuntimeError, match="Blender 5"):
+        resolve_engine("cycles", (4, 2, 0))
+    with pytest.raises(ValueError):
+        resolve_engine("luxcore", (5, 3, 0))
+
+
+def test_audio_reproducible():
+    import numpy as np
+    from wavegen import audio
+    cfg = config.load("poolrooms", ["audio.sample_rate=16000"])
+    a, _ = audio.synthesize(cfg, 4)
+    b, _ = audio.synthesize(cfg, 4)
+    np.testing.assert_array_equal(a, b)
+
+
+def test_bells_zero_density():
+    from wavegen import audio
+    cfg = config.load("poolrooms", ["audio.sample_rate=16000", "audio.bell_density=0"])
+    audio.synthesize(cfg, 3)

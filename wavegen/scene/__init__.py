@@ -25,19 +25,27 @@ def build_scene(cfg: dict, blend_path: str | Path | None = None) -> dict:
     return {"camera": cam, **arch, **pr}
 
 
-def render_frames(out_dir: str | Path, frames: list[int] | None = None) -> list[Path]:
-    """Render the given frames (default: the whole range) as numbered images."""
+def render_frames(out_dir: str | Path, cfg: dict, frames: list[int] | None = None,
+                  overwrite: bool = False) -> list[Path]:
+    """Render ``frames`` (``None`` = the whole loop, ``[]`` = nothing) as numbered images.
+
+    Frames already on disk are reused only if the folder's manifest matches this
+    config; otherwise :class:`wavegen.frames.StaleFramesError` is raised.
+    """
     import bpy
+
+    from ..frames import loop_frame_count, prepare_frames_dir
 
     sc = bpy.context.scene
     out_dir = Path(out_dir).resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
-    frames = frames or list(range(sc.frame_start, sc.frame_end + 1))
+    prepare_frames_dir(out_dir, cfg, overwrite)
+    if frames is None:
+        frames = list(range(1, loop_frame_count(cfg) + 1))
     written = []
     ext = {"PNG": "png", "JPEG": "jpg", "OPEN_EXR": "exr"}.get(sc.render.image_settings.file_format, "png")
     for f in frames:
         path = out_dir / f"frame_{f:05d}.{ext}"
-        if path.exists():  # resumable: skip frames already on disk
+        if path.exists():  # resumable: manifest already proved these match
             written.append(path)
             continue
         sc.frame_set(f)

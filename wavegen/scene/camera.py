@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import bpy
 
+from .focus import resolve_focus
 from .util import collection, drift_expr, drive
 
 
@@ -32,12 +33,12 @@ def build(cfg: dict, focus_obj=None) -> bpy.types.Object:
     if cc["dof"]:
         cam_data.dof.use_dof = True
         cam_data.dof.aperture_fstop = cc["fstop"]
-        focus = cc["focus_on"]
-        if focus == "computer" and focus_obj is not None:
+        kind, dist = resolve_focus(cc["focus_on"], focus_obj is not None)
+        if kind == "object":
             cam_data.dof.focus_object = focus_obj
-        elif focus == "target":
+        elif kind == "target":
             cam_data.dof.focus_object = target
         else:
-            cam_data.dof.focus_distance = float(focus)
+            cam_data.dof.focus_distance = dist
     bpy.context.scene.camera = cam
     return cam

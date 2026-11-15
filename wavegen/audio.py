@@ -127,7 +127,7 @@ def synthesize(cfg: dict, seconds: float | None = None) -> tuple[np.ndarray, int
     # --- bells (pentatonic over the current chord root) --------------------
     scale = ["D5", "E5", "G5", "A5", "B5", "D6", "E6", "G6"]
     tt = rng.uniform(0.5, 1.5)
-    while tt < seconds - 1.0:
+    while ac["bell_density"] > 0 and tt < seconds - 1.0:
         f = note_hz(rng.choice(scale)) * slow
         b = _bell(f, sr, 3.0, rng) * ac["bell_level"] * rng.uniform(0.4, 1.0)
         s0 = int(tt * sr)

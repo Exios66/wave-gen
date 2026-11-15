@@ -39,16 +39,11 @@ def _cfg(args) -> dict:
 
 
 def _frames(spec: str | None, cfg: dict) -> list[int] | None:
-    if not spec:
-        return None
-    out: list[int] = []
-    for part in spec.split(","):
-        if "-" in part:
-            a, b = part.split("-")
-            out += list(range(int(a), int(b) + 1))
-        else:
-            out.append(int(part))
-    return out
+    from .frames import loop_frame_count, parse_frames
+    try:
+        return parse_frames(spec, loop_frame_count(cfg))
+    except ValueError as e:
+        raise SystemExit(f"wavegen: --frames: {e}") from None
 
 
 def cmd_analyze(args):
@@ -73,7 +68,7 @@ def cmd_still(args):
     out = Path(args.out)
     tmp = out.parent / f".{out.stem}_tmp"
     shutil.rmtree(tmp, ignore_errors=True)
-    [p] = render_frames(tmp, [args.frame])
+    [p] = render_frames(tmp, cfg, _frames(str(args.frame), cfg), overwrite=True)
     out.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(p), out.with_suffix(p.suffix))
     shutil.rmtree(tmp, ignore_errors=True)
@@ -83,8 +78,9 @@ def cmd_still(args):
 def cmd_render(args):
     from .scene import build_scene, render_frames
     cfg = _cfg(args)
+    frames = _frames(args.frames, cfg)
     build_scene(cfg, args.blend)
-    render_frames(args.out, _frames(args.frames, cfg))
+    render_frames(args.out, cfg, frames, overwrite=args.overwrite)
 
 
 def cmd_audio(args):
@@ -99,13 +95,16 @@ def cmd_post(args):
     print(f"wrote {post.assemble(args.frames_dir, args.out, cfg, args.audio)}")
 
 
-def _make(cfg, out: Path, frames=None, blend=True):
+def _make(cfg, out: Path, frames=None, blend=True, overwrite=False):
     from . import audio, post
     from .scene import build_scene, render_frames
     out.mkdir(parents=True, exist_ok=True)
     (out / "config.json").write_text(json.dumps(cfg, indent=2))
     build_scene(cfg, out / f"{cfg['name']}.blend" if blend else None)
-    render_frames(out / "frames", frames)
+    render_frames(out / "frames", cfg, frames, overwrite=overwrite)
+    if frames is not None:
+        print(f"rendered a subset of frames; run `wavegen post {out / 'frames'}` once all of them exist")
+        return
     wav = audio.render(cfg, out / "ambience.wav") if cfg["audio"]["enabled"] else None
     mp4 = post.assemble(out / "frames", out / f"{cfg['name']}.mp4", cfg, wav)
     print(f"wrote {mp4}")
@@ -113,7 +112,7 @@ def _make(cfg, out: Path, frames=None, blend=True):
 
 def cmd_make(args):
     cfg = _cfg(args)
-    _make(cfg, Path(args.out), _frames(args.frames, cfg))
+    _make(cfg, Path(args.out), _frames(args.frames, cfg), overwrite=args.overwrite)
 
 
 def cmd_variants(args):
@@ -129,7 +128,7 @@ def cmd_variants(args):
             _make(cfg, d)
         else:
             build_scene(cfg, d / f"{cfg['name']}.blend")
-            render_frames(d / "frames", [args.frame])
+            render_frames(d / "frames", cfg, _frames(str(args.frame), cfg))
         print(f"variant {seed} -> {d}")
 
 
@@ -148,7 +147,7 @@ def main(argv: list[str] | None = None):
         p.add_argument("--set", action="append", metavar="KEY=VALUE", help="override any config value")
         p.add_argument("--preview", action="store_true", help="fast low-res draft settings")
         p.add_argument("--seconds", type=float)
-        p.add_argument("--engine", choices=["CYCLES", "BLENDER_EEVEE"])
+        p.add_argument("--engine", type=str.lower, choices=["cycles", "eevee"])
 
     p = sub.add_parser("analyze", help="analyse a reference video")
     p.add_argument("video")
@@ -171,6 +170,7 @@ def main(argv: list[str] | None = None):
     common(p)
     p.add_argument("--frames", help="e.g. 1-120 or 1,30,60")
     p.add_argument("--blend")
+    p.add_argument("--overwrite", action="store_true", help="discard frames from a different config")
     p.add_argument("-o", "--out", default="out/frames")
     p.set_defaults(fn=cmd_render)
 
@@ -189,6 +189,7 @@ def main(argv: list[str] | None = None):
     p = sub.add_parser("make", help="build + render + audio + post in one go")
     common(p)
     p.add_argument("--frames")
+    p.add_argument("--overwrite", action="store_true", help="discard frames from a different config")
     p.add_argument("-o", "--out", default="out/poolrooms")
     p.set_defaults(fn=cmd_make)
 
@@ -205,7 +206,19 @@ def main(argv: list[str] | None = None):
     p.set_defaults(fn=cmd_presets)
 
     args = ap.parse_args(argv)
-    args.fn(args)
+    from .frames import StaleFramesError
+    from .post import IncompleteLoopError
+    try:
+        args.fn(args)
+    except (StaleFramesError, IncompleteLoopError) as e:
+        raise SystemExit(f"wavegen: {e}") from None
+    except ModuleNotFoundError as e:
+        if e.name != "bpy":
+            raise
+        raise SystemExit(
+            "wavegen: this command needs Blender 5.x. Either `pip install bpy` (Python 3.13), or run it "
+            "inside desktop Blender:\n  blender -b -P scripts/blender_run.py -- " + " ".join(argv or sys.argv[1:])
+        ) from None
 
 
 if __name__ == "__main__":

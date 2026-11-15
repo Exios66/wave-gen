@@ -1,6 +1,6 @@
 {
   "name": "poolrooms_night",
-  "_comment": "After hours: cove lights off, deep blue room lit by alcove lamps, a magenta neon accent and the CRT glow.",
+  "_comment": "After hours: cove lights dimmed, deep blue room lit by alcove lamps, a magenta neon accent and the CRT glow.",
   "palette": {
     "plaster": [0.30, 0.45, 0.75],
     "ceiling": [0.15, 0.20, 0.50],
