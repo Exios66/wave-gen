@@ -152,6 +152,9 @@ DEFAULTS: dict = {
             "target_amplitude": [0.13, 0.08, 0.05],
             "target_period": [31.0, 19.0, 13.0],
         },
+        # one slow swing per loop: the camera slides sideways while its target pans with it, so the
+        # nearby CRT stays put and the pier, arches and pool slide past behind it
+        "sweep": {"amplitude": [0.22, 0.10, 0.02], "target_amplitude": [-1.6, 0.0, 0.15], "cycles": 1},
     },
     "audio": {
         "enabled": True,

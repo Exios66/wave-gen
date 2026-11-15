@@ -215,7 +215,7 @@ def test_computer_screen_anchor(look):
         ys.append(v.y)
     sc.frame_set(1)
     assert 0.08 <= min(xs) and max(xs) <= 0.38, (min(xs), max(xs))
-    assert max(xs) - min(xs) <= 0.04
+    assert max(xs) - min(xs) <= 0.10          # the parallax sweep lets the CRT breathe a little
     assert max(ys) <= 0.5
 
 
@@ -328,3 +328,17 @@ def test_water_has_swell_and_fine_ripples(look):
 def test_pool_floor_has_looping_caustics(look):
     pool = bpy.data.materials["PoolTile"]
     assert "caustics" in pool.node_tree.nodes and _driven(pool, "caustics")
+
+
+def test_sweep_keeps_screen_in_frame(look):
+    from wavegen.scene.framing import project_bounds
+    _, sc = look
+    cam = bpy.data.objects["Camera"]
+    xs, bounds = [], []
+    for f in np.linspace(1, sc.frame_end, 12).astype(int):
+        b = project_bounds("Computer.screen", int(f))
+        xs.append(cam.matrix_world.translation.x)
+        bounds.append(b)
+    sc.frame_set(1)
+    assert max(xs) - min(xs) >= 0.3, (min(xs), max(xs))
+    assert all(0.02 <= b[0] and b[1] <= 0.98 and 0.02 <= b[2] and b[3] <= 0.98 for b in bounds), bounds
