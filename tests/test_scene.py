@@ -262,3 +262,9 @@ def test_motion_blur_and_stable_noise(look):
 def test_emblem_images_packed_into_blend(look):
     imgs = [bpy.data.materials["CRT"].node_tree.nodes[n].image for n in ("emblem_text", "emblem_mask")]
     assert all(i.packed_file is not None for i in imgs)
+
+
+def test_spread_handles_walls_with_no_openings():
+    from wavegen.scene.architecture import _spread
+    assert _spread(0.2, []) == []                    # _fit returns [] for walls this short
+    assert _spread(5.0, []) == []
