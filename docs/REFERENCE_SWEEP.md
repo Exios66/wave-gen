@@ -30,8 +30,11 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    reads warm white with a strong glow; ours sits under the pink left-side wash
    (`post.pink_wash`), which covers more of the frame than the reference's
    narrow lavender strip.
-6. **Ceiling.** The reference tray has a round medallion and a brighter cyan
-   glow in the cove. Ours has the tray but no medallion and a weaker glow.
+6. **Ceiling (open).** The reference tray has a round medallion and a brighter
+   cyan glow in the cove. A stepped medallion at the tray centre was built and
+   dropped: our camera never sees the tray centre, and it shadowed the cove
+   light (score 0.820 to 0.816). The real gap is framing: the reference's tray
+   sits lower and nearer the camera than ours.
 7. **Pool far corner.** The reference pool has a stepped notch at the far-left
    corner and a raised kerb of turquoise tile. Ours is a plain rectangle.
 
@@ -44,9 +47,13 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    lamp, and the reference's milkiness.
 10. **Desk.** The reference desk is near-white with a pink cast; ours is a
     saturated periwinkle.
-11. **Lamp glow.** The reference lamps bloom into a wide warm halo that lights
-    the tile around them. Ours are small hot spots. Needs stronger sconce
-    emission against a wider, softer wall wash.
+11. **Lamp glow (open).** The reference lamps bloom into a wide warm halo that
+    lights the tile around them. Ours are small hot spots. Tried and rejected:
+    a lower bloom threshold or doubled bloom strength (the whole frame hazes
+    over, score 0.82 to 0.78 and 0.80) and a larger lamp radius (no visible
+    change), and stronger lamp washers (`lights.alcove_power` 700 and 1100:
+    score 0.820 to 0.813 and 0.804). Needs a per-lamp glow rather than a
+    global bloom.
 12. **Small ceiling downlights.** The reference has a few bright points high on
     the right wall and ceiling. We have none.
 
@@ -56,9 +63,9 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
     more haze, a light diffusion pass in post, larger and brighter dust.
 14. **CRT model.** The reference housing is taller with a tilt foot, a rounded
     bezel and a darker, visibly curved glass. Ours is boxier with a floppy slot.
-15. **Screen background.** The reference screen is near-black; ours is bright
-    blue, which draws the eye. A darker blue would keep the purple emblem
-    readable and sit closer to the reference.
+15. **Screen background (improved).** Darkened to a deep navy
+    (`palette.screen_glow`), closer to the reference's near-black, with the
+    purple emblem standing out more.
 
 ## Other poolscapes the same toolkit can render
 

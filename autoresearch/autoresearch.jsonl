@@ -1,1 +1,1 @@
-{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.821, "render_seconds_baseline": 24, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the lavender floor, paler water and brighter cove"}
+{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.8196, "render_seconds_baseline": 24, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the darker screen background"}
