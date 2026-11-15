@@ -105,3 +105,16 @@ def test_fit_layout_always_spreads_with_full_piers():
         assert all(w > 0 for w in widths), wall
         assert not widths or min_wall_for(widths) <= wall + 1e-9, (wall, widths)
     assert _fit([3.2], 1.0) == []
+
+
+def test_poolrooms_light_and_surface_hues_match_the_reference():
+    """Hues measured from the clean video frames: walls, ceiling and water are aqua (186-189 deg),
+    not green-teal; the foreground carries a periwinkle cast; the CRT flank sits in shade."""
+    import colorsys
+    cfg = config.load("poolrooms")
+    pal, li = cfg["palette"], cfg["lights"]
+    hue = lambda c: colorsys.rgb_to_hsv(*c)[0] * 360
+    for k in ("cool_light", "plaster", "ceiling"):
+        assert 184 <= hue(pal[k]) <= 200, (k, round(hue(pal[k])))
+    assert 220 <= hue(pal["tile"]) <= 250, round(hue(pal["tile"]))
+    assert li["accent_power"] <= 300
