@@ -13,6 +13,7 @@ import bpy
 from mathutils import Matrix
 
 from . import materials as M
+from ..frames import loop_frame_count
 from .util import (arch_profile, bevel, box, boolean_cut_collection, collection,
                    cutter_collection_union, extruded_profile, obj_from_bmesh, smooth_shade)
 
@@ -44,7 +45,7 @@ def build(cfg: dict) -> dict:
         "plaster": M.plaster("Plaster", pal["plaster"]),
         "ceiling": M.plaster("Ceiling", pal["ceiling"], 0.7),
         "water": M.water("Water", pal["water"], pal["water_absorb"], pool["wave_scale"],
-                         pool["wave_strength"], pool["wave_speed"], cfg["render"]["fps"]),
+                         pool["wave_strength"], pool["wave_cycles"], loop_frame_count(cfg)),
         "sconce": M.emission("Sconce", pal["warm_light"], 6.0),
     }
 

@@ -4,9 +4,11 @@
   python -m wavegen build    --preset poolrooms --blend out/poolrooms.blend
   python -m wavegen still    --preset poolrooms --frame 120 -o out/still.png
   python -m wavegen render   --preset poolrooms -o out/frames [--frames 1-120]
-  python -m wavegen audio    --preset poolrooms -o out/ambience.wav
-  python -m wavegen post     out/frames -a out/ambience.wav -o out/poolrooms.mp4
+  python -m wavegen audio    --preset poolrooms --stems -o out/stems
+  python -m wavegen post     out/frames --stems out/stems -o out/poolrooms.mp4 [--audio-mix full]
   python -m wavegen make     --preset poolrooms -o out/poolrooms        (all of the above)
+  python -m wavegen extend   out/poolrooms/poolrooms.mp4 --duration 1h -o out/poolrooms_1h.mp4
+  python -m wavegen loopcheck --preset poolrooms
   python -m wavegen variants --preset poolrooms --seeds 1 2 3 -o out/variants
 
 Common flags: --preview (fast low-res draft), --set key.path=value (repeatable).
@@ -86,16 +88,20 @@ def cmd_render(args):
 def cmd_audio(args):
     from . import audio
     cfg = _cfg(args)
-    print(f"wrote {audio.render(cfg, args.out)}")
+    if args.stems:
+        for name, path in audio.write_stems(cfg, args.out).items():
+            print(f"wrote {path}")
+    else:
+        print(f"wrote {audio.render(cfg, args.out)}")
 
 
 def cmd_post(args):
     from . import post
     cfg = _cfg(args)
-    print(f"wrote {post.assemble(args.frames_dir, args.out, cfg, args.audio)}")
+    print(f"wrote {post.assemble(args.frames_dir, args.out, cfg, args.stems, args.audio_mix)}")
 
 
-def _make(cfg, out: Path, frames=None, blend=True, overwrite=False):
+def _make(cfg, out: Path, frames=None, blend=True, overwrite=False, audio_mix="bed"):
     from . import audio, post
     from .scene import build_scene, render_frames
     out.mkdir(parents=True, exist_ok=True)
@@ -105,14 +111,27 @@ def _make(cfg, out: Path, frames=None, blend=True, overwrite=False):
     if frames is not None:
         print(f"rendered a subset of frames; run `wavegen post {out / 'frames'}` once all of them exist")
         return
-    wav = audio.render(cfg, out / "ambience.wav") if cfg["audio"]["enabled"] else None
-    mp4 = post.assemble(out / "frames", out / f"{cfg['name']}.mp4", cfg, wav)
+    stems = out / "stems"
+    if cfg["audio"]["enabled"]:
+        audio.write_stems(cfg, stems)
+    mp4 = post.assemble(out / "frames", out / f"{cfg['name']}.mp4", cfg,
+                        stems if cfg["audio"]["enabled"] else None, audio_mix)
     print(f"wrote {mp4}")
 
 
 def cmd_make(args):
     cfg = _cfg(args)
-    _make(cfg, Path(args.out), _frames(args.frames, cfg), overwrite=args.overwrite)
+    _make(cfg, Path(args.out), _frames(args.frames, cfg), overwrite=args.overwrite, audio_mix=args.audio_mix)
+
+
+def cmd_extend(args):
+    from . import post
+    try:
+        seconds = post.parse_duration(args.duration)
+    except ValueError as e:
+        raise SystemExit(f"wavegen: --duration: {e}") from None
+    stems = Path(args.stems) if args.stems else Path(args.loop).parent / "stems"
+    print(f"wrote {post.extend(args.loop, stems, seconds, args.out, args.audio_mix)}")
 
 
 def cmd_variants(args):
@@ -130,6 +149,21 @@ def cmd_variants(args):
             build_scene(cfg, d / f"{cfg['name']}.blend")
             render_frames(d / "frames", cfg, _frames(str(args.frame), cfg))
         print(f"variant {seed} -> {d}")
+
+
+def cmd_loopcheck(args):
+    from .scene import build_scene
+    from .scene.loopcheck import driven_values, loop_mismatches
+    cfg = _cfg(args)
+    build_scene(cfg)
+    bad = loop_mismatches(cfg)
+    n = len(driven_values(1))
+    if bad:
+        print(f"loopcheck: {len(bad)} of {n} driven values do not loop:")
+        for line in bad:
+            print("  " + line)
+        raise SystemExit(1)
+    print(f"loopcheck: all {n} driven values match at the loop point")
 
 
 def cmd_presets(args):
@@ -176,13 +210,16 @@ def main(argv: list[str] | None = None):
 
     p = sub.add_parser("audio", help="synthesize the ambient soundtrack")
     common(p)
+    p.add_argument("--stems", action="store_true", help="write room/crt/bells/pad/bed/mix WAVs into the -o folder")
     p.add_argument("-o", "--out", default="out/ambience.wav")
     p.set_defaults(fn=cmd_audio)
 
     p = sub.add_parser("post", help="grade + encode frames (+audio) to mp4")
     common(p)
     p.add_argument("frames_dir")
-    p.add_argument("-a", "--audio")
+    p.add_argument("--stems", help="folder with bed.wav / mix.wav (from `wavegen audio --stems`)")
+    p.add_argument("--audio-mix", choices=["bed", "full"], default="bed",
+                   help="bed = room + crt ambience (default, leaves room for your music); full = with pad and bells")
     p.add_argument("-o", "--out", default="out/wavegen.mp4")
     p.set_defaults(fn=cmd_post)
 
@@ -190,8 +227,17 @@ def main(argv: list[str] | None = None):
     common(p)
     p.add_argument("--frames")
     p.add_argument("--overwrite", action="store_true", help="discard frames from a different config")
+    p.add_argument("--audio-mix", choices=["bed", "full"], default="bed")
     p.add_argument("-o", "--out", default="out/poolrooms")
     p.set_defaults(fn=cmd_make)
+
+    p = sub.add_parser("extend", help="repeat a finished loop to a long video (e.g. 1h) without re-encoding video")
+    p.add_argument("loop", help="loop .mp4 from `make`/`post`")
+    p.add_argument("--duration", required=True, help="e.g. 1h, 90m, 1h30m")
+    p.add_argument("--stems", help="stems folder (default: <loop folder>/stems)")
+    p.add_argument("--audio-mix", choices=["bed", "full"], default="bed")
+    p.add_argument("-o", "--out", required=True)
+    p.set_defaults(fn=cmd_extend)
 
     p = sub.add_parser("variants", help="generate 'parallel' versions from seeds")
     common(p)
@@ -201,6 +247,10 @@ def main(argv: list[str] | None = None):
     p.add_argument("--full", action="store_true", help="render the full video for each variant")
     p.add_argument("-o", "--out", default="out/variants")
     p.set_defaults(fn=cmd_variants)
+
+    p = sub.add_parser("loopcheck", help="verify every animated value returns to its start at the loop point")
+    common(p)
+    p.set_defaults(fn=cmd_loopcheck)
 
     p = sub.add_parser("presets", help="list bundled presets")
     p.set_defaults(fn=cmd_presets)

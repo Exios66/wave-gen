@@ -17,5 +17,11 @@
   "atmosphere": {"haze_density": 0.008, "dust_strength": [2.0, 8.0]},
   "computer": {"screen_strength": 3.0},
   "render": {"exposure": 0.2, "bloom": {"threshold": 0.6, "strength": 0.8, "size": 0.75}},
-  "audio": {"tempo_slow": 0.94, "bell_density": 0.3, "reverb_seconds": 6.5, "reverb_mix": 0.55}
+  "audio": {"tempo_slow": 0.94, "reverb_seconds": 6.5, "reverb_mix": 0.55, "layers": [
+    {"type": "room_tone", "stem": "room", "level": 0.10, "hiss": 0.12},
+    {"type": "water", "stem": "room", "level": 0.14},
+    {"type": "drips", "stem": "room", "level": 0.10, "per_minute": 6},
+    {"type": "crt_hum", "stem": "crt", "level": 0.035, "hum_hz": 60, "whine_hz": 15734},
+    {"type": "bells", "stem": "bells", "level": 0.15, "density": 0.3},
+    {"type": "pad", "stem": "pad", "level": 0.55}]}
 }

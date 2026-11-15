@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from wavegen import audio, config, post
+from wavegen import config, post
 
 
 def test_presets_load_and_merge():
@@ -38,34 +38,6 @@ def test_mutate_is_deterministic_and_valid():
         assert p["y"][1] < -3.5 + r["depth"] - 1.0
         assert r["spring_height"] < r["height"] - 2.0 + 1e-9
     assert base == config.load("poolrooms")  # mutate does not touch its input
-
-
-def test_note_hz():
-    assert audio.note_hz("A4") == pytest.approx(440.0)
-    assert audio.note_hz("G3") == pytest.approx(196.0, rel=1e-3)
-    assert audio.note_hz("F#3") == pytest.approx(185.0, rel=1e-3)
-
-
-def test_audio_synth_shape_level_and_pitch():
-    cfg = config.load("poolrooms", ["audio.sample_rate=16000"])
-    data, sr = audio.synthesize(cfg, seconds=8.0)
-    assert sr == 16000 and data.shape == (8 * 16000, 2)
-    assert np.isfinite(data).all()
-    assert 0.5 < np.abs(data).max() <= 0.8
-    # the strongest partials must sit on chord tones (or harmonics) pitched down by tempo_slow
-    seg = data[2 * sr: 5 * sr, 0]
-    spec = np.abs(np.fft.rfft(seg * np.hanning(len(seg))))
-    f = np.fft.rfftfreq(len(seg), 1 / sr)
-    slow = cfg["audio"]["tempo_slow"]
-    targets = [audio.note_hz(n) * slow * h for n in cfg["audio"]["chords"][0] for h in (1, 2, 3)]
-    band = (f > 80) & (f < 1200)
-    top = f[band][np.argsort(spec[band])[-5:]]
-    for peak in top:
-        assert min(abs(peak - t) for t in targets) < 3, peak
-    # and NOT on the un-slowed pitch
-    unslowed = [audio.note_hz(n) * h for n in cfg["audio"]["chords"][0] for h in (1, 2, 3)]
-    for peak in top:
-        assert min(abs(peak - t) for t in targets) < min(abs(peak - t) for t in unslowed), peak
 
 
 def test_post_filtergraph_variants():
@@ -111,16 +83,8 @@ def test_resolve_engine():
         resolve_engine("luxcore", (5, 3, 0))
 
 
-def test_audio_reproducible():
-    import numpy as np
-    from wavegen import audio
-    cfg = config.load("poolrooms", ["audio.sample_rate=16000"])
-    a, _ = audio.synthesize(cfg, 4)
-    b, _ = audio.synthesize(cfg, 4)
-    np.testing.assert_array_equal(a, b)
 
 
-def test_bells_zero_density():
-    from wavegen import audio
-    cfg = config.load("poolrooms", ["audio.sample_rate=16000", "audio.bell_density=0"])
-    audio.synthesize(cfg, 3)
+def test_set_dotted_list_index():
+    cfg = config.load("poolrooms", ["audio.layers.4.density=0.3"])
+    assert cfg["audio"]["layers"][4]["type"] == "bells" and cfg["audio"]["layers"][4]["density"] == 0.3

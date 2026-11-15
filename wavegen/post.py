@@ -4,8 +4,11 @@ vignette, and optionally the 'filmed off a CRT/TV with a phone' look of the
 reference clip (scanlines, soft barrel, black top band)."""
 from __future__ import annotations
 
+import math
+import re
 import shutil
 import subprocess
+import wave
 from pathlib import Path
 
 from .frames import frame_files, loop_frame_count, missing_frames
@@ -58,8 +61,25 @@ def filtergraph(pc: dict, width: int, height: int) -> str:
     return g
 
 
-def assemble(frames_dir: str | Path, out: str | Path, cfg: dict, audio: str | Path | None = None) -> Path:
-    """Encode frames 1..N of the loop (N from the config). Refuses gaps."""
+AUDIO_MIX = {"bed": "bed.wav", "full": "mix.wav"}
+
+
+def _stem_path(stems_dir: str | Path, audio_mix: str) -> Path:
+    if audio_mix not in AUDIO_MIX:
+        raise ValueError(f"audio_mix must be one of {', '.join(AUDIO_MIX)}, got {audio_mix!r}")
+    path = Path(stems_dir) / AUDIO_MIX[audio_mix]
+    if not path.exists():
+        raise FileNotFoundError(f"{path} not found (run `wavegen audio --stems -o {stems_dir}`)")
+    return path
+
+
+def assemble(frames_dir: str | Path, out: str | Path, cfg: dict, stems_dir: str | Path | None = None,
+             audio_mix: str = "bed") -> Path:
+    """Grade + encode frames 1..N of the loop (N from the config), refusing gaps.
+
+    With ``stems_dir``, mux ``bed.wav`` (room + crt, the default) or ``mix.wav``
+    (``audio_mix="full"``) trimmed to exactly the loop length.
+    """
     frames_dir, out = Path(frames_dir), Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     files = frame_files(frames_dir)
@@ -74,13 +94,56 @@ def assemble(frames_dir: str | Path, out: str | Path, cfg: dict, audio: str | Pa
     rc, pc = cfg["render"], cfg["post"]
     w = int(rc["resolution"][0] * rc["percentage"] / 100)
     h = int(rc["resolution"][1] * rc["percentage"] / 100)
+    wav = _stem_path(stems_dir, audio_mix) if stems_dir else None
     cmd = [_ffmpeg(), "-y", "-v", "error", "-framerate", str(rc["fps"]), "-start_number", "1",
            "-i", str(frames_dir / pattern)]
-    if audio:
-        cmd += ["-i", str(audio)]
+    if wav:
+        cmd += ["-i", str(wav)]
     cmd += ["-filter_complex", filtergraph(pc, w, h), "-map", "[vout]", "-frames:v", str(n)]
-    if audio:
-        cmd += ["-map", "1:a", "-c:a", "aac", "-b:a", "256k", "-shortest"]
+    if wav:
+        cmd += ["-map", "1:a", "-c:a", "aac", "-b:a", "256k", "-t", f"{n / rc['fps']:.6f}"]
     cmd += ["-c:v", "libx264", "-preset", "slow", "-crf", str(pc["crf"]), "-movflags", "+faststart", str(out)]
     subprocess.run(cmd, check=True)
+    return out
+
+
+def parse_duration(s: str) -> float:
+    """``"90s"``, ``"45m"``, ``"1h"``, ``"1h30m"`` or plain seconds -> seconds."""
+    s = str(s).strip().lower()
+    m = re.fullmatch(r"(?:(\d+(?:\.\d+)?)h)?(?:(\d+(?:\.\d+)?)m)?(?:(\d+(?:\.\d+)?)s?)?", s)
+    if not s or not m or not any(m.groups()):
+        raise ValueError(f"bad duration {s!r} (use e.g. 90s, 45m, 1h, 1h30m)")
+    h, mi, se = (float(g) if g else 0.0 for g in m.groups())
+    return h * 3600 + mi * 60 + se
+
+
+def extend(loop_mp4: str | Path, stems_dir: str | Path, duration_s: float, out: str | Path,
+           audio_mix: str = "bed") -> Path:
+    """Repeat a loop to ``duration_s``. Video is stream-copied (no quality loss); the
+    audio is rebuilt by tiling the sample-exact stem and encoding once, so the
+    joins have no AAC priming clicks."""
+    import tempfile
+
+    import numpy as np
+
+    from .audio import write_wav
+
+    loop_mp4, out = Path(loop_mp4).resolve(), Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    wav = _stem_path(stems_dir, audio_mix)
+    with wave.open(str(wav)) as wf:
+        sr, ch = wf.getframerate(), wf.getnchannels()
+        x = np.frombuffer(wf.readframes(wf.getnframes()), "<i2").reshape(-1, ch).astype(np.float32) / 32767
+    loop_s = len(x) / sr
+    reps = max(1, math.ceil(duration_s / loop_s - 1e-9))
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        lst = td / "list.txt"
+        lst.write_text("".join(f"file '{loop_mp4.as_posix()}'\n" for _ in range(reps)))
+        tiled = np.tile(x, (reps, 1))[: int(round(duration_s * sr))]
+        long_wav = write_wav(td / "long.wav", tiled, sr)
+        subprocess.run([_ffmpeg(), "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(lst),
+                        "-i", str(long_wav), "-map", "0:v", "-map", "1:a", "-c:v", "copy",
+                        "-c:a", "aac", "-b:a", "256k", "-t", f"{duration_s:.6f}",
+                        "-movflags", "+faststart", str(out)], check=True)
     return out
