@@ -180,3 +180,14 @@ def test_poolrooms_screen_background_is_dark_navy():
     """The clip's screen is near-black; a dark background also sets off the purple emblem."""
     r, g, b = config.load("poolrooms")["palette"]["screen_glow"]
     assert b <= 0.2 and b > 2 * max(r, g)
+
+
+def test_mutate_keeps_the_nested_arch_in_the_widest_opening():
+    base = config.load("poolrooms")
+    seen = set()
+    for seed in range(40):
+        room = config.mutate(base, seed)["room"]
+        widths = room["back_arches"]
+        seen.add(len(widths))
+        assert widths[room["nested_arch"]["arch"]] == max(widths)
+    assert seen > {3}                                       # layouts with more than three arches were covered
