@@ -306,3 +306,11 @@ def test_twin_sconces_per_alcove(look):
 def test_alcoves_have_tile_wainscot(look):
     mat = bpy.data.materials["AlcoveTile"]
     assert any(n.type == "MIX_SHADER" for n in mat.node_tree.nodes)
+
+
+def test_pier_outline_rejects_depth_too_shallow_for_its_round_front():
+    from wavegen.scene.architecture import _pier_outline
+    pts = _pier_outline(1.1, 1.0)
+    assert max(y for _, y in pts) == pytest.approx(0.5)
+    with pytest.raises(ValueError, match="depth"):
+        _pier_outline(1.1, 0.4)  # the half-round front (r=0.55) would poke out of the back
