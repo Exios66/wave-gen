@@ -57,13 +57,28 @@ def box(name, mn, mx, col, material=None, inward=False, skip=()) -> bpy.types.Ob
     return obj_from_bmesh(name, bm, col, material)
 
 
-def arch_profile(width: float, spring: float, segments: int = 24, bottom: float = -0.05):
-    """2D outline (u, v) of a round-topped arch opening, counter-clockwise."""
+def arch_profile(width: float, spring: float, segments: int = 24, bottom: float = -0.05,
+                 corner_radius: float | None = None):
+    """2D outline (u, v) of an arch opening, counter-clockwise.
+
+    Round-topped by default. A ``corner_radius`` smaller than half the width gives a
+    flat top with rounded corners (a basket-handle arch) that rises only ``corner_radius``
+    above the spring line.
+    """
     r = width / 2
     pts = [(-r, bottom), (r, bottom), (r, spring)]
-    for i in range(1, segments):
-        a = math.pi * i / segments
-        pts.append((r * math.cos(a), spring + r * math.sin(a)))
+    if corner_radius is None or corner_radius >= r:
+        for i in range(1, segments):
+            a = math.pi * i / segments
+            pts.append((r * math.cos(a), spring + r * math.sin(a)))
+    else:
+        rc, cx, half = corner_radius, r - corner_radius, max(2, segments // 2)
+        for i in range(1, half + 1):                      # right corner, up to the flat top
+            a = math.pi / 2 * i / half
+            pts.append((cx + rc * math.cos(a), spring + rc * math.sin(a)))
+        for i in range(half):                             # left corner, down from the flat top
+            a = math.pi / 2 + math.pi / 2 * i / half
+            pts.append((-cx + rc * math.cos(a), spring + rc * math.sin(a)))
     pts.append((-r, spring))
     return pts
 

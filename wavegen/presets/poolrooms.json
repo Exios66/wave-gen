@@ -82,7 +82,7 @@
     "alcove_fill": 220.0,
     "accent_power": 250.0,
     "cove_power": 3800.0,
-    "alcove_height": 0.8
+    "alcove_height": 0.66
   },
   "atmosphere": {
     "dust_count": 90,
@@ -108,6 +108,8 @@
   },
   "room": {
     "alcove_wainscot": 9.0,
-    "alcove_tile_size": 0.22
+    "alcove_tile_size": 0.22,
+    "arch_corner_radius": 1.2,
+    "spring_height": 4.5
   }
 }

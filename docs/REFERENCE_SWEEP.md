@@ -21,9 +21,9 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
 3. **Alcove tile stopped at 2.4 m (fixed).** In the reference the square white tile runs
    up to the arch, with visible grout, and the sconces sit on tile. Raise
    `room.alcove_wainscot` (or add a full-height option).
-4. **Arch shape.** The reference arches are flatter, with a wide rounded-corner
-   centre opening and a second, smaller arched recess inside it. Ours are plain
-   semicircles. Needs an arch-profile option and a nested recess.
+4. **Arch shape (flat tops fixed; nested recess open).** The arches are now
+   flat-topped with rounded corners and end level (`room.arch_corner_radius`).
+   Still missing: the smaller arched recess inside the wide centre opening.
 5. **Left of frame.** The reference has a bright tiled passage with a warm lamp
    behind the rounded pier. Ours shows a plain plaster niche there. The bay
    exists (`room.bay`) but is not lit or tiled enough to read.

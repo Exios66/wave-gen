@@ -34,10 +34,11 @@ def _spread(total: float, widths: list[float]) -> list[float]:
     return centres
 
 
-def _horseshoe(width: float, spring: float, band: float, segments: int = 24):
+def _horseshoe(width: float, spring: float, band: float, segments: int = 24, corner_radius: float | None = None):
     """Outline of an arch-shaped band ``band`` wide around an opening (u, v)."""
-    outer = arch_profile(width + 2 * band, spring, segments, bottom=0.0)
-    inner = arch_profile(width, spring, segments, bottom=0.0)
+    outer_r = None if corner_radius is None else corner_radius + band
+    outer = arch_profile(width + 2 * band, spring, segments, bottom=0.0, corner_radius=outer_r)
+    inner = arch_profile(width, spring, segments, bottom=0.0, corner_radius=corner_radius)
     # outer goes CCW from bottom-left; walk it from bottom-right up and over, then the inner back
     o = [outer[1], outer[2], *outer[3:], outer[0]]          # (R,0) -> (R,s) -> arc -> (-R,s) -> (-R,0)
     i = [inner[0], inner[-1], *reversed(inner[3:-1]), inner[2], inner[1]]
@@ -136,10 +137,12 @@ def build(cfg: dict) -> dict:
     sw, sd = room["arch_surround"]["width"], room["arch_surround"]["depth"]
 
     def arch(wall: str, centre: float, width: float):
-        spring = min(room["spring_height"], H - 0.6 - width / 2)
+        rc = room.get("arch_corner_radius")               # None = round-topped; else a flat top with rounded corners
+        rise = width / 2 if rc is None else min(rc, width / 2)
+        spring = min(room["spring_height"], H - 0.6 - rise)
         # sconces line up at one height in every alcove, whatever the arch width
         lamp_z = cfg["lights"]["alcove_height"] * room["spring_height"]
-        top = spring + width / 2
+        top = spring + rise
         ad = room["alcove_depth"]
         off = width / 2 - 0.35                     # two sconces, one toward each side of the alcove
         if wall == "back":
@@ -165,9 +168,9 @@ def build(cfg: dict) -> dict:
             xf = x0 + sd / 2 - 0.01 if wall == "left" else x1 - sd / 2 + 0.01
             face = Matrix.Translation((xf, centre, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z")
             into = (sign, 0, 0)
-        cutter = extruded_profile(f"ArchCut.{wall}.{centre:.1f}", arch_profile(width, spring), T + 0.4, cut_col, m)
+        cutter = extruded_profile(f"ArchCut.{wall}.{centre:.1f}", arch_profile(width, spring, corner_radius=rc), T + 0.4, cut_col, m)
         # moulded reveal: a horseshoe band standing proud of the wall around the opening
-        sur = extruded_profile(f"ArchSurround.{wall}.{centre:.1f}", _horseshoe(width, spring, sw), sd, col, face,
+        sur = extruded_profile(f"ArchSurround.{wall}.{centre:.1f}", _horseshoe(width, spring, sw, corner_radius=rc), sd, col, face,
                                mats["plaster"])
         bevel(sur, min(0.035, sd * 0.3), 3, 30)
         # two warm wall-washers per alcove: a small glowing dome + a light just in front, aimed back at the wall
