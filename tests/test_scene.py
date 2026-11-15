@@ -29,7 +29,7 @@ def test_expected_objects(scene):
               "Keyboard.keys", "CoveLight", "AccentLight"):
         assert n in names, n
     n_back = len(scene[0]["room"]["back_arches"])
-    assert sum(1 for o in names if o.startswith("AlcoveLight.back")) == n_back
+    assert sum(1 for o in names if o.startswith("AlcoveLight.back")) == 2 * n_back          # twin sconces
     assert sum(1 for o in names if o.startswith("Dust.")) == 12
 
 
@@ -293,3 +293,16 @@ def test_reference_framing(look):
         got = project_bounds(name, 1)
         off[name] = [round(g - r, 3) for g, r in zip(got, ref)]
     assert all(abs(d) <= 0.06 for ds in off.values() for d in ds), off
+
+
+def test_twin_sconces_per_alcove(look):
+    cfg, _ = look
+    n = len(cfg["room"]["back_arches"]) + 2 * len(cfg["room"]["side_arches"])
+    sconces = [o for o in bpy.data.objects if o.name.startswith("Sconce.")]
+    lights = [o for o in bpy.data.objects if o.name.startswith("AlcoveLight.")]
+    assert len(sconces) == 2 * n and len(lights) == 2 * n
+
+
+def test_alcoves_have_tile_wainscot(look):
+    mat = bpy.data.materials["AlcoveTile"]
+    assert any(n.type == "MIX_SHADER" for n in mat.node_tree.nodes)

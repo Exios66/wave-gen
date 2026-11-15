@@ -40,7 +40,9 @@ DEFAULTS: dict = {
         "tile": [0.90, 0.93, 0.94],
         "tile_jitter": 0.035,
         "grout": [0.34, 0.42, 0.46],
-        "alcove_tile": [0.95, 0.84, 0.64],     # warm cream tiles inside the lit alcoves
+        "alcove_tile": [0.92, 0.91, 0.88],     # white square tile inside the alcoves (lit warm)
+        "alcove_grout": [0.55, 0.56, 0.58],
+        "alcove_plaster": [0.94, 0.91, 0.86],  # warm white above the alcove tile
         "plaster": [0.56, 0.86, 0.93],
         "ceiling": [0.42, 0.80, 0.92],
         "pool_tile": [0.16, 0.72, 0.76],
@@ -70,6 +72,7 @@ DEFAULTS: dict = {
         "bevel": 0.05,
         "spring_height": 3.6,       # height where an arch starts curving
         "alcove_depth": 3.2,
+        "alcove_wainscot": 2.4,     # alcove walls: tile below this height, plaster above
         "arch_surround": {"width": 0.22, "depth": 0.12},   # moulded reveal around each arch
         "back_arches": [2.8, 4.6, 2.8],   # widths, left -> right
         "side_arches": [3.2],             # per side wall

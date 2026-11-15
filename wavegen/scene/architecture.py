@@ -81,8 +81,10 @@ def build(cfg: dict) -> dict:
         "ceiling": M.plaster("Ceiling", pal["ceiling"], 0.7),
         "water": M.water("Water", pal["water"], pal["water_absorb"], pool["wave_scale"],
                          pool["wave_strength"], pool["wave_cycles"], loop_frame_count(cfg)),
-        "alcove": M.tiles("AlcoveTile", pal.get("alcove_tile", pal["tile"]), pal["grout"], room["tile_size"],
-                          room["grout_width"], pal["tile_jitter"]),
+        "alcove": M.wainscot("AlcoveTile", pal.get("alcove_tile", pal["tile"]), pal.get("alcove_grout", pal["grout"]),
+                             pal.get("alcove_plaster", pal["plaster"]), room["tile_size"], room["grout_width"],
+                             room["alcove_wainscot"],
+                             pal["tile_jitter"]),
         "sconce": M.emission("Sconce", pal["warm_light"], 30.0),
     }
 
@@ -125,12 +127,13 @@ def build(cfg: dict) -> dict:
         spring = min(room["spring_height"], H - 0.6 - width / 2)
         top = spring + width / 2
         ad = room["alcove_depth"]
+        off = width / 2 - 0.35                     # two sconces, one toward each side of the alcove
         if wall == "back":
             m = Matrix.Translation((centre, Y1 + T / 2, 0))
             alc = box(f"Alcove.back.{centre:.1f}", (centre - width / 2 - 0.35, Y1 + T - 0.01, 0),
                       (centre + width / 2 + 0.35, Y1 + T + ad, top + 0.45), col, mats["alcove"],
                       inward=True, skip=("-y",))
-            lamp = (centre, Y1 + T + ad - 0.06, spring * 0.62)
+            lamps = [(centre + k, Y1 + T + ad - 0.06, spring * 0.6) for k in (-off, off)]
             sconce_rot = (math.radians(90), 0, 0)
             face = Matrix.Translation((centre, Y1 - sd / 2 + 0.01, 0))
             into = (0, 1, 0)                      # from the room toward the alcove's back wall
@@ -143,7 +146,7 @@ def build(cfg: dict) -> dict:
             alc = box(f"Alcove.{wall}.{centre:.1f}", (min(xa, xb), centre - width / 2 - 0.35, 0),
                       (max(xa, xb), centre + width / 2 + 0.35, top + 0.45), col, mats["alcove"],
                       inward=True, skip=("+x",) if wall == "left" else ("-x",))
-            lamp = (xb - sign * 0.06, centre, spring * 0.62)
+            lamps = [(xb - sign * 0.06, centre + k, spring * 0.6) for k in (-off, off)]
             sconce_rot = (math.radians(90), 0, math.radians(90))
             xf = x0 + sd / 2 - 0.01 if wall == "left" else x1 - sd / 2 + 0.01
             face = Matrix.Translation((xf, centre, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z")
@@ -153,39 +156,40 @@ def build(cfg: dict) -> dict:
         sur = extruded_profile(f"ArchSurround.{wall}.{centre:.1f}", _horseshoe(width, spring, sw), sd, col, face,
                                mats["plaster"])
         bevel(sur, min(0.035, sd * 0.3), 3, 30)
-        # warm wall-washer: a small glowing dome + a soft point light in front
-        if cfg["lights"]["sconces"]:
-            bm = bmesh.new()
-            bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=0.09)
-            s = obj_from_bmesh(f"Sconce.{wall}.{centre:.1f}", bm, col, mats["sconce"], smooth=True)
-            s.location = lamp
-            s.rotation_euler = sconce_rot
-            s.scale = (1, 1, 0.45)
-        # wall-washer: a light just in front of the lamp, aimed back at the wall -> bright halo
+        # two warm wall-washers per alcove: a small glowing dome + a light just in front, aimed back at the wall
         li = cfg["lights"]
         kind = li.get("alcove_type", "SPOT")
-        L = bpy.data.lights.new(f"AlcoveLight.{wall}.{centre:.1f}", kind)
-        L.energy = li["alcove_power"]
-        L.color = pal["warm_light"]
-        if kind == "SPOT":
-            L.spot_size = math.radians(150)
-            L.spot_blend = 1.0
-            L.shadow_soft_size = li["alcove_radius"]
-        else:
-            L.shape = "DISK"
-            L.size = 2 * li["alcove_radius"]
-        lo = bpy.data.objects.new(L.name, L)
-        lo.location = tuple(lamp[k] - into[k] * 0.55 for k in range(3))
-        lo.rotation_euler = look_at_matrix(lo.location, lamp).to_euler()
-        collection("Lights").objects.link(lo)
-        lights.append(lo)
+        for tag, lamp in zip("ab", lamps):
+            if li["sconces"]:
+                bm = bmesh.new()
+                bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, radius=0.09)
+                s = obj_from_bmesh(f"Sconce.{wall}.{centre:.1f}.{tag}", bm, col, mats["sconce"], smooth=True)
+                s.location = lamp
+                s.rotation_euler = sconce_rot
+                s.scale = (1, 1, 0.45)
+            L = bpy.data.lights.new(f"AlcoveLight.{wall}.{centre:.1f}.{tag}", kind)
+            L.energy = li["alcove_power"] / 2
+            L.color = pal["warm_light"]
+            if kind == "SPOT":
+                L.spot_size = math.radians(150)
+                L.spot_blend = 1.0
+                L.shadow_soft_size = li["alcove_radius"]
+            else:
+                L.shape = "DISK"
+                L.size = 2 * li["alcove_radius"]
+            lo = bpy.data.objects.new(L.name, L)
+            lo.location = tuple(lamp[k] - into[k] * 0.55 for k in range(3))
+            lo.rotation_euler = look_at_matrix(lo.location, lamp).to_euler()
+            collection("Lights").objects.link(lo)
+            lights.append(lo)
         # soft warm fill so the whole alcove glows gold, not just the halo
         F = bpy.data.lights.new(f"AlcoveFill.{wall}.{centre:.1f}", "POINT")
         F.energy = li.get("alcove_fill", 0.0)
         F.color = pal["warm_light"]
         F.shadow_soft_size = 0.6
         fo = bpy.data.objects.new(F.name, F)
-        fo.location = tuple(lamp[k] - into[k] * (ad * 0.5) for k in range(2)) + (top * 0.75,)
+        mid = (sum(p[0] for p in lamps) / 2, sum(p[1] for p in lamps) / 2)
+        fo.location = tuple(mid[k] - into[k] * (ad * 0.5) for k in range(2)) + (top * 0.75,)
         collection("Lights").objects.link(fo)
         return cutter
 
