@@ -77,6 +77,9 @@ DEFAULTS: dict = {
         "alcove_wainscot": 2.4,     # alcove walls: tile below this height, plaster above
         "arch_corner_radius": None,  # None = round-topped arches; a radius gives flat tops with rounded corners
         "arch_surround": {"width": 0.22, "depth": 0.12},   # moulded reveal around each arch
+        # a second, smaller arch set inside one back alcove: {"arch": index into back_arches,
+        # "inset": m narrower per side, "drop": m lower, "depth": m behind the wall, "thickness": m, "color": optional plaster colour}
+        "nested_arch": None,
         "back_arches": [3.0, 5.4, 3.0],   # widths, left -> right
         "side_arches": [3.2, 3.2],       # per side wall
         "ceiling_tray": {"inset": 2.0, "steps": 3, "step_height": 0.28},
@@ -290,6 +293,8 @@ def mutate(cfg: dict, seed: int, strength: float = 1.0) -> dict:
     widths = [round(rng.uniform(2.0, 3.0), 2) for _ in range(n_back)]
     widths[n_back // 2] = round(rng.uniform(3.4, 4.6), 2)
     room["back_arches"] = _fit(widths, room["width"])
+    if room.get("nested_arch"):                 # keep the nested arch in the wide opening of the new layout
+        room["nested_arch"]["arch"] = room["back_arches"].index(max(room["back_arches"]))
     side = [round(rng.uniform(2.4, 3.6), 2) for _ in range(rng.choice([1, 1, 2]))]
     room["side_arches"] = _fit(side, room["depth"] - 6.0)
     room["column"] = rng.random() < 0.75

@@ -503,3 +503,42 @@ def test_bay_is_tiled_like_the_alcoves():
 
 def test_bay_light_never_shows_up_as_a_disc_in_the_tiles(scene):
     assert not bpy.data.objects["BayLight"].visible_glossy
+
+
+def _world_bounds(o):
+    from mathutils import Vector
+    pts = [o.matrix_world @ Vector(c) for c in o.bound_box]
+    return [min(p[k] for p in pts) for k in range(3)], [max(p[k] for p in pts) for k in range(3)]
+
+
+def test_no_nested_arch_by_default():
+    cfg = config.load(None, ["atmosphere.dust_count=0"])
+    assert cfg["room"]["nested_arch"] is None
+    build_scene(cfg)
+    assert not [o for o in bpy.data.objects if o.name.startswith("NestedArch")]
+
+
+def test_poolrooms_centre_alcove_has_a_nested_arch_set_inside_it(scene):
+    """The reference's wide centre opening shows a second, smaller arch further in."""
+    from mathutils import Vector
+    cfg, _ = scene
+    na = cfg["room"]["nested_arch"]
+    inner = [o for o in bpy.data.objects if o.name.startswith("NestedArch")]
+    assert len(inner) == 1
+    o = inner[0]
+    bpy.context.view_layer.update()
+    lo, hi = _world_bounds(o)
+    _, wall_hi = _world_bounds(bpy.data.objects["Wall.back"])
+    assert lo[1] >= wall_hi[1] + 0.3                       # set back inside the alcove, behind the wall
+    assert hi[1] < wall_hi[1] + cfg["room"]["alcove_depth"]  # but in front of the lamps on its back wall
+    width = cfg["room"]["back_arches"][na["arch"]]
+    cx = (lo[0] + hi[0]) / 2
+    inv = o.matrix_world.inverted()
+
+    def blocked(x, z):
+        hit, *_ = o.ray_cast(inv @ Vector((x, lo[1] - 1.0, z)), inv.to_3x3() @ Vector((0, 1, 0)))
+        return hit
+
+    assert not blocked(cx, 1.5)                            # open in the middle
+    assert blocked(cx + width / 2 - na["inset"] / 2, 1.5)  # narrower than the outer opening
+    assert blocked(cx, hi[2] - 0.1)                        # and closed above its own arch
