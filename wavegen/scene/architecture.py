@@ -1,5 +1,5 @@
 """The poolroom: tiled floor, sunken pool, arched walls with lit alcoves,
-stepped tray ceiling, a big rounded column.
+stepped tray ceiling, a rounded pier with a lit tiled passage beside it.
 
 World layout (Blender, Z up): the camera sits near y=-1 looking down +Y.
 Interior spans x in [-W/2, W/2], y in [Y0, Y0 + D], floor at z = 0.
@@ -42,6 +42,29 @@ def _horseshoe(width: float, spring: float, band: float, segments: int = 24):
     o = [outer[1], outer[2], *outer[3:], outer[0]]          # (R,0) -> (R,s) -> arc -> (-R,s) -> (-R,0)
     i = [inner[0], inner[-1], *reversed(inner[3:-1]), inner[2], inner[1]]
     return o + i
+
+
+def _pier_outline(width: float, depth: float, segments: int = 16) -> list[tuple[float, float]]:
+    """Plan outline of a pier: square back (+y), semicircular front facing the camera (-y)."""
+    r = width / 2
+    cy = -depth / 2 + r
+    front = [(r * math.cos(math.pi + math.pi * i / segments), cy - r * math.sin(math.pi * i / segments))
+             for i in range(segments + 1)]                 # from (-r, cy) round the front to (r, cy)
+    return front + [(r, depth / 2), (-r, depth / 2)]
+
+
+def _prism(name, outline, z0, z1, col, material):
+    """Vertical extrusion of a plan outline (local XY, counter-clockwise) between z0 and z1."""
+    bm = bmesh.new()
+    verts = [bm.verts.new((x, y, z0)) for x, y in outline]
+    face = bm.faces.new(verts)
+    ext = bmesh.ops.extrude_face_region(bm, geom=[face])
+    bmesh.ops.translate(bm, verts=[v for v in ext["geom"] if isinstance(v, bmesh.types.BMVert)],
+                        vec=(0, 0, z1 - z0))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    obj = obj_from_bmesh(name, bm, col, material)
+    smooth_shade(obj)
+    return obj
 
 
 def build(cfg: dict) -> dict:
@@ -179,7 +202,6 @@ def build(cfg: dict) -> dict:
             group = cutter_collection_union(f"Cut.{wall}", cutters, cut_col)
             boolean_cut_collection(walls[wall], group)
         bevel(walls[wall], room["bevel"], 4, 30)
-    cut_col.hide_render = True
 
     # crown moulding: two stacked soft ledges where wall meets ceiling
     for i, (h, out) in enumerate([(0.18, 0.08), (0.10, 0.16)]):
@@ -215,20 +237,40 @@ def build(cfg: dict) -> dict:
     co.visible_camera = False
     collection("Lights").objects.link(co)
 
-    # ---- big rounded column, near left ---------------------------------------
+    # ---- pier behind the computer, and the lit tiled passage to its left -----
     if room["column"]:
-        (cx, cy), r = room.get("column_xy", (x0 + 1.25, Y0 + 4.6)), 0.5
-        bm = bmesh.new()
-        bmesh.ops.create_cone(bm, cap_ends=True, segments=48, radius1=r, radius2=r, depth=H,
-                              matrix=Matrix.Translation((cx, cy, H / 2)))
-        colm = obj_from_bmesh("Column", bm, col, mats["plaster"])
-        smooth_shade(colm)
-        for name, z, rr, hh in (("base", 0.12, r + 0.12, 0.24), ("cap", H - 0.45, r + 0.16, 0.3)):
-            bm = bmesh.new()
-            bmesh.ops.create_cone(bm, cap_ends=True, segments=48, radius1=rr, radius2=rr, depth=hh,
-                                  matrix=Matrix.Translation((cx, cy, z)))
-            ring = obj_from_bmesh(f"Column.{name}", bm, col, mats["plaster"])
-            bevel(ring, 0.05, 4)
-            smooth_shade(ring)
+        pr = room["pier"]
+        (px, py), pw, pd = pr["xy"], pr["width"], pr["depth"]
+        pier = _prism("Pier", _pier_outline(pw, pd), 0.0, H, col, mats["plaster"])
+        pier.location = (px, py, 0.0)
+        for name, z, grow, hh in (("base", 0.0, 0.1, 0.22), ("cap", H - 0.5, 0.14, 0.3)):
+            ring = _prism(f"Pier.{name}", _pier_outline(pw + 2 * grow, pd + grow), z, z + hh, col, mats["plaster"])
+            ring.location = (px, py + grow / 2, 0.0)
+            bevel(ring, 0.04, 3)
+        by = room["bay"]
+        bw, bd, bh = by["width"], by["depth"], by["height"]
+        bx1 = px - pw / 2                                    # the passage opens just left of the pier
+        bay_mat = M.wainscot("BayTile", pal.get("alcove_tile", pal["tile"]), pal["grout"], pal["plaster"],
+                             room["tile_size"], room["grout_width"], by["wainscot"])
+        box("Bay", (bx1 - bw, py, 0.0), (bx1, py + bd, bh), col, bay_mat,
+            inward=True, skip=("+x", "-y", "-z"))
+        # plaster front wall through the pier's middle; the passage arch springs off the pier
+        front = box("Bay.front", (bx1 - bw - 1.2, py - 0.15, 0.0), (bx1, py + 0.15, H), col, mats["plaster"])
+        spring = bh - (bw - 0.1) / 2
+        cut = extruded_profile("BayArchCut", arch_profile(bw - 0.1, spring), 0.7, cut_col,
+                               Matrix.Translation((bx1 - bw / 2, py, 0.0)))
+        boolean_cut_collection(front, cutter_collection_union("Cut.bay", [cut], cut_col))
+        bevel(front, room["bevel"], 4, 30)
+        BL = bpy.data.lights.new("BayLight", "AREA")
+        BL.shape = "DISK"
+        BL.size = 0.8
+        BL.energy = cfg["lights"]["alcove_power"] * 0.8
+        BL.color = pal["warm_light"]
+        blo = bpy.data.objects.new("BayLight", BL)
+        blo.location = (bx1 - bw / 2, py + bd - 0.4, bh * 0.7)
+        blo.rotation_euler = look_at_matrix(blo.location, (bx1 - bw / 2, py, bh * 0.5)).to_euler()
+        collection("Lights").objects.link(blo)
+        lights.append(blo)
 
+    cut_col.hide_render = True
     return {"materials": mats, "lights": lights, "bounds": (x0, x1, Y0, Y1, H)}

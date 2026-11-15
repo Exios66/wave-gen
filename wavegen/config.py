@@ -74,8 +74,9 @@ DEFAULTS: dict = {
         "back_arches": [2.8, 4.6, 2.8],   # widths, left -> right
         "side_arches": [3.2],             # per side wall
         "ceiling_tray": {"inset": 2.0, "steps": 3, "step_height": 0.28},
-        "column": True,             # big rounded column on the near-left
-        "column_xy": [-1.9, 2.7],   # sits just behind the computer, as in the reference
+        "column": True,             # the pier + tiled passage behind the computer
+        "pier": {"xy": [-3.0, 6.2], "width": 1.1, "depth": 1.0},   # rounded front faces the camera
+        "bay": {"width": 2.2, "depth": 3.4, "height": 3.0, "wainscot": 1.9},   # lit passage left of the pier
     },
     "pool": {
         "x": [-2.6, 6.2],

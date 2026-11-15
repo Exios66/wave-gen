@@ -219,15 +219,24 @@ def test_computer_screen_anchor(look):
     assert max(ys) <= 0.5
 
 
-def test_column_in_frame(look):
-    cfg, sc = look
+def test_pier_behind_crt_matches_reference(look):
+    from wavegen.scene.framing import project_bounds
+    x0, x1, _, y1 = project_bounds("Pier", 1)
+    assert abs(x0 - 0.17) <= 0.06 and abs(x1 - 0.30) <= 0.06, (x0, x1)
+    assert y1 > 0.32                                  # runs down behind the CRT
+
+
+def test_side_bay_is_lit_from_inside(look):
     from mathutils import Vector
-    col = bpy.data.objects["Column"]
-    bb = [col.matrix_world @ Vector(c) for c in col.bound_box]
-    centre = sum(bb, Vector()) / 8
-    sc.frame_set(1)
-    v = _project(sc, Vector((centre.x, centre.y, cfg["room"]["height"] / 2)))
-    assert 0 <= v.x <= 1 and v.z > 0, tuple(v)
+    bay = bpy.data.objects["Bay"]
+    bb = [bay.matrix_world @ Vector(c) for c in bay.bound_box]
+    lo = [min(v[i] for v in bb) for i in range(3)]
+    hi = [max(v[i] for v in bb) for i in range(3)]
+    p = bpy.data.objects["BayLight"].matrix_world.translation
+    assert all(lo[i] < p[i] < hi[i] for i in range(3)), (lo, hi, tuple(p))
+    assert bay.data.materials[0].name == "BayTile"
+    pier = bpy.data.objects["Pier"].matrix_world.translation
+    assert hi[0] <= pier.x                            # the passage opens left of the pier
 
 
 def test_arch_surrounds_exist(look):

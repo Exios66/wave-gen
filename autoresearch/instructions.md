@@ -26,7 +26,7 @@ The preset may set any key that already exists in `DEFAULTS`, and only those. Th
   - `arch_surround.*`
   - `alcove_depth`
   - `spring_height`
-  - `column_xy`
+  - `pier.*`, `bay.*`
 - `camera.location`, `camera.target`, `camera.lens`: composition. See the guard below.
 - `post.*`: grade saturation/contrast, vignette, halation, chroma shift. Not `post.grain`: stills render without grain.
 
@@ -72,7 +72,7 @@ SCORE is a weighted mean of six 0..1 components. Each component is averaged over
 
 1. `LOOPCHECK: PASS`.
 2. `RENDER_SECONDS` ≤ 1.5 × the baseline's render seconds. Don't buy score with slower renders.
-3. On every tentative keep, run `.venv/bin/python -m pytest -q tests/test_scene.py`, and it must pass. This keeps the CRT screen anchored in frame, the column in frame, the alcoves the brightest, and so on.
+3. On every tentative keep, run `.venv/bin/python -m pytest -q tests/test_scene.py`, and it must pass. This keeps the CRT screen anchored in frame, the pier and the CRT where the reference has them, the alcoves the brightest, and so on.
 4. **Visual veto.** Open the `SBS` image on every tentative keep. Discard it if the render looks worse to a person, even when the score rose. Examples: blown-out walls, muddy colours, the purple accent gone, the computer cut off. The metric is a proxy, and you are the guard against gaming it.
 
 ## Loop

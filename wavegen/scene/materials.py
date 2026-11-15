@@ -158,6 +158,25 @@ def plaster(name, color, roughness=0.55):
     return mat
 
 
+def wainscot(name, tile_color, grout_color, plaster_color, size, grout, height, jitter=0.03):
+    """Tile below world height ``height``, painted plaster above (bathhouse wainscot)."""
+    mat = tiles(name, tile_color, grout_color, size, grout, jitter)
+    nt = mat.node_tree
+    out = next(n for n in nt.nodes if n.type == "OUTPUT_MATERIAL")
+    tile_bsdf = out.inputs["Surface"].links[0].from_socket
+    top = principled(nt, plaster_color, 0.55)
+    pos = nt.nodes.new("ShaderNodeNewGeometry")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(pos.outputs["Position"], sep.inputs[0])
+    above = _math(nt, "GREATER_THAN", sep.outputs["Z"], height)
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    nt.links.new(above, mix.inputs["Fac"])
+    nt.links.new(tile_bsdf, mix.inputs[1])
+    nt.links.new(top.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
+    return mat
+
+
 def plastic(name, color, roughness=0.42, sss=0.05):
     """Aged beige ABS plastic: soft, slightly translucent, faint speckle."""
     mat, nt, out = _new(name)
