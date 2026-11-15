@@ -4,17 +4,11 @@ Work lands as a stack of small PRs, each one a contiguous slice of a single line
 
 ## Current stack
 
+Slices 1–9 (#2, #4–#10, #1) landed on `main` on 2026-11-15 with merge commits.
+
 | order | PR | branch | slice |
 |---|---|---|---|
-| 1 | #2 | `claude/stack-01-toolkit` | toolkit |
-| 2 | #4 | `claude/stack-02-v2-design` | v2 design docs |
-| 3 | #5 | `claude/stack-03-review-fixes` | review fixes |
-| 4 | #6 | `claude/stack-04-loop-audio` | loop drivers + audio stems |
-| 5 | #7 | `claude/stack-05-screensaver` | screensaver |
-| 6 | #8 | `claude/stack-06-look-match` | look-match + review round 2 |
-| 7 | #9 | `claude/stack-07-autoresearch` | autoresearch harness |
-| 8 | #10 | `claude/stack-08-rebuild-space` | framing, pier, passage, alcoves |
-| 9 | #1 | `claude/lucid-goldberg-aw6nc3` | deeper room, water, tone, sweep |
+| 10 | (this) | `claude/stack-10-crt-desk` | cream, deeper CRT; lavender desk; softer accent |
 
 ## Landing
 
