@@ -138,7 +138,9 @@ def test_poolrooms_water_is_calm_and_only_lamps_glow():
 
 
 def test_poolrooms_sconces_sit_in_the_upper_part_of_the_arch():
-    assert 0.7 <= config.load("poolrooms")["lights"]["alcove_height"] <= 0.9   # ~2/3 up the opening, as in the clip
+    cfg = config.load("poolrooms")
+    z = cfg["lights"]["alcove_height"] * cfg["room"]["spring_height"]
+    assert 2.6 <= z <= 3.3                               # metres: about two-thirds up the opening, as in the clip
 
 
 def test_emblem_is_large_enough_to_read_its_lettering():
@@ -150,3 +152,10 @@ def test_poolrooms_alcoves_are_tiled_to_the_top_in_large_tile():
     room = config.load("poolrooms")["room"]
     assert room["alcove_wainscot"] >= room["height"]            # tile runs up behind the sconces, no plaster band
     assert room["alcove_tile_size"] >= 1.5 * room["tile_size"]  # large enough for the grid to read across the pool
+
+
+def test_poolrooms_arches_are_flat_topped_with_rounded_corners():
+    room = config.load("poolrooms")["room"]
+    rc = room["arch_corner_radius"]
+    assert rc is not None and rc < min(room["back_arches"]) / 2       # every arch gets a flat top
+    assert room["spring_height"] + rc <= room["height"] - 0.6           # and still clears the ceiling tray

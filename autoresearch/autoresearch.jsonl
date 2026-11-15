@@ -1,1 +1,1 @@
-{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.7973, "render_seconds_baseline": 26, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after tiling the alcoves to the top in 0.22 m tile with darker grout"}
+{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.8017, "render_seconds_baseline": 25, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after flat-topped arches (room.arch_corner_radius 1.2, spring 4.5)"}

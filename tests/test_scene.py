@@ -456,3 +456,39 @@ def test_alcove_tile_size_is_its_own_setting():
     size = lambda name: bpy.data.materials[name].node_tree.nodes["tile_cell"].inputs[1].default_value[0]
     assert size("AlcoveTile") == pytest.approx(0.31)
     assert size("Tile") == pytest.approx(cfg["room"]["tile_size"])
+
+
+def test_arch_profile_default_is_a_semicircle():
+    from wavegen.scene.util import arch_profile
+    pts = arch_profile(3.0, 2.0)
+    assert max(v for _, v in pts) == pytest.approx(2.0 + 1.5)
+    assert sum(1 for _, v in pts if v == pytest.approx(3.5)) == 1          # a single crown point
+
+
+def test_arch_profile_with_corner_radius_has_a_flat_top():
+    from wavegen.scene.util import arch_profile
+    pts = arch_profile(5.0, 2.0, corner_radius=1.0)
+    top = [u for u, v in pts if v == pytest.approx(3.0)]
+    assert max(v for _, v in pts) == pytest.approx(3.0)                    # spring + radius, not spring + width/2
+    assert min(top) == pytest.approx(-1.5) and max(top) == pytest.approx(1.5)   # flat between the two corners
+    assert all(abs(u) <= 2.5 + 1e-9 for u, _ in pts)
+
+
+def test_arch_corner_radius_is_capped_at_half_the_width():
+    from wavegen.scene.util import arch_profile
+    assert arch_profile(2.0, 2.0, corner_radius=5.0) == arch_profile(2.0, 2.0)
+
+
+def test_arch_profile_with_zero_corner_radius_is_a_plain_rectangle():
+    from wavegen.scene.util import arch_profile
+    pts = arch_profile(4.0, 2.0, corner_radius=0.0)
+    assert len(set(pts)) == len(pts)            # no coincident points, so no zero-length edges
+    assert pts == [(-2.0, -0.05), (2.0, -0.05), (2.0, 2.0), (-2.0, 2.0)]
+
+
+def test_arch_tops_line_up_when_a_corner_radius_is_set():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=0", "room.arch_corner_radius=1.2"])
+    build_scene(cfg)
+    tops = {round(max((o.matrix_world @ v.co).z for v in o.data.vertices), 3)
+            for o in bpy.data.objects if o.name.startswith("ArchSurround.")}
+    assert len(tops) == 1, tops                                             # wide and narrow arches end level
