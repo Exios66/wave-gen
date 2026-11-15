@@ -125,6 +125,7 @@ DEFAULTS: dict = {
         "alcove_type": "SPOT",       # SPOT (wall-wash hotspot) | AREA
         "alcove_power": 260.0,
         "alcove_radius": 0.08,
+        "alcove_height": 0.6,        # sconce height as a fraction of room.spring_height
         "alcove_fill": 120.0,        # soft warm point light filling each alcove
         "sconces": True,
         "cove_power": 2200.0,

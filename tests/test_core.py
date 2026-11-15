@@ -134,3 +134,7 @@ def test_poolrooms_water_is_calm_and_only_lamps_glow():
     assert pool["wave_strength"] <= 0.1                  # a near-mirror surface reflects the arches, as in the clip
     assert pool["caustics"]["strength"] <= 0.5            # faint light lines, not a net over the pool floor
     assert bloom["threshold"] >= 2.0 and bloom["size"] >= 0.9   # big soft halos on lamps, walls never bloom
+
+
+def test_poolrooms_sconces_sit_in_the_upper_part_of_the_arch():
+    assert 0.7 <= config.load("poolrooms")["lights"]["alcove_height"] <= 0.9   # ~2/3 up the opening, as in the clip

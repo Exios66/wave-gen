@@ -429,3 +429,13 @@ def test_desk_laminate_is_glossy_with_a_clear_coat(scene):
     assert p.inputs["Roughness"].default_value == pytest.approx(dc["roughness"])
     assert p.inputs["Coat Weight"].default_value == pytest.approx(dc["coat"])
     assert dc["roughness"] <= 0.2 and dc["coat"] > 0
+
+
+def test_alcove_lamps_hang_at_the_configured_height():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=0", "lights.alcove_height=0.5"])
+    build_scene(cfg)
+    want = 0.5 * cfg["room"]["spring_height"]
+    sconces = [o for o in bpy.data.objects if o.name.startswith("Sconce.")]
+    lamps = [o for o in bpy.data.objects if o.name.startswith("AlcoveLight.")]
+    assert sconces and lamps
+    assert all(o.location.z == pytest.approx(want) for o in sconces + lamps)
