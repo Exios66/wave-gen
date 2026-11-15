@@ -1,1 +1,1 @@
-{"type":"config","target":"poolrooms","refs":"docs/ref/video/v25,v50,v75","baseline":0.5732,"render_seconds_baseline":24,"min_delta":0.003,"note":"re-baselined after the 2026-11-15 rebuild (pier, passage, twin sconces, deep room, caustics, sweep) against the clean video frames"}
+{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.6616, "render_seconds_baseline": 23, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the CRT/desk pass (cream, deeper housing, softer peach accent, lavender desk) against the clean video frames"}

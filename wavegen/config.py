@@ -48,8 +48,8 @@ DEFAULTS: dict = {
         "pool_tile": [0.16, 0.72, 0.76],
         "water": [0.45, 0.95, 0.90],
         "water_absorb": [0.25, 0.80, 0.78],
-        "beige": [0.66, 0.56, 0.50],
-        "key_cap": [0.72, 0.64, 0.58],
+        "beige": [0.70, 0.50, 0.34],
+        "key_cap": [0.70, 0.57, 0.45],
         "desk": [0.74, 0.70, 0.86],
         "screen": [0.02, 0.04, 0.30],
         "screen_glow": [0.06, 0.12, 0.62],
@@ -98,6 +98,7 @@ DEFAULTS: dict = {
         "location": [-1.0, 0.32, 0.86],    # sits on the desk
         "rotation_z": 55.0,                # degrees
         "scale": 1.0,
+        "depth": 0.48,                     # housing depth (m); the front stays put, the tube grows back
         "screen_strength": 2.4,
         "scanlines": 240,
         "screensaver": "emblem",           # emblem | starfield | mystify | flower

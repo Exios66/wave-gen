@@ -27,13 +27,15 @@ def _parent(child, parent):
     child.matrix_parent_inverse = Matrix.Identity(4)
 
 
-def _body(col, mat):
+def _body(col, mat, depth=BODY_D):
+    """CRT housing. The front face stays at -BODY_D/2 whatever the depth; extra depth goes out the back."""
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
     bm.transform(Matrix.Diagonal((BODY_W, BODY_D, BODY_H, 1)) @ Matrix.Translation((0, 0, 0.5)))
     # taper the back like a CRT housing
     for v in bm.verts:
         if v.co.y > 0:
+            v.co.y = -BODY_D / 2 + depth
             v.co.x *= 0.82
             v.co.z = v.co.z * 0.86 + 0.01
     return obj_from_bmesh("Computer.body", bm, col, mat)
@@ -145,7 +147,7 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     rig.scale = (cc["scale"],) * 3
 
     beige = M.plastic("BeigePlastic", pal["beige"])
-    body = _body(col, beige)
+    body = _body(col, beige, cc.get("depth", BODY_D))
     _parent(body, rig)
     (xa, xb), (za, zb) = SCREEN["x"], SCREEN["z"]
     m_in = 0.016                                        # glass -> recess edge
