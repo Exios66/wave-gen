@@ -212,6 +212,23 @@ def build(cfg: dict) -> dict:
         return cutter
 
     back_cutters = [arch("back", cx, w) for cx, w in zip(_spread(W, room["back_arches"]), room["back_arches"])]
+    na = room.get("nested_arch")
+    if na:
+        # a plaster screen across the alcove with a smaller arch in it, as in the clip's wide centre opening
+        cx, w = _spread(W, room["back_arches"])[na["arch"]], room["back_arches"][na["arch"]]
+        rc = room.get("arch_corner_radius")
+        rise = w / 2 if rc is None else min(rc, w / 2)
+        spring = min(room["spring_height"], H - 0.6 - rise)
+        iw, half = w - 2 * na["inset"], w / 2 + 0.35
+        irc = None if rc is None else max(rc - na["inset"], 0.0)
+        inner = arch_profile(iw, spring - na["drop"], bottom=0.0, corner_radius=irc)
+        frame = [inner[1], (half, 0.0), (half, spring + rise + 0.45), (-half, spring + rise + 0.45), (-half, 0.0),
+                 inner[0], *reversed(inner[2:])]
+        th = na.get("thickness", 0.3)
+        screen = extruded_profile(f"NestedArch.back.{cx:.1f}", frame, th, col,
+                                  Matrix.Translation((cx, Y1 + T + na["depth"] + th / 2, 0)),
+                                  M.plaster("NestedArchPlaster", na["color"]) if na.get("color") else mats["plaster"])
+        bevel(screen, min(room["bevel"], th * 0.3), 3, 30)
     side_span = D - 6.0
     side_cutters = {"left": [], "right": []}
     for wall in ("left", "right"):
