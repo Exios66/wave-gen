@@ -379,3 +379,32 @@ def test_crt_front_face_stays_put_when_depth_changes():
     deep = config.load("poolrooms", ["atmosphere.dust_count=0", "computer.depth=0.5"])
     build_scene(deep)
     assert project_bounds("Computer.screen", 1) == pytest.approx(a, abs=1e-6)
+
+
+def _world_verts(o):
+    return [o.matrix_world @ v.co for v in o.data.vertices]
+
+
+def test_everything_on_the_desk_rests_on_it_without_overhang(scene):
+    """Every vertex of the computer and keyboard sits over the desk top, clear of its edges, and none sinks into it."""
+    cfg, sc = scene
+    sc.frame_set(1)
+    desk = bpy.data.objects["Desk"]
+    dv = _world_verts(desk)
+    x0, x1 = min(v.x for v in dv), max(v.x for v in dv)
+    y0, y1 = min(v.y for v in dv), max(v.y for v in dv)
+    top = max(v.z for v in dv)
+    margin = 0.03
+    problems = {}
+    for o in bpy.data.objects:
+        if o.type != "MESH" or o.hide_render or not o.name.startswith(("Computer.", "Keyboard.")):
+            continue
+        vs = _world_verts(o)
+        bad = {
+            "x": (min(v.x for v in vs) < x0 + margin) or (max(v.x for v in vs) > x1 - margin),
+            "y": (min(v.y for v in vs) < y0 + margin) or (max(v.y for v in vs) > y1 - margin),
+            "sinks": min(v.z for v in vs) < top - 1e-3,
+        }
+        if any(bad.values()):
+            problems[o.name] = [k for k, v in bad.items() if v]
+    assert not problems, problems
