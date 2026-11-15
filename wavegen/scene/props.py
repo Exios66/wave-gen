@@ -135,7 +135,7 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
         sx, sy, sz = dc["size"]
         cx, cy = dc["center"]
         desk = box("Desk", (cx - sx / 2, cy - sy / 2, dc["top"] - sz), (cx + sx / 2, cy + sy / 2, dc["top"]),
-                   col, M.plastic("DeskLaminate", pal["desk"], 0.3, 0.0))
+                   col, M.plastic("DeskLaminate", pal["desk"], dc["roughness"], 0.0, dc["coat"]))
         bevel(desk, 0.012, 3)
         # a single slab leg block so the desk doesn't float
         box("Desk.leg", (cx - sx / 2 + 0.05, cy - sy / 2 + 0.1, 0), (cx + sx / 2 - 0.05, cy + sy / 2 - 0.05, dc["top"] - sz),

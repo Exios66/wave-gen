@@ -421,3 +421,11 @@ def test_alcove_fill_lights_never_show_up_in_reflections(scene):
     fills = [o for o in bpy.data.objects if o.name.startswith("AlcoveFill.")]
     assert fills
     assert all(not o.visible_glossy for o in fills)
+
+
+def test_desk_laminate_is_glossy_with_a_clear_coat(scene):
+    dc = config.load("poolrooms")["desk"]
+    p = bpy.data.materials["DeskLaminate"].node_tree.nodes["Principled BSDF"]
+    assert p.inputs["Roughness"].default_value == pytest.approx(dc["roughness"])
+    assert p.inputs["Coat Weight"].default_value == pytest.approx(dc["coat"])
+    assert dc["roughness"] <= 0.2 and dc["coat"] > 0

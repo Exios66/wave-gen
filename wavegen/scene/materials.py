@@ -177,13 +177,15 @@ def wainscot(name, tile_color, grout_color, plaster_color, size, grout, height, 
     return mat
 
 
-def plastic(name, color, roughness=0.42, sss=0.05):
+def plastic(name, color, roughness=0.42, sss=0.05, coat=0.0):
     """Aged beige ABS plastic: soft, slightly translucent, faint speckle."""
     mat, nt, out = _new(name)
     p = principled(nt, color, roughness)
     p.inputs["Subsurface Weight"].default_value = sss
     p.inputs["Subsurface Radius"].default_value = (0.02, 0.015, 0.01)
     p.inputs["Specular IOR Level"].default_value = 0.4
+    p.inputs["Coat Weight"].default_value = coat
+    p.inputs["Coat Roughness"].default_value = 0.04
     noise = nt.nodes.new("ShaderNodeTexNoise")
     noise.inputs["Scale"].default_value = 400.0
     bump = nt.nodes.new("ShaderNodeBump")
