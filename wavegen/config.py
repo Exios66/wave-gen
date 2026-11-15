@@ -110,7 +110,7 @@ DEFAULTS: dict = {
         "keyboard": {"offset": [-0.10, -0.44], "yaw": -10.0},   # in the computer's own frame: x right, y back (m, degrees)
         "screen_strength": 2.4,
         "scanlines": 240,
-        "screensaver": "emblem",           # emblem | starfield | mystify | flower
+        "screensaver": "emblem",           # emblem | flower
         "emblem": {
             "text": "WAVE GEN",
             "shape": "sun",                # sun | triangle | orb
@@ -283,13 +283,18 @@ def _jitter(rng: random.Random, color, amount):
 def mutate(cfg: dict, seed: int, strength: float = 1.0) -> dict:
     """Make a 'parallel version' of a scene: same language, new layout/colors.
 
-    Deterministic for a given seed, so a good variant can be re-rendered.
+    Deterministic for a given seed, so a good variant can be re-rendered. ``strength``
+    scales the continuous changes (sizes, colours, camera); the layout choices (arch
+    count, pool position, lens) are redrawn at any strength above zero, and zero
+    returns the scene unchanged apart from its seed and name.
     """
     rng = random.Random(seed)
     c = copy.deepcopy(cfg)
     c["seed"] = seed
     c["name"] = f"{cfg['name']}-v{seed}"
     s = strength
+    if s <= 0:
+        return c
     room = c["room"]
     room["width"] *= 1 + rng.uniform(-0.15, 0.2) * s
     room["depth"] *= 1 + rng.uniform(-0.15, 0.25) * s

@@ -1,1 +1,1 @@
-{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.8207, "render_seconds_baseline": 24, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after reshaping the pink wash"}
+{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.8169, "render_seconds_baseline": 24, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the scorer began area-averaging references (same render, was 0.8207)"}

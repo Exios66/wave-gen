@@ -36,9 +36,10 @@ def configure(cfg: dict) -> None:
     r.engine = engine
     r.resolution_x, r.resolution_y = rc["resolution"]
     r.resolution_percentage = int(rc["percentage"])
-    r.fps = int(rc["fps"])
+    from ..frames import loop_fps, loop_frame_count
+    r.fps = loop_fps(cfg)
     sc.frame_start = 1
-    sc.frame_end = max(1, round(rc["seconds"] * rc["fps"]))
+    sc.frame_end = loop_frame_count(cfg)             # the one loop length post and audio also use
     mb = float(rc.get("motion_blur", 0.0))
     r.use_motion_blur = mb > 0
     if mb > 0:

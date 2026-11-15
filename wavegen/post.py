@@ -11,7 +11,7 @@ import subprocess
 import wave
 from pathlib import Path
 
-from .frames import frame_files, loop_frame_count, missing_frames
+from .frames import check_manifest, frame_files, loop_frame_count, read_manifest, usable_frame
 
 
 class IncompleteLoopError(RuntimeError):
@@ -104,16 +104,18 @@ def assemble(frames_dir: str | Path, out: str | Path, cfg: dict, stems_dir: str 
     """Grade + encode frames 1..N of the loop (N from the config), refusing gaps.
 
     With ``stems_dir``, mux ``bed.wav`` (room + crt, the default) or ``mix.wav``
-    (``audio_mix="full"``) trimmed to exactly the loop length.
+    (``audio_mix="full"``) trimmed to exactly the loop length. If the folder has a
+    manifest from another config, raises :class:`wavegen.frames.StaleFramesError`.
     """
     frames_dir, out = Path(frames_dir), Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     files = frame_files(frames_dir)
     if not files:
         raise FileNotFoundError(f"no frames in {frames_dir}")
+    check_manifest(read_manifest(frames_dir), cfg, str(frames_dir))   # never encode another config's frames
     n = loop_frame_count(cfg)
     ext = files[0].suffix                    # ffmpeg reads one exact pattern: every frame must match it
-    gone = [i for i in range(1, n + 1) if not (frames_dir / f"frame_{i:05d}{ext}").exists()]
+    gone = [i for i in range(1, n + 1) if not usable_frame(frames_dir / f"frame_{i:05d}{ext}")]
     if gone:
         shown = ", ".join(map(str, gone[:20])) + (" ..." if len(gone) > 20 else "")
         raise IncompleteLoopError(f"{len(gone)} of {n} loop frames missing in {frames_dir}: {shown}")
@@ -144,6 +146,25 @@ def parse_duration(s: str) -> float:
     return h * 3600 + mi * 60 + se
 
 
+def tile_wav(src: str | Path, dst: str | Path, n_frames: int, chunk_frames: int = 1 << 16) -> Path:
+    """Write ``n_frames`` of ``src`` repeated end to end, streaming so an hour never sits in memory."""
+    src, dst = Path(src), Path(dst)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(src)) as r, wave.open(str(dst), "wb") as w:
+        if r.getnframes() < 1:
+            raise ValueError(f"{src} has no audio to repeat")
+        w.setparams(r.getparams())
+        left = n_frames
+        while left > 0:
+            data = r.readframes(min(chunk_frames, left))
+            if not data:
+                r.rewind()
+                continue
+            w.writeframes(data)
+            left -= len(data) // (r.getsampwidth() * r.getnchannels())
+    return dst
+
+
 def extend(loop_mp4: str | Path, stems_dir: str | Path, duration_s: float, out: str | Path,
            audio_mix: str = "bed") -> Path:
     """Repeat a loop to ``duration_s``. Video is stream-copied (no quality loss); the
@@ -151,25 +172,21 @@ def extend(loop_mp4: str | Path, stems_dir: str | Path, duration_s: float, out: 
     joins have no AAC priming clicks."""
     import tempfile
 
-    import numpy as np
-
-    from .audio import write_wav
-
     loop_mp4, out = Path(loop_mp4).resolve(), Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     wav = _stem_path(stems_dir, audio_mix)
     with wave.open(str(wav)) as wf:
-        sr, ch = wf.getframerate(), wf.getnchannels()
-        x = np.frombuffer(wf.readframes(wf.getnframes()), "<i2").reshape(-1, ch).astype(np.float32) / 32767
-    loop_s = len(x) / sr
+        sr, loop_frames = wf.getframerate(), wf.getnframes()
+    if loop_frames < 1:
+        raise ValueError(f"{wav} has no audio to repeat")
+    loop_s = loop_frames / sr
     reps = max(1, math.ceil(duration_s / loop_s - 1e-9))
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         lst = td / "list.txt"
         quoted = loop_mp4.resolve().as_posix().replace("'", "'\\''")   # concat-list escaping
         lst.write_text("".join(f"file '{quoted}'\n" for _ in range(reps)))
-        tiled = np.tile(x, (reps, 1))[: int(round(duration_s * sr))]
-        long_wav = write_wav(td / "long.wav", tiled, sr)
+        long_wav = tile_wav(wav, td / "long.wav", int(round(duration_s * sr)))
         subprocess.run([_ffmpeg(), "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(lst),
                         "-i", str(long_wav), "-map", "0:v", "-map", "1:a", "-c:v", "copy",
                         "-c:a", "aac", "-b:a", "256k", "-t", f"{duration_s:.6f}",

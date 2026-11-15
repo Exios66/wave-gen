@@ -33,11 +33,38 @@ PREVIEW = [
 def _cfg(args) -> dict:
     over = list(PREVIEW if getattr(args, "preview", False) else []) + list(args.set or [])
     cfg = config.load(args.preset, over)
-    if getattr(args, "seconds", None):
+    if getattr(args, "seconds", None) is not None:
         cfg["render"]["seconds"] = args.seconds
     if getattr(args, "engine", None):
         cfg["render"]["engine"] = args.engine
+    from .frames import loop_frame_count
+    try:
+        loop_frame_count(cfg)
+    except (TypeError, ValueError) as e:
+        raise SystemExit(f"wavegen: {e}") from None
     return cfg
+
+
+def _seconds(text: str) -> float:
+    import math
+    try:
+        v = float(text)
+    except ValueError:
+        v = math.nan
+    if not (math.isfinite(v) and v > 0):
+        raise argparse.ArgumentTypeError(f"{text!r} is not a loop length above zero")
+    return v
+
+
+def lookdev_sets(user_sets: list[str] | None) -> list[str]:
+    """Lookdev overrides: small and quick by default, and always a PNG still (the grade reads PNGs)."""
+    return ["render.resolution=[960,540]", "render.samples=48"] + list(user_sets or []) + ['render.format="PNG"']
+
+
+def post_hint(out: Path) -> str:
+    """How to finish a run that rendered only some frames, with the exact config it used."""
+    return (f"rendered a subset of frames; once all of them exist run "
+            f"`wavegen post {out / 'frames'} --preset {out / 'config.json'} -o {out / 'loop.mp4'}`")
 
 
 def _frames(spec: str | None, cfg: dict) -> list[int] | None:
@@ -87,7 +114,7 @@ def cmd_lookdev(args):
     """Render a still (960x540, 48 samples unless overridden) and compare it with a reference."""
     import json
     from . import lookdev
-    sets = ["render.resolution=[960,540]", "render.samples=48"] + (args.set or [])
+    sets = lookdev_sets(args.set)
     out = Path(args.out)
     still = out.with_suffix(".png")
     cmd_still(argparse.Namespace(**{**vars(args), "set": sets, "out": str(still), "blend": None}))
@@ -134,7 +161,7 @@ def _make(cfg, out: Path, frames=None, blend=True, overwrite=False, audio_mix="b
     build_scene(cfg, out / f"{cfg['name']}.blend" if blend else None)
     render_frames(out / "frames", cfg, frames, overwrite=overwrite)
     if frames is not None:
-        print(f"rendered a subset of frames; run `wavegen post {out / 'frames'}` once all of them exist")
+        print(post_hint(out))
         return
     stems = out / "stems"
     if cfg["audio"]["enabled"]:
@@ -205,7 +232,7 @@ def main(argv: list[str] | None = None):
             p.add_argument("--preset", default="poolrooms", help="preset name or path to a .json")
         p.add_argument("--set", action="append", metavar="KEY=VALUE", help="override any config value")
         p.add_argument("--preview", action="store_true", help="fast low-res draft settings")
-        p.add_argument("--seconds", type=float)
+        p.add_argument("--seconds", type=_seconds, help="loop length, above zero")
         p.add_argument("--engine", type=str.lower, choices=["cycles", "eevee"])
 
     p = sub.add_parser("analyze", help="analyse a reference video")
@@ -276,7 +303,7 @@ def main(argv: list[str] | None = None):
     p = sub.add_parser("lookdev", help="render a still and compare it side by side with a reference frame")
     common(p)
     p.add_argument("--frame", type=int, default=1)
-    p.add_argument("--ref", default="docs/ref/ref_t08.jpg")
+    p.add_argument("--ref", default="docs/ref/video/v50.jpg")
     p.add_argument("-o", "--out", default="out/lookdev/still")
     p.set_defaults(fn=cmd_lookdev)
 

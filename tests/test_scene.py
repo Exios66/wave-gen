@@ -224,9 +224,9 @@ def test_computer_screen_anchor(look):
 
 def test_pier_behind_crt_matches_reference(look):
     from wavegen.scene.framing import project_bounds
-    x0, x1, _, y1 = project_bounds("Pier", 1)
+    x0, x1, y0, y1 = project_bounds("Pier", 1)
     assert abs(x0 - 0.17) <= 0.06 and abs(x1 - 0.30) <= 0.06, (x0, x1)
-    assert y1 > 0.32                                  # runs down behind the CRT
+    assert y0 < 0.1 and y1 > 0.32, (y0, y1)           # in frame from the top, running down behind the CRT
 
 
 def test_side_bay_is_lit_from_inside(look):
@@ -612,3 +612,41 @@ def test_poolrooms_alcove_lamps_have_a_soft_wall_halo(scene):
     grad = src(power.inputs[0])
     assert grad.bl_idname == "ShaderNodeTexGradient" and grad.gradient_type == "SPHERICAL"   # 1 at the centre, 0 at the rim
     assert grad.inputs["Vector"].links[0].from_socket.name == "Object"
+
+
+def test_emblem_cache_key_changes_when_the_font_file_is_replaced(tmp_path):
+    import os
+    from wavegen.scene.emblem import _key
+    font = tmp_path / "f.ttf"
+    font.write_bytes(b"one")
+    ec = {"text": "WAVE GEN", "shape": "sun", "font": str(font)}
+    k1 = _key(ec)
+    assert _key(ec) == k1
+    font.write_bytes(b"another font")
+    os.utime(font, (1, 1))
+    assert _key(ec) != k1
+    assert _key({**ec, "font": None}) == _key({**ec, "font": None})
+
+
+def test_unsupported_screensaver_is_refused_up_front_and_names_the_real_modes():
+    from wavegen.scene import screensaver
+    assert screensaver.MODES == ("emblem", "flower")
+    cfg = config.load("poolrooms", ["computer.screensaver=starfield"])
+    with pytest.raises(ValueError, match="use emblem or flower"):
+        build_scene(cfg)
+
+
+def test_alcove_boxes_never_overlap_across_a_minimum_pier():
+    from wavegen.scene.architecture import _alcove_pad
+    assert _alcove_pad(16.0, [3.0, 5.4, 3.0]) == 0.35           # roomy piers keep the full return
+    pad = _alcove_pad(3 * 3.0 + 4 * 0.6, [3.0, 3.0, 3.0])       # piers at the 0.6 m minimum
+    assert 0 < 2 * pad < 0.6
+
+
+def test_frame_range_follows_the_shared_loop_length():
+    from wavegen.frames import loop_frame_count
+    from wavegen.scene import render
+    cfg = config.load("poolrooms", ["render.seconds=2.02", "render.fps=30.0"])
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    render.configure(cfg)
+    assert bpy.context.scene.frame_end == loop_frame_count(cfg) == 61

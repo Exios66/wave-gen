@@ -152,3 +152,17 @@ def test_pink_wash_off_by_default_is_identity():
     pc = {**config.DEFAULTS["post"], "grade": False, "halation": 0, "grain": 0, "chroma_shift": 0, "vignette": 0, "crt_on_tv": False}
     img = _grade_flat(pc)
     assert np.ptp(img[..., 0] - img[..., 1]) <= 0.01
+
+
+def test_tile_wav_repeats_the_loop_and_cuts_to_length(tmp_path):
+    import wave
+    sr = 8000
+    x = np.stack([np.linspace(-0.5, 0.5, 100), np.linspace(0.5, -0.5, 100)], 1)
+    src = audio.write_wav(tmp_path / "loop.wav", x, sr)
+    dst = post.tile_wav(src, tmp_path / "long.wav", 250, chunk_frames=64)
+    with wave.open(str(src)) as w:
+        one = np.frombuffer(w.readframes(100), "<i2").reshape(-1, 2)
+    with wave.open(str(dst)) as w:
+        assert (w.getframerate(), w.getnchannels(), w.getnframes()) == (sr, 2, 250)
+        got = np.frombuffer(w.readframes(250), "<i2").reshape(-1, 2)
+    assert np.array_equal(got, np.tile(one, (3, 1))[:250])

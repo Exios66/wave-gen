@@ -60,3 +60,22 @@ def test_relative_out_dir_is_resolved_before_render(tmp_path, monkeypatch):
     except SystemExit:
         pass
     assert Path(seen["out"]).is_absolute() and Path(seen["out"]).parent == tmp_path / "rel_out"
+
+
+def test_downsizing_averages_instead_of_picking_single_pixels():
+    a = np.zeros((8, 8, 3))
+    a[::2, ::2] = 1.0
+    a[1::2, 1::2] = 1.0                           # one-pixel checkerboard
+    small = ar._resize(a, 4, 4)
+    assert small.shape == (4, 4, 3) and np.allclose(small, 0.5)
+
+
+def test_resize_to_the_same_size_changes_nothing():
+    a = np.random.default_rng(0).random((6, 9, 3))
+    assert np.array_equal(ar._resize(a, 9, 6), a)
+
+
+def test_every_reference_gets_its_own_side_by_side():
+    from pathlib import Path
+    paths = [ar.sbs_path(Path("o"), "poolrooms", i) for i in range(3)]
+    assert paths[0] == Path("o/poolrooms_sbs.jpg") and len(set(paths)) == 3

@@ -30,6 +30,10 @@ def cache_dir() -> Path:
 def _key(ec: dict) -> str:
     keep = {k: ec.get(k) for k in ("text", "shape", "font")}
     keep["v"] = EMBLEM_VERSION
+    font = ec.get("font")
+    if font and Path(font).is_file():               # a font swapped in at the same path is a new emblem
+        st = Path(font).stat()
+        keep["font_file"] = [st.st_size, st.st_mtime_ns]
     return hashlib.sha256(json.dumps(keep, sort_keys=True).encode()).hexdigest()[:12]
 
 

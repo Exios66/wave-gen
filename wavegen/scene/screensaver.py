@@ -1,8 +1,8 @@
 """What plays on the CRT. Each mode composites onto the phosphor colour of the
 ``CRT`` material, before the scanlines, so scanlines, glow and glass sit on top.
 
-Modes: ``emblem`` (the default: bouncing chrome WAVE GEN disc), ``starfield``,
-``mystify`` and ``flower`` (the v1 spinning petals). Everything loops exactly.
+Modes: ``emblem`` (the default: bouncing chrome WAVE GEN disc) and ``flower``
+(the v1 spinning petals). Everything loops exactly.
 """
 from __future__ import annotations
 
@@ -111,12 +111,20 @@ def emblem(cfg: dict, mat: bpy.types.Material, images: tuple) -> dict:
     return {"trips": (tx, ty)}
 
 
-def build(cfg: dict, mat: bpy.types.Material, images: tuple | None = None) -> dict:
+MODES = ("emblem", "flower")
+
+
+def check_mode(cfg: dict) -> str:
     mode = cfg["computer"].get("screensaver", "emblem")
+    if mode not in MODES:
+        raise ValueError(f"computer.screensaver={mode!r}; use {' or '.join(MODES)}")
+    return mode
+
+
+def build(cfg: dict, mat: bpy.types.Material, images: tuple | None = None) -> dict:
+    mode = check_mode(cfg)
     if mode == "emblem":
         if images is None:
             raise ValueError("emblem screensaver needs the rendered emblem images")
         return emblem(cfg, mat, images)
-    if mode == "flower":
-        return {}                                      # props builds the 3D petals
-    raise ValueError(f"computer.screensaver={mode!r}; use emblem, starfield, mystify or flower")
+    return {}                                          # flower: props builds the 3D petals

@@ -19,9 +19,16 @@ class StaleFramesError(RuntimeError):
     """Frames on disk were rendered from a different config/scene version."""
 
 
+def loop_fps(cfg: dict) -> int:
+    """The frame rate as a whole number; video, audio and the frame count all share it."""
+    fps = float(cfg["render"]["fps"])
+    if not fps.is_integer() or fps < 1:
+        raise ValueError(f"render.fps={cfg['render']['fps']!r} must be a positive whole number")
+    return int(fps)
+
+
 def loop_frame_count(cfg: dict) -> int:
-    rc = cfg["render"]
-    return max(1, round(float(rc["seconds"]) * int(rc["fps"])))
+    return max(1, round(float(cfg["render"]["seconds"]) * loop_fps(cfg)))
 
 
 def parse_frames(spec: str | None, n: int) -> list[int] | None:
@@ -53,14 +60,36 @@ def parse_frames(spec: str | None, n: int) -> list[int] | None:
     return sorted(out)
 
 
+def _drop_notes(node):
+    """Remove ``_comment``-style keys at any depth: notes never change pixels."""
+    if isinstance(node, dict):
+        return {k: _drop_notes(v) for k, v in node.items() if not str(k).startswith("_")}
+    if isinstance(node, list):
+        return [_drop_notes(v) for v in node]
+    return node
+
+
 def config_hash(cfg: dict) -> str:
-    pixel_cfg = {k: v for k, v in cfg.items() if k not in _NON_PIXEL_KEYS}
+    pixel_cfg = _drop_notes({k: v for k, v in cfg.items() if k not in _NON_PIXEL_KEYS})
     blob = json.dumps(pixel_cfg, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
 def manifest_for(cfg: dict) -> dict:
     return {"config_hash": config_hash(cfg), "scene_version": SCENE_VERSION, "n_frames": loop_frame_count(cfg)}
+
+
+def usable_frame(path: Path) -> bool:
+    """A frame counts only if it exists and is not empty (an interrupted write leaves a 0-byte file)."""
+    try:
+        return Path(path).stat().st_size > 0
+    except OSError:
+        return False
+
+
+def read_manifest(out_dir: Path) -> dict | None:
+    mpath = Path(out_dir) / "manifest.json"
+    return json.loads(mpath.read_text()) if mpath.exists() else None
 
 
 def frame_files(out_dir: Path) -> list[Path]:
@@ -88,7 +117,7 @@ def prepare_frames_dir(out_dir: Path, cfg: dict, overwrite: bool) -> None:
         for p in frame_files(out_dir):
             p.unlink()
     else:
-        existing = json.loads(mpath.read_text()) if mpath.exists() else None
+        existing = read_manifest(out_dir)
         if existing is None and frame_files(out_dir):
             raise StaleFramesError(f"{out_dir} has frames but no manifest; pass --overwrite to replace them")
         check_manifest(existing, cfg, str(out_dir))

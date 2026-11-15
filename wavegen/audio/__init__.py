@@ -35,8 +35,13 @@ def loop_samples(cfg: dict) -> int:
     return int(round(loop_frame_count(cfg) / rc["fps"] * int(cfg["audio"]["sample_rate"])))
 
 
+def _seed(cfg: dict) -> int:
+    """NumPy takes only non-negative seeds; wrap negatives so every integer seed works."""
+    return int(cfg["seed"]) % 2 ** 64
+
+
 def _layer_rng(cfg: dict, i: int, layer: dict) -> np.random.Generator:
-    return np.random.default_rng([int(cfg["seed"]), i, zlib.crc32(layer["type"].encode())])
+    return np.random.default_rng([_seed(cfg), i, zlib.crc32(layer["type"].encode())])
 
 
 def render_stems(cfg: dict) -> dict[str, np.ndarray]:
@@ -53,7 +58,7 @@ def render_stems(cfg: dict) -> dict[str, np.ndarray]:
             raise ValueError(f"audio layer {layer['type']!r}: unknown stem {stem!r} (use {', '.join(STEMS)})")
         buf = np.asarray(fn(cfg, layer, n, sr, _layer_rng(cfg, i, layer)), float)
         stems[stem] += dsp.fold_tail(buf, n) * float(layer.get("level", 1.0))
-    verb_rng = np.random.default_rng([int(cfg["seed"]), 9999])
+    verb_rng = np.random.default_rng([_seed(cfg), 9999])
     for s in STEMS:
         if np.any(stems[s]):
             stems[s] = dsp.circular_reverb(stems[s], sr, ac["reverb_seconds"], ac["reverb_mix"] * STEM_REVERB[s],
