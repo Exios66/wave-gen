@@ -296,6 +296,8 @@ def mutate(cfg: dict, seed: int, strength: float = 1.0) -> dict:
     widths = [round(rng.uniform(2.0, 3.0), 2) for _ in range(n_back)]
     widths[n_back // 2] = round(rng.uniform(3.4, 4.6), 2)
     room["back_arches"] = _fit(widths, room["width"])
+    if room.get("nested_arch"):                 # keep the nested arch in the wide opening of the new layout
+        room["nested_arch"]["arch"] = room["back_arches"].index(max(room["back_arches"]))
     side = [round(rng.uniform(2.4, 3.6), 2) for _ in range(rng.choice([1, 1, 2]))]
     room["side_arches"] = _fit(side, room["depth"] - 6.0)
     room["column"] = rng.random() < 0.75
