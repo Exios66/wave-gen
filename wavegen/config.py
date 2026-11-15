@@ -174,7 +174,7 @@ DEFAULTS: dict = {
         "grade": True,
         "halation": 0.22,
         "grain": 5,
-        "vignette": 0.55,
+        "vignette": 0.30,
         "chroma_shift": 2,
         "crt_on_tv": False,           # re-photograph look (moire/scan + bezel)
         "crf": 16,

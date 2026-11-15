@@ -85,6 +85,11 @@ def cmd_lookdev(args):
     out = Path(args.out)
     still = out.with_suffix(".png")
     cmd_still(argparse.Namespace(**{**vars(args), "set": sets, "out": str(still), "blend": None}))
+    cfg = _cfg(argparse.Namespace(**{**vars(args), "set": sets}))
+    if cfg["post"]["grade"]:                       # judge what ships: the graded frame
+        graded = out.with_name(out.stem + "_graded.png")
+        lookdev.grade_still(still, graded, cfg)
+        still = graded
     r = lookdev.compare(still, Path(args.ref), out.with_suffix(".jpg"))
     summary = {k: v for k, v in r.items() if not k.startswith("palette_r")}
     out.with_suffix(".json").write_text(json.dumps(r, indent=2))

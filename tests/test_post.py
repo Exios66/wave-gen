@@ -88,3 +88,21 @@ def test_parse_duration():
     assert post.parse_duration("120") == 120
     with pytest.raises(ValueError):
         post.parse_duration("x")
+
+
+def test_grade_keeps_high_key_contrast(tmp_path):
+    """The vapor grade must not wash a bright room out (no milky veil from halation)."""
+    rng = np.random.default_rng(0)
+    h, w = 180, 320
+    img = np.repeat(np.repeat(rng.uniform(0.5, 0.95, (h // 20, w // 20, 1)), 20, 0), 20, 1)
+    img = np.repeat(img, 3, 2)
+    raw = (img * 255).astype(np.uint8).tobytes()
+    cfg = _cfg()
+    pc = {**cfg["post"], "grain": 0, "chroma_shift": 0, "vignette": 0, "crt_on_tv": False, "halation": 0.22}
+    out = subprocess.run(["ffmpeg", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-i", "-",
+                          "-filter_complex", post.filtergraph(pc, w, h), "-map", "[vout]", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                         input=raw, capture_output=True, check=True).stdout
+    got = np.frombuffer(out, np.uint8).reshape(h, w, 3).astype(np.float32).mean(2) / 255
+    src = img.mean(2)
+    assert got.mean() <= src.mean() + 0.03
+    assert got.std() >= 0.9 * src.std()

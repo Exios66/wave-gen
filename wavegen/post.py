@@ -29,7 +29,7 @@ def filtergraph(pc: dict, width: int, height: int) -> str:
     chain = []
     if pc["grade"]:
         chain += [
-            "eq=saturation=1.06:contrast=0.97:brightness=0.0:gamma=1.02",
+            "eq=saturation=1.06:contrast=1.04:brightness=0.0:gamma=1.0",
             # lift shadows to lavender, keep mids cyan, warm the highlights a touch
             "colorbalance=rs=0.03:gs=-0.01:bs=0.07:rm=-0.01:gm=0.01:bm=0.02:rh=0.03:gh=0.01:bh=-0.01",
         ]
@@ -37,7 +37,7 @@ def filtergraph(pc: dict, width: int, height: int) -> str:
     g = f"[0:v]{pre},split[base][glow];"
     if pc["halation"] > 0:
         sigma = max(4, round(height / 60))
-        g += (f"[glow]gblur=sigma={sigma},colorlevels=rimin=0.55:gimin=0.55:bimin=0.55[h];"
+        g += (f"[glow]gblur=sigma={sigma},colorlevels=rimin=0.75:gimin=0.75:bimin=0.75[h];"
               f"[base][h]blend=all_mode=screen:all_opacity={pc['halation']}[v1];")
     else:
         g += "[glow]nullsink;[base]null[v1];"

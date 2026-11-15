@@ -51,3 +51,13 @@ def compare(render: Path, ref: Path, out: Path) -> dict:
     return {"palette_render": pa, "palette_ref": pb, "palette_distance": round(palette_distance(pa, pb), 4),
             "brightness_render": float(la.mean()), "brightness_ref": float(lb.mean()),
             "contrast_render": float(la.std()), "contrast_ref": float(lb.std())}
+
+
+def grade_still(src: Path, out: Path, cfg: dict) -> Path:
+    """Apply the video's post grade (without temporal grain) to one still."""
+    from . import post
+    w, h = cfg["render"]["resolution"]
+    pc = {**cfg["post"], "grain": 0}
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-filter_complex", post.filtergraph(pc, w, h),
+                    "-map", "[vout]", "-pix_fmt", "rgb24", str(out)], check=True)
+    return out
