@@ -542,3 +542,25 @@ def test_poolrooms_centre_alcove_has_a_nested_arch_set_inside_it(scene):
     assert not blocked(cx, 1.5)                            # open in the middle
     assert blocked(cx + width / 2 - na["inset"] / 2, 1.5)  # narrower than the outer opening
     assert blocked(cx, hi[2] - 0.1)                        # and closed above its own arch
+
+
+def test_no_passage_sconce_by_default():
+    cfg = config.load(None, ["atmosphere.dust_count=0"])
+    assert cfg["room"]["bay"]["sconce_power"] == 0.0
+    build_scene(cfg)
+    assert "BaySconce" not in bpy.data.objects and "BaySconceLight" not in bpy.data.objects
+
+
+def test_poolrooms_passage_has_a_visible_wall_lamp(scene):
+    """The reference shows a warm lamp glowing on the tile behind the pier."""
+    cfg, _ = scene
+    by, power = cfg["room"]["bay"], cfg["room"]["bay"]["sconce_power"]
+    assert power > 0
+    bpy.context.view_layer.update()
+    dome, lamp = bpy.data.objects["BaySconce"], bpy.data.objects["BaySconceLight"]
+    assert dome.active_material.name == "Sconce" and dome.visible_camera
+    lo, hi = _world_bounds(bpy.data.objects["Bay"])
+    assert hi[1] - dome.location.y < 0.15                  # mounted on the passage's back wall
+    assert lo[0] < dome.location.x < hi[0] and 2.0 < dome.location.z < by["height"] - 0.5
+    assert lamp.data.energy == power
+    assert lamp.location.y < dome.location.y               # the washer sits in front and aims back at the wall

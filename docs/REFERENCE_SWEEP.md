@@ -24,11 +24,12 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
 4. **Arch shape (fixed).** The arches are flat-topped with rounded corners and
    end level (`room.arch_corner_radius`), and the wide centre opening has a
    smaller warm-white arch set inside it (`room.nested_arch`).
-5. **Left of frame (mostly fixed).** The passage behind the pier is now tall,
-   wider and tiled to the top like the alcoves. Still missing: the reference's
-   warm lamp glow there. A brighter passage light was tried and blew the tile
-   out to flat pink under the left-side wash, so it needs a visible sconce
-   rather than more fill.
+5. **Left of frame (mostly fixed).** The passage behind the pier is tall, wider,
+   tiled to the top like the alcoves, and has a visible warm wall lamp
+   (`room.bay.sconce_power`). Still different: the reference's passage tile
+   reads warm white with a strong glow; ours sits under the pink left-side wash
+   (`post.pink_wash`), which covers more of the frame than the reference's
+   narrow lavender strip.
 6. **Ceiling.** The reference tray has a round medallion and a brighter cyan
    glow in the cove. Ours has the tray but no medallion and a weaker glow.
 7. **Pool far corner.** The reference pool has a stepped notch at the far-left

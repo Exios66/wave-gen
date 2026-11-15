@@ -114,7 +114,10 @@
     "bay": {
       "width": 2.8,
       "height": 5.6,
-      "wainscot": 9.0
+      "wainscot": 9.0,
+      "sconce_power": 100.0,
+      "sconce_at": 0.2,
+      "sconce_height": 3.6
     },
     "nested_arch": {
       "arch": 1,

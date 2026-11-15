@@ -85,7 +85,9 @@ DEFAULTS: dict = {
         "ceiling_tray": {"inset": 2.0, "steps": 3, "step_height": 0.28},
         "column": True,             # the pier + tiled passage behind the computer
         "pier": {"xy": [-3.0, 6.2], "width": 1.1, "depth": 1.0},   # rounded front faces the camera
-        "bay": {"width": 2.2, "depth": 3.4, "height": 3.0, "wainscot": 1.9},   # lit passage left of the pier
+        # lit passage left of the pier; sconce_power > 0 adds a visible wall lamp on its back wall
+        "bay": {"width": 2.2, "depth": 3.4, "height": 3.0, "wainscot": 1.9, "sconce_power": 0.0, "sconce_at": 0.5,
+                "sconce_height": None},   # sconce_at: 0..1 across the back wall; height None = alcove lamp height
     },
     "pool": {
         "x": [-2.6, 6.2],
