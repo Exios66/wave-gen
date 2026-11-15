@@ -25,6 +25,20 @@ def _ffmpeg() -> str:
     return exe
 
 
+def wash_ramp(wash: dict, width: int) -> str:
+    """ffmpeg expression for the wash level across the frame (1 = full tint, 0 = none), static per frame.
+
+    Falls from 1 at the left edge to 0 at ``extent``. With ``peak`` (a fraction of the width) it
+    instead rises from ``edge`` at the left edge to 1 at the peak, then falls to 0 at the extent.
+    """
+    x1 = max(1, round(width * wash.get("extent", 0.45)))
+    xp = round(width * wash.get("peak", 0.0))
+    if xp <= 0 or xp >= x1:
+        return f"max(0\\,1-X/{x1})"
+    e = float(wash.get("edge", 0.0))
+    return f"if(lt(X\\,{xp})\\,{e:.4f}+{1 - e:.4f}*X/{xp}\\,max(0\\,1-(X-{xp})/{x1 - xp}))"
+
+
 def filtergraph(pc: dict, width: int, height: int) -> str:
     chain = []
     if pc["grade"]:
@@ -46,8 +60,7 @@ def filtergraph(pc: dict, width: int, height: int) -> str:
         # multiply a left-to-right gradient (tint colour -> white) over the frame: tints, never brightens
         k = min(1.0, float(wash["strength"]))
         rgb = [1 - k * (1 - c) for c in wash.get("color", (1.0, 0.8, 0.92))]
-        x1 = max(1, round(width * wash.get("extent", 0.45)))
-        ramp = f"max(0\\,1-X/{x1})"                     # 1 at the left edge -> 0 at the extent, static per frame
+        ramp = wash_ramp(wash, width)
         ch = {c: f"255*(1-{1 - v:.4f}*{ramp})" for c, v in zip("rgb", rgb)}
         g += (f"color=white:s={width}x{height},format=gbrp,geq=r='{ch['r']}':g='{ch['g']}':b='{ch['b']}'[wash];"
               f"[v1]format=gbrp[v1g];[v1g][wash]blend=all_mode=multiply:shortest=1[v1w];")

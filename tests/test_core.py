@@ -191,3 +191,27 @@ def test_mutate_keeps_the_nested_arch_in_the_widest_opening():
         seen.add(len(widths))
         assert widths[room["nested_arch"]["arch"]] == max(widths)
     assert seen > {3}                                       # layouts with more than three arches were covered
+
+
+def _ramp_at(wash, width, x):
+    expr = post.wash_ramp(wash, width).replace("\\,", ",").replace("if(", "if_(")
+    return eval(expr, {"X": x, "max": max, "lt": lambda a, b: a < b, "if_": lambda c, a, b: a if c else b})
+
+
+def test_wash_ramp_falls_from_the_left_edge_by_default():
+    wash = {"strength": 1.0, "extent": 0.5}
+    assert post.wash_ramp(wash, 1000) == "max(0\\,1-X/500)"          # unchanged when no peak is set
+    assert _ramp_at(wash, 1000, 0) == 1 and _ramp_at(wash, 1000, 250) == 0.5 and _ramp_at(wash, 1000, 800) == 0
+
+
+def test_wash_ramp_can_peak_inside_the_frame():
+    """The clip's pink is strongest a little in from the left edge, not at it."""
+    wash = {"strength": 1.0, "extent": 0.5, "peak": 0.1, "edge": 0.25}
+    at = lambda x: _ramp_at(wash, 1000, x)
+    assert at(0) == pytest.approx(0.25) and at(100) == pytest.approx(1.0)
+    assert at(50) == pytest.approx(0.625) and at(300) == pytest.approx(0.5) and at(500) == 0 and at(900) == 0
+
+
+def test_poolrooms_pink_wash_peaks_in_from_the_left_edge():
+    wash = config.load("poolrooms")["post"]["pink_wash"]
+    assert 0 < wash["peak"] < wash["extent"] and 0 <= wash["edge"] < 1

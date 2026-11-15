@@ -26,10 +26,11 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    smaller warm-white arch set inside it (`room.nested_arch`).
 5. **Left of frame (mostly fixed).** The passage behind the pier is tall, wider,
    tiled to the top like the alcoves, and has a visible warm wall lamp
-   (`room.bay.sconce_power`). Still different: the reference's passage tile
-   reads warm white with a strong glow; ours sits under the pink left-side wash
-   (`post.pink_wash`), which covers more of the frame than the reference's
-   narrow lavender strip.
+   (`room.bay.sconce_power`). The pink left-side wash now peaks a little in from the
+   edge (`post.pink_wash.peak`, `.edge`), as measured in the clip, which cut
+   the left-side pink error from 0.053 to 0.048. Still different: the
+   reference's passage tile reads warm white with a strong glow. A stronger
+   reshaping matched the pink better (0.042) but cost a point of score.
 6. **Ceiling (open).** The reference tray has a round medallion and a brighter
    cyan glow in the cove. A stepped medallion at the tray centre was built and
    dropped: our camera never sees the tray centre, and it shadowed the cove

@@ -199,7 +199,8 @@ DEFAULTS: dict = {
         "grain": 5,
         "vignette": 0.30,
         "chroma_shift": 2,
-        "pink_wash": {"strength": 0.0, "color": [1.0, 0.80, 0.92], "extent": 0.45},  # left-side tint, 0 = off
+        # left-side tint, strength 0 = off; peak > 0 moves the strongest tint in from the edge, where it is `edge`
+        "pink_wash": {"strength": 0.0, "color": [1.0, 0.80, 0.92], "extent": 0.45, "peak": 0.0, "edge": 0.0},
         "crt_on_tv": False,           # re-photograph look (moire/scan + bezel)
         "crf": 16,
     },
