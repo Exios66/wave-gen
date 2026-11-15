@@ -306,3 +306,25 @@ def test_twin_sconces_per_alcove(look):
 def test_alcoves_have_tile_wainscot(look):
     mat = bpy.data.materials["AlcoveTile"]
     assert any(n.type == "MIX_SHADER" for n in mat.node_tree.nodes)
+
+
+def test_floor_uses_large_tiles(look):
+    cfg, _ = look
+    assert cfg["room"]["floor_tile_size"] >= 2 * cfg["room"]["tile_size"]
+    assert bpy.data.objects["Floor.0"].data.materials[0].name == "FloorTile"
+    assert cfg["pool"]["depth"] <= 1.0                  # shallow: the tiled pool floor shows through
+
+
+def _driven(mat, node):
+    ad = mat.node_tree.animation_data
+    return ad is not None and any(f'nodes["{node}"]' in d.data_path for d in ad.drivers)
+
+
+def test_water_has_swell_and_fine_ripples(look):
+    water = bpy.data.materials["Water"]
+    assert _driven(water, "waves") and _driven(water, "ripples")
+
+
+def test_pool_floor_has_looping_caustics(look):
+    pool = bpy.data.materials["PoolTile"]
+    assert "caustics" in pool.node_tree.nodes and _driven(pool, "caustics")

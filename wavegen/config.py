@@ -63,19 +63,20 @@ DEFAULTS: dict = {
                  [0.40, 0.75, 1.0], [0.75, 0.50, 1.0], [1.0, 0.60, 0.40]],
     },
     "room": {
-        "width": 15.0,
-        "depth": 20.0,
+        "width": 16.0,
+        "depth": 26.0,
         "height": 6.4,
         "wall_thickness": 0.45,
         "tile_size": 0.13,
+        "floor_tile_size": 0.30,    # big square floor tiles, as in the video
         "grout_width": 0.022,       # wide enough to resolve at 1080p across the room
         "bevel": 0.05,
         "spring_height": 3.6,       # height where an arch starts curving
         "alcove_depth": 3.2,
         "alcove_wainscot": 2.4,     # alcove walls: tile below this height, plaster above
         "arch_surround": {"width": 0.22, "depth": 0.12},   # moulded reveal around each arch
-        "back_arches": [2.8, 4.6, 2.8],   # widths, left -> right
-        "side_arches": [3.2],             # per side wall
+        "back_arches": [3.0, 5.4, 3.0],   # widths, left -> right
+        "side_arches": [3.2, 3.2],       # per side wall
         "ceiling_tray": {"inset": 2.0, "steps": 3, "step_height": 0.28},
         "column": True,             # the pier + tiled passage behind the computer
         "pier": {"xy": [-3.0, 6.2], "width": 1.1, "depth": 1.0},   # rounded front faces the camera
@@ -83,13 +84,14 @@ DEFAULTS: dict = {
     },
     "pool": {
         "x": [-2.6, 6.2],
-        "y": [3.6, 13.0],
-        "depth": 1.35,
+        "y": [3.6, 18.5],          # long pool; a tiled walkway runs on to the back wall
+        "depth": 0.9,
         "water_level": -0.10,
         "coping": 0.30,             # width of the raised tiled lip
         "wave_scale": 1.6,
         "wave_strength": 0.18,
         "wave_cycles": 1,           # ripple evolutions per loop (whole number)
+        "caustics": {"scale": 1.8, "strength": 0.9, "color": [0.80, 1.0, 0.97]},   # light lines on the pool floor
     },
     "computer": {
         "enabled": True,
@@ -130,7 +132,7 @@ DEFAULTS: dict = {
         "world_strength": 0.35,
     },
     "atmosphere": {
-        "haze_density": 0.0012,      # 0 disables the volume (much faster)
+        "haze_density": 0.0022,      # 0 disables the volume (much faster)
         "haze_anisotropy": 0.35,
         "dust_count": 220,
         "dust_size": [0.002, 0.006],

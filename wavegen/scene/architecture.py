@@ -77,6 +77,8 @@ def build(cfg: dict) -> dict:
     mats = {
         "tile": M.tiles("Tile", pal["tile"], pal["grout"], room["tile_size"], room["grout_width"], pal["tile_jitter"]),
         "pool_tile": M.tiles("PoolTile", pal["pool_tile"], pal["grout"], room["tile_size"], room["grout_width"], 0.02, 0.08),
+        "floor": M.tiles("FloorTile", pal["tile"], pal["grout"], room["floor_tile_size"], room["grout_width"],
+                         pal["tile_jitter"]),
         "plaster": M.plaster("Plaster", pal["plaster"]),
         "ceiling": M.plaster("Ceiling", pal["ceiling"], 0.7),
         "water": M.water("Water", pal["water"], pal["water_absorb"], pool["wave_scale"],
@@ -88,6 +90,11 @@ def build(cfg: dict) -> dict:
         "sconce": M.emission("Sconce", pal["warm_light"], 30.0),
     }
 
+    ca = pool.get("caustics")
+    if ca and ca["strength"] > 0:
+        M.add_caustics(mats["pool_tile"], ca["color"], ca["scale"], ca["strength"], pool["wave_cycles"],
+                       loop_frame_count(cfg))
+
     # ---- floor (flat tiled pieces around the pool hole) -------------------
     px0, px1 = pool["x"]
     py0, py1 = pool["y"]
@@ -96,7 +103,7 @@ def build(cfg: dict) -> dict:
         ((x0, Y0), (px0, Y1)), ((px1, Y0), (x1, Y1)),
         ((px0, Y0), (px1, py0)), ((px0, py1), (px1, Y1)),
     ]):
-        box(f"Floor.{i}", (mn[0], mn[1], -0.01), (mx[0], mx[1], 0.0), col, mats["tile"],
+        box(f"Floor.{i}", (mn[0], mn[1], -0.01), (mx[0], mx[1], 0.0), col, mats["floor"],
             skip=("-x", "+x", "-y", "+y", "-z"))
 
     # ---- pool basin, coping lip, water -------------------------------------
