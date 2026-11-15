@@ -235,14 +235,16 @@ def min_wall_for(widths: list[float], pier: float = 0.6) -> float:
 
 
 def _fit(widths: list[float], wall: float, pier: float = 0.6, margin: float = 0.05) -> list[float]:
-    """Drop arches, then shrink the rest proportionally, until they fit ``wall``."""
+    """Drop arches, then shrink the rest proportionally, until they fit ``wall`` with full
+    piers. A wall too short for one opening between two piers gets none (``[]``)."""
     widths = list(widths)
     while len(widths) > 1 and sum(widths) * 0.6 + pier * (len(widths) + 1) > wall:
         widths.pop(0 if len(widths) % 2 == 0 else -1)  # keep the wide centre arch
     room = wall - pier * (len(widths) + 1) - margin
     if room <= 0.1:
-        widths = [max(0.1, round(wall - 2 * pier - margin, 2))] if wall - 2 * pier - margin > 0.1 else [0.1]
-        return widths
+        # one opening at most; none if even a 0.1 m opening can't sit between two full piers
+        w = round(wall - 2 * pier - margin, 2)
+        return [w] if w >= 0.1 else []
     if sum(widths) > room:
         k = room / sum(widths)
         widths = [round(w * k - 0.005, 2) for w in widths]

@@ -94,3 +94,14 @@ def test_fit_never_returns_non_positive_widths():
     from wavegen.config import _fit
     for wall in (0.2, 1.0, 1.5, 3.0):
         assert all(w > 0 for w in _fit([3.2, 4.0, 3.2], wall)), wall
+
+
+def test_fit_layout_always_spreads_with_full_piers():
+    """Every _fit layout leaves >= 0.6 m piers (what architecture._spread requires); walls too
+    short for even one opening get none."""
+    from wavegen.config import _fit, min_wall_for
+    for wall in (0.2, 1.0, 1.25, 1.5, 3.0, 8.0):
+        widths = _fit([3.2, 4.0, 3.2], wall)
+        assert all(w > 0 for w in widths), wall
+        assert not widths or min_wall_for(widths) <= wall + 1e-9, (wall, widths)
+    assert _fit([3.2], 1.0) == []
