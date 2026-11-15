@@ -97,7 +97,9 @@
     "alcove_fill": 220.0,
     "accent_power": 250.0,
     "cove_power": 4400.0,
-    "alcove_height": 0.66
+    "alcove_height": 0.66,
+    "halo_radius": 0.9,
+    "halo_strength": 6.0
   },
   "atmosphere": {
     "dust_count": 90,

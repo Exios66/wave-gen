@@ -94,6 +94,7 @@ def build(cfg: dict) -> dict:
                              room["alcove_wainscot"],
                              pal["tile_jitter"]),
         "sconce": M.emission("Sconce", pal["warm_light"], 30.0),
+        "halo": M.halo("SconceHalo", pal["warm_light"], cfg["lights"].get("halo_strength", 4.0)),
     }
 
     ca = pool.get("caustics")
@@ -184,6 +185,14 @@ def build(cfg: dict) -> dict:
                 s.location = lamp
                 s.rotation_euler = sconce_rot
                 s.scale = (1, 1, 0.45)
+                if li.get("halo_radius", 0.0) > 0:
+                    bm = bmesh.new()
+                    bmesh.ops.create_circle(bm, cap_ends=True, segments=48, radius=1.0)
+                    h = obj_from_bmesh(f"SconceHalo.{wall}.{centre:.1f}.{tag}", bm, col, mats["halo"])
+                    h.location = tuple(lamp[k] + into[k] * 0.04 for k in range(3))   # between the lamp and its wall
+                    h.rotation_euler = sconce_rot
+                    h.scale = (li["halo_radius"], li["halo_radius"], 1)
+                    h.visible_shadow = False
             L = bpy.data.lights.new(f"AlcoveLight.{wall}.{centre:.1f}.{tag}", kind)
             L.energy = li["alcove_power"] / 2
             L.color = pal["warm_light"]

@@ -43,17 +43,16 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    (`palette.floor_tile`); its colour error fell from 0.13 to 0.09 at matched
    brightness. Still missing: the soft lamp reflections on it.
 9. **Water (improved).** Paler pool tile and absorption cut the water's colour
-   error from 0.06 to 0.03. Still missing: the large soft reflection of each
-   lamp, and the reference's milkiness.
+   error from 0.06 to 0.03, and the lamp halos (item 11) now reflect in it
+   as large soft patches. Still missing: the reference's milkiness.
 10. **Desk.** The reference desk is near-white with a pink cast; ours is a
     saturated periwinkle.
-11. **Lamp glow (open).** The reference lamps bloom into a wide warm halo that
-    lights the tile around them. Ours are small hot spots. Tried and rejected:
-    a lower bloom threshold or doubled bloom strength (the whole frame hazes
-    over, score 0.82 to 0.78 and 0.80) and a larger lamp radius (no visible
-    change), and stronger lamp washers (`lights.alcove_power` 700 and 1100:
-    score 0.820 to 0.813 and 0.804). Needs a per-lamp glow rather than a
-    global bloom.
+11. **Lamp glow (fixed).** Each alcove lamp now has a soft glow disc on the
+    wall behind it (`lights.halo_radius`, `lights.halo_strength`), which also
+    gives the large soft lamp reflections in the water. Global fixes were tried
+    first and rejected: a lower bloom threshold or doubled bloom strength hazed
+    the whole frame (score 0.82 to 0.78 and 0.80), and stronger lamp washers
+    lowered the score (0.813 and 0.804).
 12. **Small ceiling downlights.** The reference has a few bright points high on
     the right wall and ceiling. We have none.
 

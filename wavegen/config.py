@@ -137,6 +137,8 @@ DEFAULTS: dict = {
         "alcove_height": 0.6,        # sconce height as a fraction of room.spring_height
         "alcove_fill": 120.0,        # soft warm point light filling each alcove
         "sconces": True,
+        "halo_radius": 0.0,          # > 0: a soft glow disc of this radius on the wall behind each alcove lamp
+        "halo_strength": 4.0,
         "cove_power": 2200.0,
         "accent_power": 2400.0,
         "accent_size": 4.5,
