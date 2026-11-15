@@ -119,7 +119,8 @@ DEFAULTS: dict = {
         "icon_spin_period": 5.0,           # flower mode: seconds per turn
         "icon_tumble_period": 7.5,
     },
-    "desk": {"enabled": True, "size": [1.5, 1.30, 0.06], "top": 0.86, "center": [-1.04, 0.175]},
+    "desk": {"enabled": True, "size": [1.5, 1.30, 0.06], "top": 0.86, "center": [-1.04, 0.175],
+             "roughness": 0.3, "coat": 0.0},      # laminate gloss; the clip's desk is a polished top
     "lights": {
         "alcove_type": "SPOT",       # SPOT (wall-wash hotspot) | AREA
         "alcove_power": 260.0,
