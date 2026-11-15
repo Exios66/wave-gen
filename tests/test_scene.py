@@ -420,7 +420,7 @@ def test_crt_depth_shallower_than_the_screen_recess_is_rejected():
 def test_alcove_fill_lights_never_show_up_in_reflections(scene):
     fills = [o for o in bpy.data.objects if o.name.startswith("AlcoveFill.")]
     assert fills
-    assert all(not o.visible_glossy for o in fills)
+    assert all(not o.visible_glossy and not o.visible_transmission for o in fills)   # mirror and refraction
 
 
 def test_desk_laminate_is_glossy_with_a_clear_coat(scene):
