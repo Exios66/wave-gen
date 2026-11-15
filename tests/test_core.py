@@ -133,6 +133,7 @@ def test_poolrooms_water_is_calm_and_only_lamps_glow():
     pool, bloom = cfg["pool"], cfg["render"]["bloom"]
     assert pool["wave_strength"] <= 0.1                  # a near-mirror surface reflects the arches, as in the clip
     assert pool["caustics"]["strength"] <= 0.5            # faint light lines, not a net over the pool floor
+    assert bloom["strength"] > 0                         # zero strength would bypass the glare node
     assert bloom["threshold"] >= 2.0 and bloom["size"] >= 0.9   # big soft halos on lamps, walls never bloom
 
 
