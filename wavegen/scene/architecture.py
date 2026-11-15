@@ -47,6 +47,8 @@ def _horseshoe(width: float, spring: float, band: float, segments: int = 24):
 def _pier_outline(width: float, depth: float, segments: int = 16) -> list[tuple[float, float]]:
     """Plan outline of a pier: square back (+y), semicircular front facing the camera (-y)."""
     r = width / 2
+    if depth < r:
+        raise ValueError(f"pier depth {depth} must be at least half its width ({r}) to fit the round front")
     cy = -depth / 2 + r
     front = [(r * math.cos(math.pi + math.pi * i / segments), cy - r * math.sin(math.pi * i / segments))
              for i in range(segments + 1)]                 # from (-r, cy) round the front to (r, cy)
