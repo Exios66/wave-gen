@@ -408,3 +408,10 @@ def test_everything_on_the_desk_rests_on_it_without_overhang(scene):
         if any(bad.values()):
             problems[o.name] = [k for k, v in bad.items() if v]
     assert not problems, problems
+
+
+def test_crt_depth_shallower_than_the_screen_recess_is_rejected():
+    from wavegen.scene import props
+    shallow = config.load("poolrooms", ["atmosphere.dust_count=0", f"computer.depth={props.RECESS_D}"])
+    with pytest.raises(ValueError, match="depth"):
+        build_scene(shallow)
