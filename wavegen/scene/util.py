@@ -63,7 +63,7 @@ def arch_profile(width: float, spring: float, segments: int = 24, bottom: float 
 
     Round-topped by default. A ``corner_radius`` smaller than half the width gives a
     flat top with rounded corners (a basket-handle arch) that rises only ``corner_radius``
-    above the spring line.
+    above the spring line; a radius of zero or less gives a plain rectangle.
     """
     r = width / 2
     pts = [(-r, bottom), (r, bottom), (r, spring)]
@@ -72,7 +72,8 @@ def arch_profile(width: float, spring: float, segments: int = 24, bottom: float 
             a = math.pi * i / segments
             pts.append((r * math.cos(a), spring + r * math.sin(a)))
     else:
-        rc, cx, half = corner_radius, r - corner_radius, max(2, segments // 2)
+        rc, cx = max(corner_radius, 0.0), r - max(corner_radius, 0.0)
+        half = max(2, segments // 2) if rc > 0 else 0     # no radius: a plain rectangular top
         for i in range(1, half + 1):                      # right corner, up to the flat top
             a = math.pi / 2 * i / half
             pts.append((cx + rc * math.cos(a), spring + rc * math.sin(a)))
