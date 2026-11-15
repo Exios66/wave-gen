@@ -24,17 +24,38 @@ The owner chose a **parallax sweep**: a slow eased drift that keeps the CRT in t
 - Keep the purple accent light and the approved WAVE GEN screensaver.
 - Tests: `.venv/bin/python -m pytest -q`. Commits use the repo's git identity, with no co-author trailers.
 
-## Reference framing (fractions of the frame, x from left, y from top; t03/t22 average)
+## Reference framing (measured on the clean video frames `docs/ref/video/v25.jpg`; x from left, y from top)
+
+The TV-photo refs (`docs/ref/ref_t*.jpg`) are skewed by the bezel and the phone glare. The clean frames from the source video are now the ground truth, and the autoresearch target scores against them.
 
 | element | x | y |
 |---|---|---|
-| CRT body | 0.01–0.35 | 0.36–0.88 |
-| CRT screen | 0.17–0.32 | 0.42–0.68 |
-| pier behind CRT | 0.11–0.27 | 0.00–0.40 (visible above the CRT) |
-| tiled bay, left of the pier | 0.00–0.10 | 0.20–0.45 |
-| back-wall arches (left, centre) | 0.37–0.46, 0.52–0.75 | top ≈ 0.30, floor ≈ 0.65 |
-| keyboard | 0.11–0.46 | 0.80–0.97 |
-| pool, near edge | 0.42–1.0 | 0.68 |
+| CRT body | 0.04–0.36 | 0.31–0.82 |
+| CRT screen | 0.205–0.335 | 0.36–0.58 |
+| pier behind CRT | 0.17–0.30 | top of frame to 0.32 |
+| tiled side passage (left of pier) | 0.04–0.17 | 0.15–0.40 |
+| back-wall arches | 0.39–0.47, 0.52–0.72, 0.78–0.89 | tops ≈ 0.27, base ≈ 0.57 |
+| keyboard | 0.12–0.47 | 0.73–0.94 |
+| pool | 0.43–1.0 | 0.60–0.85 |
+
+## Video study (source video, frames at 25/50/75% plus the thumbnail)
+
+- **Palette (sRGB medians).**
+  - Walls: cyan (0.42, 0.71, 0.78).
+  - Ceiling: teal (0.32, 0.62, 0.66).
+  - Alcove tile: warm off-white (0.66, 0.66, 0.60).
+  - Water: (0.36, 0.56, 0.58).
+  - Desk and near floor: lavender (0.44–0.51, 0.49–0.53, 0.67–0.69). The purple lives in the foreground.
+- **Alcoves.** They are deep and lit warm.
+  - The back wall is white square tile up to about two-thirds of the opening, with plaster above.
+  - Each back wall has two wall sconces.
+  - The far side arches show sconces on their side walls too.
+- **Space.** The back wall is far: the arches are small in frame, and a tiled walkway runs between the pool and the back wall.
+  - The pool is long, bright and shallow, and its tiled floor shows through the water.
+  - The pool outline steps in at the far end.
+- **Behind the CRT.** A tall white pier with a rounded front; left of it, a white-tiled side passage lit from inside.
+- **Camera.** The framing differs between the 25%, 50% and 75% frames, so the camera moves slowly through the space. The thumbnail is a closer push-in. This confirms the parallax sweep.
+- **Atmosphere.** Light haze, soft bloom on the sconces, and a few tiny dust specks.
 
 ## Tasks
 

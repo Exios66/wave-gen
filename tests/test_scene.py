@@ -270,10 +270,10 @@ def test_spread_handles_walls_with_no_openings():
     assert _spread(5.0, []) == []
 
 
-# Reference framing (docs/superpowers/plans/2026-11-15-poolrooms-rebuild.md): x0, x1, y0, y1, y from top.
+# Reference framing, measured on docs/ref/video/v25.jpg: x0, x1, y0, y1, y from top.
 REF_FRAMING = {
-    "Computer.body": (0.01, 0.35, 0.36, 0.88),
-    "Computer.screen": (0.17, 0.32, 0.42, 0.68),
+    "Computer.body": (0.04, 0.36, 0.31, 0.82),
+    "Computer.screen": (0.205, 0.335, 0.36, 0.58),
 }
 
 

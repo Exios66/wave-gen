@@ -196,7 +196,7 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     kb_rig = bpy.data.objects.new("Keyboard.rig", None)
     col.objects.link(kb_rig)
     _parent(kb_rig, rig)
-    kb_rig.location = (0.07, -0.42, 0.0)
+    kb_rig.location = (-0.22, -0.52, 0.0)
     kb_rig.rotation_euler = (math.radians(4), 0, math.radians(-6))
     _parent(kb, kb_rig)
 
