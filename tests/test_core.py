@@ -139,3 +139,8 @@ def test_poolrooms_water_is_calm_and_only_lamps_glow():
 
 def test_poolrooms_sconces_sit_in_the_upper_part_of_the_arch():
     assert 0.7 <= config.load("poolrooms")["lights"]["alcove_height"] <= 0.9   # ~2/3 up the opening, as in the clip
+
+
+def test_emblem_is_large_enough_to_read_its_lettering():
+    em = config.load("poolrooms")["computer"]["emblem"]
+    assert 0.5 <= em["scale"] <= 0.7      # the text spans the emblem; under half the screen it blurs at 1080p

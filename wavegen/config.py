@@ -106,7 +106,7 @@ DEFAULTS: dict = {
             "text": "WAVE GEN",
             "shape": "sun",                # sun | triangle | orb
             "font": None,                  # path to a .ttf/.otf; None = Blender's built-in font
-            "scale": 0.34,                 # emblem width as a fraction of the screen width
+            "scale": 0.56,                 # emblem width as a fraction of the screen width (the text spans it)
             "speed": 0.12,                 # screen widths per second (rounded to whole bounces per loop)
             "margin": 0.04,                # keep clear of the bezel (fraction of the screen)
             "palette": [                   # disc gradient [top, bottom]; steps on every wall hit.
