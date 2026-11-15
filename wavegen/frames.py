@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 # Bump whenever scene code changes what pixels a given config produces.
-SCENE_VERSION = 2
+SCENE_VERSION = 3
 
 _NON_PIXEL_KEYS = ("post", "audio")
 
@@ -84,11 +84,11 @@ def prepare_frames_dir(out_dir: Path, cfg: dict, overwrite: bool) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     mpath = out_dir / "manifest.json"
-    existing = json.loads(mpath.read_text()) if mpath.exists() else None
     if overwrite:
         for p in frame_files(out_dir):
             p.unlink()
     else:
+        existing = json.loads(mpath.read_text()) if mpath.exists() else None
         if existing is None and frame_files(out_dir):
             raise StaleFramesError(f"{out_dir} has frames but no manifest; pass --overwrite to replace them")
         check_manifest(existing, cfg, str(out_dir))

@@ -15,7 +15,7 @@ from mathutils import Matrix
 from . import materials as M
 from ..frames import loop_frame_count
 from .util import (arch_profile, bevel, box, boolean_cut_collection, collection,
-                   cutter_collection_union, extruded_profile, obj_from_bmesh, smooth_shade)
+                   cutter_collection_union, extruded_profile, look_at_matrix, obj_from_bmesh, smooth_shade)
 
 Y0 = -3.5
 
@@ -32,6 +32,16 @@ def _spread(total: float, widths: list[float]) -> list[float]:
     return centres
 
 
+def _horseshoe(width: float, spring: float, band: float, segments: int = 24):
+    """Outline of an arch-shaped band ``band`` wide around an opening (u, v)."""
+    outer = arch_profile(width + 2 * band, spring, segments, bottom=0.0)
+    inner = arch_profile(width, spring, segments, bottom=0.0)
+    # outer goes CCW from bottom-left; walk it from bottom-right up and over, then the inner back
+    o = [outer[1], outer[2], *outer[3:], outer[0]]          # (R,0) -> (R,s) -> arc -> (-R,s) -> (-R,0)
+    i = [inner[0], inner[-1], *reversed(inner[3:-1]), inner[2], inner[1]]
+    return o + i
+
+
 def build(cfg: dict) -> dict:
     room, pool, pal = cfg["room"], cfg["pool"], cfg["palette"]
     W, D, H, T = room["width"], room["depth"], room["height"], room["wall_thickness"]
@@ -46,7 +56,9 @@ def build(cfg: dict) -> dict:
         "ceiling": M.plaster("Ceiling", pal["ceiling"], 0.7),
         "water": M.water("Water", pal["water"], pal["water_absorb"], pool["wave_scale"],
                          pool["wave_strength"], pool["wave_cycles"], loop_frame_count(cfg)),
-        "sconce": M.emission("Sconce", pal["warm_light"], 6.0),
+        "alcove": M.tiles("AlcoveTile", pal.get("alcove_tile", pal["tile"]), pal["grout"], room["tile_size"],
+                          room["grout_width"], pal["tile_jitter"]),
+        "sconce": M.emission("Sconce", pal["warm_light"], 30.0),
     }
 
     # ---- floor (flat tiled pieces around the pool hole) -------------------
@@ -82,6 +94,7 @@ def build(cfg: dict) -> dict:
         "front": box("Wall.front", (x0 - T, Y0 - T, 0), (x1 + T, Y0, H), col, mats["plaster"]),
     }
     lights = []
+    sw, sd = room["arch_surround"]["width"], room["arch_surround"]["depth"]
 
     def arch(wall: str, centre: float, width: float):
         spring = min(room["spring_height"], H - 0.6 - width / 2)
@@ -90,10 +103,12 @@ def build(cfg: dict) -> dict:
         if wall == "back":
             m = Matrix.Translation((centre, Y1 + T / 2, 0))
             alc = box(f"Alcove.back.{centre:.1f}", (centre - width / 2 - 0.35, Y1 + T - 0.01, 0),
-                      (centre + width / 2 + 0.35, Y1 + T + ad, top + 0.45), col, mats["tile"],
+                      (centre + width / 2 + 0.35, Y1 + T + ad, top + 0.45), col, mats["alcove"],
                       inward=True, skip=("-y",))
-            lamp = (centre, Y1 + T + ad - 0.35, spring * 0.78)
+            lamp = (centre, Y1 + T + ad - 0.06, spring * 0.62)
             sconce_rot = (math.radians(90), 0, 0)
+            face = Matrix.Translation((centre, Y1 - sd / 2 + 0.01, 0))
+            into = (0, 1, 0)                      # from the room toward the alcove's back wall
         else:
             sign = -1 if wall == "left" else 1
             xw = (x0 - T / 2) if wall == "left" else (x1 + T / 2)
@@ -101,11 +116,18 @@ def build(cfg: dict) -> dict:
             xa = x0 - T + 0.01 if wall == "left" else x1 + T - 0.01
             xb = xa + sign * ad
             alc = box(f"Alcove.{wall}.{centre:.1f}", (min(xa, xb), centre - width / 2 - 0.35, 0),
-                      (max(xa, xb), centre + width / 2 + 0.35, top + 0.45), col, mats["tile"],
+                      (max(xa, xb), centre + width / 2 + 0.35, top + 0.45), col, mats["alcove"],
                       inward=True, skip=("+x",) if wall == "left" else ("-x",))
-            lamp = (xb - sign * 0.35, centre, spring * 0.78)
+            lamp = (xb - sign * 0.06, centre, spring * 0.62)
             sconce_rot = (math.radians(90), 0, math.radians(90))
+            xf = x0 + sd / 2 - 0.01 if wall == "left" else x1 - sd / 2 + 0.01
+            face = Matrix.Translation((xf, centre, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z")
+            into = (sign, 0, 0)
         cutter = extruded_profile(f"ArchCut.{wall}.{centre:.1f}", arch_profile(width, spring), T + 0.4, cut_col, m)
+        # moulded reveal: a horseshoe band standing proud of the wall around the opening
+        sur = extruded_profile(f"ArchSurround.{wall}.{centre:.1f}", _horseshoe(width, spring, sw), sd, col, face,
+                               mats["plaster"])
+        bevel(sur, min(0.035, sd * 0.3), 3, 30)
         # warm wall-washer: a small glowing dome + a soft point light in front
         if cfg["lights"]["sconces"]:
             bm = bmesh.new()
@@ -114,15 +136,32 @@ def build(cfg: dict) -> dict:
             s.location = lamp
             s.rotation_euler = sconce_rot
             s.scale = (1, 1, 0.45)
-        L = bpy.data.lights.new(f"AlcoveLight.{wall}.{centre:.1f}", "POINT")
-        L.energy = cfg["lights"]["alcove_power"]
+        # wall-washer: a light just in front of the lamp, aimed back at the wall -> bright halo
+        li = cfg["lights"]
+        kind = li.get("alcove_type", "SPOT")
+        L = bpy.data.lights.new(f"AlcoveLight.{wall}.{centre:.1f}", kind)
+        L.energy = li["alcove_power"]
         L.color = pal["warm_light"]
-        L.shadow_soft_size = cfg["lights"]["alcove_radius"]
+        if kind == "SPOT":
+            L.spot_size = math.radians(150)
+            L.spot_blend = 1.0
+            L.shadow_soft_size = li["alcove_radius"]
+        else:
+            L.shape = "DISK"
+            L.size = 2 * li["alcove_radius"]
         lo = bpy.data.objects.new(L.name, L)
-        off = (0, -0.3, 0.35) if wall == "back" else (-sign * 0.3, 0, 0.35)
-        lo.location = (lamp[0] + off[0], lamp[1] + off[1], lamp[2] + off[2])
+        lo.location = tuple(lamp[k] - into[k] * 0.55 for k in range(3))
+        lo.rotation_euler = look_at_matrix(lo.location, lamp).to_euler()
         collection("Lights").objects.link(lo)
         lights.append(lo)
+        # soft warm fill so the whole alcove glows gold, not just the halo
+        F = bpy.data.lights.new(f"AlcoveFill.{wall}.{centre:.1f}", "POINT")
+        F.energy = li.get("alcove_fill", 0.0)
+        F.color = pal["warm_light"]
+        F.shadow_soft_size = 0.6
+        fo = bpy.data.objects.new(F.name, F)
+        fo.location = tuple(lamp[k] - into[k] * (ad * 0.5) for k in range(2)) + (top * 0.75,)
+        collection("Lights").objects.link(fo)
         return cutter
 
     back_cutters = [arch("back", cx, w) for cx, w in zip(_spread(W, room["back_arches"]), room["back_arches"])]
@@ -176,7 +215,7 @@ def build(cfg: dict) -> dict:
 
     # ---- big rounded column, near left ---------------------------------------
     if room["column"]:
-        cx, cy, r = x0 + 1.25, Y0 + 4.6, 0.55
+        (cx, cy), r = room.get("column_xy", (x0 + 1.25, Y0 + 4.6)), 0.5
         bm = bmesh.new()
         bmesh.ops.create_cone(bm, cap_ends=True, segments=48, radius1=r, radius2=r, depth=H,
                               matrix=Matrix.Translation((cx, cy, H / 2)))

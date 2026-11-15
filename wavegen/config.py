@@ -28,21 +28,23 @@ DEFAULTS: dict = {
         "denoise": True,
         "max_bounces": 6,
         "view_transform": "AgX",
-        "look": "AgX - Base Contrast",
-        "exposure": -0.5,
+        "look": "AgX - Medium High Contrast",
+        "exposure": -1.3,
         "gamma": 1.0,
-        "bloom": {"threshold": 0.85, "strength": 0.55, "size": 0.7},
+        "motion_blur": 0.5,          # shutter in frames; 0 disables (smooth dust / camera motion)
+        "bloom": {"threshold": 1.4, "strength": 0.4, "size": 0.7},   # only lamps bloom; no milky veil
         "lens": {"distortion": -0.012, "dispersion": 0.012},
         "format": "PNG",             # PNG frames -> post.py assembles MP4
     },
     "palette": {
         "tile": [0.90, 0.93, 0.94],
         "tile_jitter": 0.035,
-        "grout": [0.62, 0.70, 0.74],
-        "plaster": [0.50, 0.84, 0.95],
-        "ceiling": [0.30, 0.76, 0.90],
-        "pool_tile": [0.30, 0.82, 0.84],
-        "water": [0.55, 0.95, 0.92],
+        "grout": [0.34, 0.42, 0.46],
+        "alcove_tile": [0.95, 0.84, 0.64],     # warm cream tiles inside the lit alcoves
+        "plaster": [0.56, 0.86, 0.93],
+        "ceiling": [0.42, 0.80, 0.92],
+        "pool_tile": [0.16, 0.72, 0.76],
+        "water": [0.45, 0.95, 0.90],
         "water_absorb": [0.25, 0.80, 0.78],
         "beige": [0.66, 0.56, 0.50],
         "key_cap": [0.72, 0.64, 0.58],
@@ -50,8 +52,8 @@ DEFAULTS: dict = {
         "screen": [0.02, 0.04, 0.30],
         "screen_glow": [0.06, 0.12, 0.62],
         "warm_light": [1.0, 0.72, 0.42],
-        "cool_light": [0.40, 0.85, 1.0],
-        "accent_light": [0.86, 0.55, 1.0],
+        "cool_light": [0.52, 0.88, 1.0],
+        "accent_light": [0.82, 0.42, 1.0],
         "world": [0.38, 0.72, 0.92],
         "haze": [0.78, 0.90, 1.0],
         "dust": [1.0, 0.97, 0.95],
@@ -63,15 +65,17 @@ DEFAULTS: dict = {
         "depth": 20.0,
         "height": 6.4,
         "wall_thickness": 0.45,
-        "tile_size": 0.16,
-        "grout_width": 0.012,
+        "tile_size": 0.13,
+        "grout_width": 0.022,       # wide enough to resolve at 1080p across the room
         "bevel": 0.05,
         "spring_height": 3.6,       # height where an arch starts curving
-        "alcove_depth": 2.6,
+        "alcove_depth": 3.2,
+        "arch_surround": {"width": 0.22, "depth": 0.12},   # moulded reveal around each arch
         "back_arches": [2.8, 4.6, 2.8],   # widths, left -> right
         "side_arches": [3.2],             # per side wall
         "ceiling_tray": {"inset": 2.0, "steps": 3, "step_height": 0.28},
         "column": True,             # big rounded column on the near-left
+        "column_xy": [-1.9, 2.7],   # sits just behind the computer, as in the reference
     },
     "pool": {
         "x": [-2.6, 6.2],
@@ -85,8 +89,8 @@ DEFAULTS: dict = {
     },
     "computer": {
         "enabled": True,
-        "location": [-0.99, 0.16, 0.86],   # sits on the desk
-        "rotation_z": 38.0,                # degrees
+        "location": [-1.0, 0.32, 0.86],    # sits on the desk
+        "rotation_z": 55.0,                # degrees
         "scale": 1.0,
         "screen_strength": 2.4,
         "scanlines": 240,
@@ -108,34 +112,38 @@ DEFAULTS: dict = {
         "icon_spin_period": 5.0,           # flower mode: seconds per turn
         "icon_tumble_period": 7.5,
     },
-    "desk": {"enabled": True, "size": [1.5, 1.05, 0.06], "top": 0.86, "center": [-1.0, 0.12]},
+    "desk": {"enabled": True, "size": [1.5, 1.05, 0.06], "top": 0.86, "center": [-1.04, 0.30]},
     "lights": {
-        "alcove_power": 170.0,
-        "alcove_radius": 0.25,
+        "alcove_type": "SPOT",       # SPOT (wall-wash hotspot) | AREA
+        "alcove_power": 260.0,
+        "alcove_radius": 0.08,
+        "alcove_fill": 120.0,        # soft warm point light filling each alcove
         "sconces": True,
-        "cove_power": 3200.0,
-        "accent_power": 650.0,
+        "cove_power": 2200.0,
+        "accent_power": 2400.0,
+        "accent_size": 4.5,
+        "accent_location": [-3.4, -0.2, 1.9],
         "world_strength": 0.35,
     },
     "atmosphere": {
-        "haze_density": 0.0035,      # 0 disables the volume (much faster)
+        "haze_density": 0.0012,      # 0 disables the volume (much faster)
         "haze_anisotropy": 0.35,
         "dust_count": 220,
         "dust_size": [0.002, 0.006],
-        "dust_strength": [1.0, 4.0],
+        "dust_strength": [1.0, 3.0],
         "dust_speed": 0.06,
     },
     "camera": {
-        "location": [-0.92, -1.02, 1.13],
-        "target": [2.3, 12.0, 2.15],
-        "lens": 24.0,
-        "dof": True,
+        "location": [-0.5, -1.02, 1.05],
+        "target": [0.8, 12.0, 2.3],
+        "lens": 26.0,
+        "dof": False,               # the reference is sharp front to back
         "fstop": 5.6,
         "focus_on": "computer",       # computer | target | <distance in m>
         "drift": {                      # slow "floating" camera
-            "amplitude": [0.14, 0.08, 0.03],
+            "amplitude": [0.04, 0.025, 0.012],
             "period": [26.0, 17.0, 11.0],
-            "target_amplitude": [0.7, 0.25, 0.12],
+            "target_amplitude": [0.13, 0.08, 0.05],
             "target_period": [31.0, 19.0, 13.0],
         },
     },
@@ -166,7 +174,7 @@ DEFAULTS: dict = {
         "grade": True,
         "halation": 0.22,
         "grain": 5,
-        "vignette": 0.55,
+        "vignette": 0.30,
         "chroma_shift": 2,
         "crt_on_tv": False,           # re-photograph look (moire/scan + bezel)
         "crf": 16,
@@ -227,11 +235,16 @@ def min_wall_for(widths: list[float], pier: float = 0.6) -> float:
 
 
 def _fit(widths: list[float], wall: float, pier: float = 0.6, margin: float = 0.05) -> list[float]:
-    """Drop arches, then shrink the rest proportionally, until they fit ``wall``."""
+    """Drop arches, then shrink the rest proportionally, until they fit ``wall`` with full
+    piers. A wall too short for one opening between two piers gets none (``[]``)."""
     widths = list(widths)
     while len(widths) > 1 and sum(widths) * 0.6 + pier * (len(widths) + 1) > wall:
         widths.pop(0 if len(widths) % 2 == 0 else -1)  # keep the wide centre arch
     room = wall - pier * (len(widths) + 1) - margin
+    if room <= 0.1:
+        # one opening at most; none if even a 0.1 m opening can't sit between two full piers
+        w = round(wall - 2 * pier - margin, 2)
+        return [w] if w >= 0.1 else []
     if sum(widths) > room:
         k = room / sum(widths)
         widths = [round(w * k - 0.005, 2) for w in widths]

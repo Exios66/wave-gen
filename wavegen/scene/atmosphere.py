@@ -10,7 +10,7 @@ import bpy
 from . import materials as M
 from ..frames import loop_frame_count
 from ..loop import cycles_for, periodic_expr
-from .util import box, collection, drive, obj_from_bmesh
+from .util import look_at_matrix, box, collection, drive, obj_from_bmesh
 
 
 def build(cfg: dict, bounds) -> None:
@@ -31,12 +31,14 @@ def build(cfg: dict, bounds) -> None:
     # pink / lavender accent from off-screen left (tints the computer's flank)
     acc = bpy.data.lights.new("AccentLight", "AREA")
     acc.shape = "DISK"
-    acc.size = 2.5
+    acc.size = li.get("accent_size", 2.5)
     acc.energy = li["accent_power"]
     acc.color = pal["accent_light"]
     ao = bpy.data.objects.new("AccentLight", acc)
-    ao.location = (-3.2, -0.6, 1.6)
-    ao.rotation_euler = (math.radians(88), 0, math.radians(-78))
+    # off-screen left, aimed at the computer so the lavender wash lands on it and the desk
+    aim = cfg["computer"]["location"] if cfg["computer"]["enabled"] else (-1.0, 0.3, 0.9)
+    ao.location = tuple(li.get("accent_location", (-3.0, -0.4, 1.7)))
+    ao.rotation_euler = look_at_matrix(ao.location, aim).to_euler()
     ao.visible_camera = False
     collection("Lights").objects.link(ao)
 

@@ -14,6 +14,7 @@ import hashlib
 import json
 import math
 import os
+import uuid
 from pathlib import Path
 
 import numpy as np
@@ -211,13 +212,20 @@ def render_emblem(cfg: dict, cache: Path | None = None) -> tuple[Path, Path]:
     cache.mkdir(parents=True, exist_ok=True)
     key = _key(ec)
     text_png, mask_png = cache / f"emblem_{key}.png", cache / f"emblem_{key}_mask.png"
+    tag = f"{os.getpid()}.{uuid.uuid4().hex[:8]}"        # per-writer temp names: concurrent renders are safe
     if not text_png.exists():
-        tmp = text_png.with_name(text_png.stem + ".tmp.png")
-        _render_text(ec, tmp)
-        _outline(tmp)
-        tmp.replace(text_png)
+        tmp = text_png.with_name(f"{text_png.stem}.{tag}.tmp.png")
+        try:
+            _render_text(ec, tmp)
+            _outline(tmp)
+            tmp.replace(text_png)                         # atomic publish
+        finally:
+            tmp.unlink(missing_ok=True)
     if not mask_png.exists():
-        tmp = mask_png.with_name(mask_png.stem + ".tmp.png")
-        _save_grey(tmp, disc_mask(ec.get("shape", "sun")))
-        tmp.replace(mask_png)
+        tmp = mask_png.with_name(f"{mask_png.stem}.{tag}.tmp.png")
+        try:
+            _save_grey(tmp, disc_mask(ec.get("shape", "sun")))
+            tmp.replace(mask_png)
+        finally:
+            tmp.unlink(missing_ok=True)
     return text_png, mask_png

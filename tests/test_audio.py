@@ -128,3 +128,13 @@ def test_synthesize_compat_and_write_stems(tmp_path):
     assert sr == 16000 and data.shape == (4 * 16000, 2)
     paths = audio.write_stems(_cfg(4), tmp_path)
     assert set(paths) == STEMS and all(p.exists() for p in paths.values())
+
+
+def test_true_peak_keeps_even_length_nyquist():
+    x = np.array([1.3, 0.7, -0.7, 0.7])
+    assert dsp.true_peak_db(x, 4) >= 20 * np.log10(1.3) - 1e-6
+
+
+def test_reverb_ir_shorter_than_pre_ramp():
+    ir = dsp._reverb_ir(16000, 0.01, np.random.default_rng(0))
+    assert len(ir) == 160 and np.all(np.isfinite(ir)) and np.abs(ir).max() > 0

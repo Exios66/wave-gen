@@ -80,3 +80,13 @@ def test_assemble_complete_loop_encodes_n_frames(tmp_path):
                         "stream=nb_read_frames", "-of", "csv=p=0", str(out)],
                        capture_output=True, text=True, check=True).stdout.strip()
     assert int(n) == 4
+
+
+def test_overwrite_replaces_damaged_manifest(tmp_path):
+    from wavegen.frames import prepare_frames_dir
+    cfg = config.load("poolrooms", ["render.fps=2", "render.seconds=1"])
+    (tmp_path / "frame_00001.png").write_bytes(b"x")
+    (tmp_path / "manifest.json").write_text("")
+    prepare_frames_dir(tmp_path, cfg, overwrite=True)
+    assert not (tmp_path / "frame_00001.png").exists()
+    assert (tmp_path / "manifest.json").read_text().strip().startswith("{")

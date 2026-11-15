@@ -60,8 +60,8 @@ def _reverb_ir(sr: int, seconds: float, rng: np.random.Generator) -> np.ndarray:
     dark = lowpass(ir, 2600, sr, 1.0)
     w = np.clip(t / (0.5 * seconds), 0, 1)[:, None]
     ir = ir * (1 - w) + dark * w
-    pre = int(0.012 * sr)
-    ir[:pre] *= np.linspace(0, 1, pre)[:, None]
+    pre = min(int(0.012 * sr), n)
+    ir[:pre] *= np.linspace(1.0 / (pre + 1), 1, pre)[:, None]     # never all-zero for short IRs
     # early reflections off a hard room
     for delay, gain in ((0.011, 0.5), (0.019, 0.38), (0.027, 0.3), (0.041, 0.22)):
         i = int(delay * sr)
@@ -137,6 +137,8 @@ def true_peak_db(x: np.ndarray, sr: int, oversample: int = 4) -> float:
     x = np.asarray(x, float)
     n = len(x)
     X = np.fft.rfft(x, axis=0)
+    if n % 2 == 0 and oversample > 1:
+        X[-1] *= 0.5            # the Nyquist bin becomes an ordinary bin; irfft adds its mirror
     up = np.fft.irfft(X, n * oversample, axis=0) * oversample
     return float(20 * math.log10(np.max(np.abs(up)) + 1e-20))
 

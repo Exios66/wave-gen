@@ -88,3 +88,41 @@ def test_parse_duration():
     assert post.parse_duration("120") == 120
     with pytest.raises(ValueError):
         post.parse_duration("x")
+
+
+def test_grade_keeps_high_key_contrast(tmp_path):
+    """The vapor grade must not wash a bright room out (no milky veil from halation)."""
+    rng = np.random.default_rng(0)
+    h, w = 180, 320
+    img = np.repeat(np.repeat(rng.uniform(0.5, 0.95, (h // 20, w // 20, 1)), 20, 0), 20, 1)
+    img = np.repeat(img, 3, 2)
+    raw = (img * 255).astype(np.uint8).tobytes()
+    cfg = _cfg()
+    pc = {**cfg["post"], "grain": 0, "chroma_shift": 0, "vignette": 0, "crt_on_tv": False, "halation": 0.22}
+    out = subprocess.run(["ffmpeg", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-i", "-",
+                          "-filter_complex", post.filtergraph(pc, w, h), "-map", "[vout]", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                         input=raw, capture_output=True, check=True).stdout
+    got = np.frombuffer(out, np.uint8).reshape(h, w, 3).astype(np.float32).mean(2) / 255
+    src = img.mean(2)
+    assert got.mean() <= src.mean() + 0.03
+    assert got.std() >= 0.9 * src.std()
+
+
+def test_assemble_rejects_mixed_extensions(tmp_path):
+    cfg = config.load("poolrooms", ["render.fps=2", "render.seconds=2", "render.resolution=[64,36]"])
+    d = tmp_path / "frames"
+    d.mkdir()
+    for i, ext in ((1, "png"), (2, "png"), (3, "jpg"), (4, "jpg")):
+        (d / f"frame_{i:05d}.{ext}").write_bytes(b"x")
+    with pytest.raises(post.IncompleteLoopError):
+        post.assemble(d, tmp_path / "o.mp4", cfg)
+
+
+def test_extend_handles_apostrophe_in_path(loop, tmp_path):
+    cfg, d, mp4 = loop
+    odd = tmp_path / "Alice's room"
+    odd.mkdir()
+    src = odd / "loop.mp4"
+    shutil.copy(mp4, src)
+    out = post.extend(src, d / "stems", 3.0, odd / "long.mp4")
+    assert out.exists()
