@@ -90,7 +90,22 @@ DEFAULTS: dict = {
         "scale": 1.0,
         "screen_strength": 2.4,
         "scanlines": 240,
-        "icon_spin_period": 5.0,           # seconds per turn
+        "screensaver": "emblem",           # emblem | starfield | mystify | flower
+        "emblem": {
+            "text": "WAVE GEN",
+            "shape": "sun",                # sun | triangle | orb
+            "font": None,                  # path to a .ttf/.otf; None = Blender's built-in font
+            "scale": 0.34,                 # emblem width as a fraction of the screen width
+            "speed": 0.12,                 # screen widths per second (rounded to whole bounces per loop)
+            "margin": 0.04,                # keep clear of the bezel (fraction of the screen)
+            "palette": [                   # disc gradient [top, bottom]; steps on every wall hit.
+                [[1.0, 0.45, 0.72], [0.52, 0.26, 0.95]],   # pink -> violet
+                [[0.40, 0.88, 1.0], [0.58, 0.34, 1.0]],    # cyan -> purple
+                [[1.0, 0.70, 0.55], [0.78, 0.32, 0.88]],   # peach -> magenta-purple
+                [[0.80, 0.66, 1.0], [0.40, 0.30, 0.90]],   # lavender -> indigo
+            ],
+        },
+        "icon_spin_period": 5.0,           # flower mode: seconds per turn
         "icon_tumble_period": 7.5,
     },
     "desk": {"enabled": True, "size": [1.5, 1.05, 0.06], "top": 0.86, "center": [-1.0, 0.12]},

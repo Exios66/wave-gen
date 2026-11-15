@@ -241,6 +241,7 @@ def crt_screen(name, base, glow, strength, scanlines):
     r = _math(nt, "SQRT", _math(nt, "ADD", _math(nt, "MULTIPLY", dx, dx), _math(nt, "MULTIPLY", dy, dy)))
     fall = _math(nt, "SUBTRACT", 1.0, _math(nt, "MULTIPLY", r, 1.35), clamp=True)
     mix = nt.nodes.new("ShaderNodeMix")
+    mix.name = "phosphor"          # screensavers composite on top of this
     mix.data_type = "RGBA"
     nt.links.new(fall, mix.inputs["Factor"])
     mix.inputs["A"].default_value = _rgb(base)
@@ -250,6 +251,7 @@ def crt_screen(name, base, glow, strength, scanlines):
     # brightness 0.65..1.0 across each line
     lines = _math(nt, "ADD", _math(nt, "MULTIPLY", _math(nt, "ABSOLUTE", lines), 0.35), 0.65)
     shade = nt.nodes.new("ShaderNodeMix")
+    shade.name = "scanlines"
     shade.data_type = "RGBA"
     shade.blend_type = "MULTIPLY"
     shade.inputs["Factor"].default_value = 1.0
