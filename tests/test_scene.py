@@ -444,7 +444,7 @@ def test_alcove_lamps_hang_at_the_configured_height():
 def test_keyboard_stays_in_frame_through_the_whole_sweep(scene):
     from wavegen.scene.framing import project_bounds
     _, sc = scene
-    bs = np.array([project_bounds("Keyboard.base", int(f)) for f in np.linspace(1, sc.frame_end, 13)])
+    bs = np.array([project_bounds("Keyboard.base", int(f)) for f in np.linspace(1, sc.frame_end, 121)])   # every half second
     sc.frame_set(1)
     assert bs[:, 0].min() >= 0.0 and bs[:, 1].max() <= 1.0, bs.round(3)      # left / right edges
-    assert bs[:, 3].max() <= 1.0, bs.round(3)                                # bottom edge
+    assert bs[:, 2].min() >= 0.0 and bs[:, 3].max() <= 1.0, bs.round(3)      # top / bottom edges
