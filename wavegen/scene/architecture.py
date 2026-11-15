@@ -52,6 +52,8 @@ def _pier_outline(width: float, depth: float, segments: int = 16) -> list[tuple[
     cy = -depth / 2 + r
     front = [(r * math.cos(math.pi + math.pi * i / segments), cy - r * math.sin(math.pi * i / segments))
              for i in range(segments + 1)]                 # from (-r, cy) round the front to (r, cy)
+    if depth / 2 - cy < 1e-9:  # minimum depth: the round front already ends on the back corners
+        return front
     return front + [(r, depth / 2), (-r, depth / 2)]
 
 
