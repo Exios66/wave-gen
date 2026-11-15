@@ -61,8 +61,11 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
 13. **Film softness.** The reference is soft, slightly hazy and low-contrast,
     with visible dust sparkles near the camera. Ours is crisp. Options: a touch
     more haze, a light diffusion pass in post, larger and brighter dust.
-14. **CRT model.** The reference housing is taller with a tilt foot, a rounded
-    bezel and a darker, visibly curved glass. Ours is boxier with a floppy slot.
+14. **CRT model (fixed).** The monitor is now a head overhanging a narrower,
+    set-back foot, leaning back 4 degrees (`computer.tilt`). The front is plain
+    (the floppy slot, LED and front grille are gone; cooling slots sit in the
+    side of the foot), the bezel opening has rounded corners and the glass
+    bulges more. The screen stays where the reference frames it.
 15. **Screen background (improved).** Darkened to a deep navy
     (`palette.screen_glow`), closer to the reference's near-black, with the
     purple emblem standing out more.

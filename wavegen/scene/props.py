@@ -18,9 +18,11 @@ from ..frames import loop_frame_count
 from ..loop import cycles_for, periodic_expr, spin_expr
 from .util import bevel, box, boolean_cut, collection, drive, obj_from_bmesh, smooth_shade
 
-BODY_W, BODY_D, BODY_H = 0.34, 0.36, 0.40
+BODY_W, BODY_D, BODY_H = 0.34, 0.36, 0.42        # BODY_H is the top of the monitor head above the desk
 RECESS_D = 0.04                      # how far the screen recess cuts into the front face
-SCREEN = {"x": (-0.118, 0.118), "z": (0.185, 0.345), "bulge": 0.012}
+SCREEN = {"x": (-0.118, 0.118), "z": (0.185, 0.345), "bulge": 0.02}   # where the reference frames it
+FOOT = {"half_w": 0.14, "setback": 0.07, "h": 0.06}     # pedestal the head overhangs
+HEAD_LIP = 0.075                     # height of the head's front bottom edge; its underside slopes back to the foot
 
 
 def _parent(child, parent):
@@ -29,18 +31,22 @@ def _parent(child, parent):
 
 
 def _body(col, mat, depth=BODY_D):
-    """CRT housing. The front face stays at -BODY_D/2 whatever the depth; extra depth goes out the back."""
+    """Monitor head. The front face stays at -BODY_D/2 whatever the depth; extra depth goes out the back.
+
+    The underside slopes from the front lip down into the foot, so the head overhangs its pedestal."""
     if depth <= RECESS_D:
         raise ValueError(f"computer.depth {depth} must exceed the {RECESS_D} m screen recess")
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
     bm.transform(Matrix.Diagonal((BODY_W, BODY_D, BODY_H, 1)) @ Matrix.Translation((0, 0, 0.5)))
-    # taper the back like a CRT housing
     for v in bm.verts:
-        if v.co.y > 0:
+        low = v.co.z < BODY_H / 2
+        if v.co.y > 0:                                  # taper the back like a CRT housing
             v.co.y = -BODY_D / 2 + depth
             v.co.x *= 0.82
-            v.co.z = v.co.z * 0.86 + 0.01
+            v.co.z = FOOT["h"] - 0.015 if low else BODY_H * 0.86 + 0.01
+        elif low:
+            v.co.z = HEAD_LIP
     return obj_from_bmesh("Computer.body", bm, col, mat)
 
 
@@ -150,48 +156,62 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     rig.scale = (cc["scale"],) * 3
 
     beige = M.plastic("BeigePlastic", pal["beige"])
-    body = _body(col, beige, cc.get("depth", BODY_D))
-    _parent(body, rig)
+    fy0 = -BODY_D / 2
+    depth = cc.get("depth", BODY_D)
+    # the head leans back about its front bottom edge; everything on it rides this empty
+    head = bpy.data.objects.new("Computer.head", None)
+    head.empty_display_size = 0.05
+    col.objects.link(head)
+    _parent(head, rig)
+    pivot = Vector((0.0, fy0, HEAD_LIP))
+    head.location = pivot
+    head.rotation_euler = (-math.radians(cc.get("tilt", 0.0)), 0, 0)
+
+    def on_head(o):
+        o.parent = head
+        o.matrix_parent_inverse = Matrix.Translation(-pivot)   # keep coordinates in the rig's frame
+
+    body = _body(col, beige, depth)
+    on_head(body)
     (xa, xb), (za, zb) = SCREEN["x"], SCREEN["z"]
-    m_in = 0.016                                        # glass -> recess edge
-    recess = box("ScreenRecessCut", (xa - m_in, -BODY_D / 2 - 0.05, za - m_in),
-                 (xb + m_in, -BODY_D / 2 + RECESS_D, zb + m_in), col)
-    _parent(recess, rig)
+    m_in = 0.016                                        # glass -> recess edge (hidden behind the bezel)
+    recess = box("ScreenRecessCut", (xa - m_in, fy0 - 0.05, za - m_in),
+                 (xb + m_in, fy0 + RECESS_D, zb + m_in), col)
+    on_head(recess)
     boolean_cut(body, recess)
-    # shadow notch along the base so the unit sits on a recessed foot, not flat on the desk
-    notch = box("BaseNotchCut", (-BODY_W / 2 - 0.05, -BODY_D / 2 - 0.05, -0.01),
-                (BODY_W / 2 + 0.05, -BODY_D / 2 + 0.035, 0.014), col)
-    _parent(notch, rig)
-    boolean_cut(body, notch)
     bevel(body, 0.022, 4, 30)
     smooth_shade(body)
 
-    # thick rounded frame standing proud around the glass (the "deep bezel" look)
-    fy0 = -BODY_D / 2
-    frame = box("Computer.bezel", (xa - m_in - 0.024, fy0 - 0.014, za - m_in - 0.024),
-                (xb + m_in + 0.024, fy0 + 0.004, zb + m_in + 0.024), col, beige)
-    _parent(frame, rig)
-    hole = box("BezelHoleCut", (xa - m_in, fy0 - 0.05, za - m_in), (xb + m_in, fy0 + 0.05, zb + m_in), col)
-    _parent(hole, rig)
+    # pedestal: narrower than the head and set back, so the head overhangs it as in the reference
+    foot = box("Computer.foot", (-FOOT["half_w"], fy0 + FOOT["setback"], 0.0),
+               (FOOT["half_w"], fy0 + max(depth - 0.04, FOOT["setback"] + 0.05), FOOT["h"]), col, beige)
+    _parent(foot, rig)
+    bevel(foot, 0.008, 3, 30)
+    smooth_shade(foot)
+
+    # bezel: a shallow frame whose rounded opening runs back to the glass
+    lip = 0.003                                         # the opening overlaps the glass edge, so no gap shows
+    frame = box("Computer.bezel", (xa - 0.036, fy0 - 0.008, za - 0.036),
+                (xb + 0.036, fy0 + 0.024, zb + 0.036), col, beige)
+    on_head(frame)
+    hole = box("BezelHoleCut", (xa + lip, fy0 - 0.06, za + lip), (xb - lip, fy0 + 0.08, zb - lip), col)
+    on_head(hole)
+    bevel(hole, 0.022, 6)                               # rounded corners, like a CRT mask
     boolean_cut(frame, hole)
-    bevel(frame, 0.009, 4, 30)
+    bevel(frame, 0.007, 4, 30)
     smooth_shade(frame)
 
     screen_mat = M.crt_screen("CRT", pal["screen"], pal["screen_glow"], cc["screen_strength"], cc["scanlines"])
     screen, front_y = _screen(col, screen_mat)
-    _parent(screen, rig)
+    on_head(screen)
 
     slot_mat = M.dark("SlotDark", (0.035, 0.032, 0.036), 0.75)
-    fy = -BODY_D / 2
-    slot = box("Computer.floppy", (0.03, fy - 0.004, 0.105), (0.135, fy + 0.004, 0.113), col, slot_mat)
-    _parent(slot, rig)
-    for i in range(11):  # front-left vent grille
-        x = -0.148 + i * 0.0085
-        v = box(f"Computer.vent.{i}", (x, fy - 0.003, 0.035), (x + 0.0045, fy + 0.004, 0.098), col, slot_mat)
+    fx = -FOOT["half_w"]
+    for i in range(10):  # cooling slots in the left side of the foot; the front stays plain
+        y = fy0 + FOOT["setback"] + 0.03 + i * 0.0095
+        v = box(f"Computer.sidevent.{i}", (fx - 0.002, y, 0.014), (fx + 0.004, y + 0.005, FOOT["h"] - 0.014),
+                col, slot_mat)
         _parent(v, rig)
-    led = box("Computer.led", (-0.03, fy - 0.003, 0.09), (-0.024, fy + 0.002, 0.096), col,
-              M.emission("LED", (0.6, 1.0, 0.7), 3.0))
-    _parent(led, rig)
 
     kb = box("Keyboard.base", (-0.235, -0.09, 0.0), (0.235, 0.09, 0.034), col, beige)
     bevel(kb, 0.01, 3)
@@ -212,6 +232,8 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     if cc.get("screensaver", "emblem") == "flower":
         out["icon"] = _icon(col, pal, rig, (0, front_y - 0.012, (za + zb) / 2), cc, cfg["render"]["fps"],
                             loop_frame_count(cfg))
+        out["icon"].parent = head
+        out["icon"].matrix_parent_inverse = Matrix.Translation(-pivot)
     imgs = None
     if emblem_images:
         imgs = tuple(bpy.data.images.load(str(p), check_existing=True) for p in emblem_images)

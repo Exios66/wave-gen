@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 # Bump whenever scene code changes what pixels a given config produces.
-SCENE_VERSION = 3
+SCENE_VERSION = 4
 
 _NON_PIXEL_KEYS = ("post", "audio")
 
