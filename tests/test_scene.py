@@ -1,6 +1,8 @@
 """Scene-graph tests; skipped automatically when bpy is unavailable."""
 from pathlib import Path
 
+import math
+
 import numpy as np
 import pytest
 
@@ -29,7 +31,7 @@ def test_expected_objects(scene):
               "Keyboard.keys", "CoveLight", "AccentLight"):
         assert n in names, n
     n_back = len(scene[0]["room"]["back_arches"])
-    assert sum(1 for o in names if o.startswith("AlcoveLight.back")) == n_back
+    assert sum(1 for o in names if o.startswith("AlcoveLight.back")) == 2 * n_back          # twin sconces
     assert sum(1 for o in names if o.startswith("Dust.")) == 12
 
 
@@ -219,15 +221,24 @@ def test_computer_screen_anchor(look):
     assert max(ys) <= 0.5
 
 
-def test_column_in_frame(look):
-    cfg, sc = look
+def test_pier_behind_crt_matches_reference(look):
+    from wavegen.scene.framing import project_bounds
+    x0, x1, _, y1 = project_bounds("Pier", 1)
+    assert abs(x0 - 0.17) <= 0.06 and abs(x1 - 0.30) <= 0.06, (x0, x1)
+    assert y1 > 0.32                                  # runs down behind the CRT
+
+
+def test_side_bay_is_lit_from_inside(look):
     from mathutils import Vector
-    col = bpy.data.objects["Column"]
-    bb = [col.matrix_world @ Vector(c) for c in col.bound_box]
-    centre = sum(bb, Vector()) / 8
-    sc.frame_set(1)
-    v = _project(sc, Vector((centre.x, centre.y, cfg["room"]["height"] / 2)))
-    assert 0 <= v.x <= 1 and v.z > 0, tuple(v)
+    bay = bpy.data.objects["Bay"]
+    bb = [bay.matrix_world @ Vector(c) for c in bay.bound_box]
+    lo = [min(v[i] for v in bb) for i in range(3)]
+    hi = [max(v[i] for v in bb) for i in range(3)]
+    p = bpy.data.objects["BayLight"].matrix_world.translation
+    assert all(lo[i] < p[i] < hi[i] for i in range(3)), (lo, hi, tuple(p))
+    assert bay.data.materials[0].name == "BayTile"
+    pier = bpy.data.objects["Pier"].matrix_world.translation
+    assert hi[0] <= pier.x                            # the passage opens left of the pier
 
 
 def test_arch_surrounds_exist(look):
@@ -268,3 +279,46 @@ def test_spread_handles_walls_with_no_openings():
     from wavegen.scene.architecture import _spread
     assert _spread(0.2, []) == []                    # _fit returns [] for walls this short
     assert _spread(5.0, []) == []
+
+
+# Reference framing, measured on docs/ref/video/v25.jpg: x0, x1, y0, y1, y from top.
+REF_FRAMING = {
+    "Computer.body": (0.04, 0.36, 0.31, 0.82),
+    "Computer.screen": (0.205, 0.335, 0.36, 0.58),
+}
+
+
+def test_reference_framing(look):
+    from wavegen.scene.framing import project_bounds
+    off = {}
+    for name, ref in REF_FRAMING.items():
+        got = project_bounds(name, 1)
+        off[name] = [round(g - r, 3) for g, r in zip(got, ref)]
+    assert all(abs(d) <= 0.06 for ds in off.values() for d in ds), off
+
+
+def test_twin_sconces_per_alcove(look):
+    cfg, _ = look
+    n = len(cfg["room"]["back_arches"]) + 2 * len(cfg["room"]["side_arches"])
+    sconces = [o for o in bpy.data.objects if o.name.startswith("Sconce.")]
+    lights = [o for o in bpy.data.objects if o.name.startswith("AlcoveLight.")]
+    assert len(sconces) == 2 * n and len(lights) == 2 * n
+
+
+def test_alcoves_have_tile_wainscot(look):
+    mat = bpy.data.materials["AlcoveTile"]
+    assert any(n.type == "MIX_SHADER" for n in mat.node_tree.nodes)
+
+
+def test_pier_outline_rejects_depth_too_shallow_for_its_round_front():
+    from wavegen.scene.architecture import _pier_outline
+    pts = _pier_outline(1.1, 1.0)
+    assert max(y for _, y in pts) == pytest.approx(0.5)
+    with pytest.raises(ValueError, match="depth"):
+        _pier_outline(1.1, 0.4)  # the half-round front (r=0.55) would poke out of the back
+
+
+def test_pier_outline_has_no_coincident_points_at_minimum_depth():
+    from wavegen.scene.architecture import _pier_outline
+    pts = _pier_outline(1.1, 0.55)  # depth == width/2: the round front meets the back corners
+    assert all(math.dist(a, b) > 1e-9 for a, b in zip(pts, pts[1:] + pts[:1]))

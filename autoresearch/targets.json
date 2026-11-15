@@ -1,7 +1,7 @@
 {
   "poolrooms": {
     "preset": "wavegen/presets/poolrooms.json",
-    "refs": ["docs/ref/ref_t03.jpg", "docs/ref/ref_t08.jpg", "docs/ref/ref_t15.jpg", "docs/ref/ref_t22.jpg"],
+    "refs": ["docs/ref/video/v25.jpg", "docs/ref/video/v50.jpg", "docs/ref/video/v75.jpg"],
     "frame": 1
   }
 }

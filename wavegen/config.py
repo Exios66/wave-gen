@@ -40,7 +40,9 @@ DEFAULTS: dict = {
         "tile": [0.90, 0.93, 0.94],
         "tile_jitter": 0.035,
         "grout": [0.34, 0.42, 0.46],
-        "alcove_tile": [0.95, 0.84, 0.64],     # warm cream tiles inside the lit alcoves
+        "alcove_tile": [0.92, 0.91, 0.88],     # white square tile inside the alcoves (lit warm)
+        "alcove_grout": [0.55, 0.56, 0.58],
+        "alcove_plaster": [0.94, 0.91, 0.86],  # warm white above the alcove tile
         "plaster": [0.56, 0.86, 0.93],
         "ceiling": [0.42, 0.80, 0.92],
         "pool_tile": [0.16, 0.72, 0.76],
@@ -70,12 +72,14 @@ DEFAULTS: dict = {
         "bevel": 0.05,
         "spring_height": 3.6,       # height where an arch starts curving
         "alcove_depth": 3.2,
+        "alcove_wainscot": 2.4,     # alcove walls: tile below this height, plaster above
         "arch_surround": {"width": 0.22, "depth": 0.12},   # moulded reveal around each arch
         "back_arches": [2.8, 4.6, 2.8],   # widths, left -> right
         "side_arches": [3.2],             # per side wall
         "ceiling_tray": {"inset": 2.0, "steps": 3, "step_height": 0.28},
-        "column": True,             # big rounded column on the near-left
-        "column_xy": [-1.9, 2.7],   # sits just behind the computer, as in the reference
+        "column": True,             # the pier + tiled passage behind the computer
+        "pier": {"xy": [-3.0, 6.2], "width": 1.1, "depth": 1.0},   # rounded front faces the camera
+        "bay": {"width": 2.2, "depth": 3.4, "height": 3.0, "wainscot": 1.9},   # lit passage left of the pier
     },
     "pool": {
         "x": [-2.6, 6.2],
@@ -135,7 +139,7 @@ DEFAULTS: dict = {
     },
     "camera": {
         "location": [-0.5, -1.02, 1.05],
-        "target": [0.8, 12.0, 2.3],
+        "target": [-0.4, 12.0, 1.6],
         "lens": 26.0,
         "dof": False,               # the reference is sharp front to back
         "fstop": 5.6,
