@@ -201,8 +201,9 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     kb_rig = bpy.data.objects.new("Keyboard.rig", None)
     col.objects.link(kb_rig)
     _parent(kb_rig, rig)
-    kb_rig.location = (-0.22, -0.52, 0.0)
-    kb_rig.rotation_euler = (math.radians(4), 0, math.radians(-6))
+    kb_tilt = math.radians(4)
+    kb_rig.location = (-0.22, -0.52, 0.09 * math.sin(kb_tilt) + 0.001)  # tilted up at the back; front edge rests on the desk
+    kb_rig.rotation_euler = (kb_tilt, 0, math.radians(-6))
     _parent(kb, kb_rig)
 
     from . import screensaver
