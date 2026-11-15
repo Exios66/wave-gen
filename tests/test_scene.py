@@ -358,3 +358,31 @@ def test_pier_outline_has_no_coincident_points_at_minimum_depth():
     from wavegen.scene.architecture import _pier_outline
     pts = _pier_outline(1.1, 0.55)  # depth == width/2: the round front meets the back corners
     assert all(math.dist(a, b) > 1e-9 for a, b in zip(pts, pts[1:] + pts[:1]))
+
+
+def test_crt_housing_is_deep_and_cream(look):
+    cfg, _ = look
+    body = bpy.data.objects["Computer.body"]
+    ys = [v.co.y for v in body.data.vertices]
+    depth = max(ys) - min(ys)
+    assert depth == pytest.approx(cfg["computer"]["depth"], abs=0.03)
+    assert cfg["computer"]["depth"] >= 1.25 * 0.34          # deeper than it is wide, like the reference
+    r, g, b = cfg["palette"]["beige"]
+    assert r > g > b and r - b >= 0.2                        # warm cream, not lilac, under the cool lights
+
+
+def test_crt_front_face_stays_put_when_depth_changes():
+    from wavegen.scene.framing import project_bounds
+    shallow = config.load("poolrooms", ["atmosphere.dust_count=0", "computer.depth=0.36"])
+    build_scene(shallow)
+    a = project_bounds("Computer.screen", 1)
+    deep = config.load("poolrooms", ["atmosphere.dust_count=0", "computer.depth=0.5"])
+    build_scene(deep)
+    assert project_bounds("Computer.screen", 1) == pytest.approx(a, abs=1e-6)
+
+
+def test_crt_depth_shallower_than_the_screen_recess_is_rejected():
+    from wavegen.scene import props
+    shallow = config.load("poolrooms", ["atmosphere.dust_count=0", f"computer.depth={props.RECESS_D}"])
+    with pytest.raises(ValueError, match="depth"):
+        build_scene(shallow)

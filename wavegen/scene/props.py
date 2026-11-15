@@ -19,6 +19,7 @@ from ..loop import cycles_for, periodic_expr, spin_expr
 from .util import bevel, box, boolean_cut, collection, drive, obj_from_bmesh, smooth_shade
 
 BODY_W, BODY_D, BODY_H = 0.34, 0.36, 0.40
+RECESS_D = 0.04                      # how far the screen recess cuts into the front face
 SCREEN = {"x": (-0.118, 0.118), "z": (0.185, 0.345), "bulge": 0.012}
 
 
@@ -27,13 +28,17 @@ def _parent(child, parent):
     child.matrix_parent_inverse = Matrix.Identity(4)
 
 
-def _body(col, mat):
+def _body(col, mat, depth=BODY_D):
+    """CRT housing. The front face stays at -BODY_D/2 whatever the depth; extra depth goes out the back."""
+    if depth <= RECESS_D:
+        raise ValueError(f"computer.depth {depth} must exceed the {RECESS_D} m screen recess")
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
     bm.transform(Matrix.Diagonal((BODY_W, BODY_D, BODY_H, 1)) @ Matrix.Translation((0, 0, 0.5)))
     # taper the back like a CRT housing
     for v in bm.verts:
         if v.co.y > 0:
+            v.co.y = -BODY_D / 2 + depth
             v.co.x *= 0.82
             v.co.z = v.co.z * 0.86 + 0.01
     return obj_from_bmesh("Computer.body", bm, col, mat)
@@ -145,12 +150,12 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     rig.scale = (cc["scale"],) * 3
 
     beige = M.plastic("BeigePlastic", pal["beige"])
-    body = _body(col, beige)
+    body = _body(col, beige, cc.get("depth", BODY_D))
     _parent(body, rig)
     (xa, xb), (za, zb) = SCREEN["x"], SCREEN["z"]
     m_in = 0.016                                        # glass -> recess edge
     recess = box("ScreenRecessCut", (xa - m_in, -BODY_D / 2 - 0.05, za - m_in),
-                 (xb + m_in, -BODY_D / 2 + 0.04, zb + m_in), col)
+                 (xb + m_in, -BODY_D / 2 + RECESS_D, zb + m_in), col)
     _parent(recess, rig)
     boolean_cut(body, recess)
     # shadow notch along the base so the unit sits on a recessed foot, not flat on the desk

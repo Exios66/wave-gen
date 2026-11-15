@@ -28,9 +28,9 @@
       0.95
     ],
     "desk": [
-      0.42,
-      0.42,
-      0.7
+      0.36,
+      0.33,
+      0.56
     ],
     "screen": [
       0.02,
@@ -41,12 +41,22 @@
       0.05,
       0.08,
       0.28
+    ],
+    "beige": [
+      0.76,
+      0.52,
+      0.36
+    ],
+    "accent_light": [
+      1.0,
+      0.8,
+      0.8
     ]
   },
   "lights": {
     "alcove_power": 420.0,
     "alcove_fill": 220.0,
-    "accent_power": 1800.0,
+    "accent_power": 600.0,
     "cove_power": 3000.0
   },
   "atmosphere": {
