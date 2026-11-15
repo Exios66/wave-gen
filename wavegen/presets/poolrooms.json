@@ -6,6 +6,11 @@
     "lens": {
       "distortion": -0.012,
       "dispersion": 0.003
+    },
+    "bloom": {
+      "threshold": 2.5,
+      "strength": 1.0,
+      "size": 0.95
     }
   },
   "post": {
@@ -84,5 +89,11 @@
       1.2
     ],
     "haze_density": 0.0015
+  },
+  "pool": {
+    "wave_strength": 0.07,
+    "caustics": {
+      "strength": 0.35
+    }
   }
 }

@@ -126,3 +126,11 @@ def test_poolrooms_carries_the_reference_pink_wash():
     r, g, b = wash["color"]
     assert wash["strength"] > 0 and r > b > g            # pink-lavender: red leads, green lowest
     assert 0.3 <= wash["extent"] <= 0.7                   # the left of frame, fading out before the right
+
+
+def test_poolrooms_water_is_calm_and_only_lamps_glow():
+    cfg = config.load("poolrooms")
+    pool, bloom = cfg["pool"], cfg["render"]["bloom"]
+    assert pool["wave_strength"] <= 0.1                  # a near-mirror surface reflects the arches, as in the clip
+    assert pool["caustics"]["strength"] <= 0.5            # faint light lines, not a net over the pool floor
+    assert bloom["threshold"] >= 2.0 and bloom["size"] >= 0.9   # big soft halos on lamps, walls never bloom
