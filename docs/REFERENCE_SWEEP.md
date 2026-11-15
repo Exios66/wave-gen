@@ -7,14 +7,15 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
 ## Remaining enhancements, largest visible gap first
 
 ### Composition
-1. **The CRT is too small and too low.** In the reference it fills about a third
-   of the frame width and its top reaches 30% from the top of the frame; ours
-   fills about a fifth. Move the camera closer and lower the horizon
-   (`camera.location`, `camera.lens`, `computer.location`).
-2. **We see the wrong side of the CRT.** The reference shows the screen plus the
-   housing's left flank, turned toward the pool; ours is turned the other way
-   and the keyboard runs off the left edge. Re-pose with `computer.rotation_z`
-   and the keyboard offset so the whole keyboard is in frame.
+1. **Monitor size and position: already matched.** Measured after the sweep,
+   the housing and screen sit within 0.03 of the reference's frame position
+   (`test_reference_framing`). An earlier draft of this list called the monitor
+   too small and turned the wrong way; the measurement shows that was wrong.
+   What reads as "smaller" is the housing shape (item 14).
+2. **Keyboard left the frame during the camera sweep** (4% off the left edge,
+   3% off the bottom). Fixed: the keyboard now sits further right and back
+   (`computer.keyboard`), matching the reference position, and a test checks
+   the whole loop.
 
 ### Architecture
 3. **Alcove tile stops at 2.4 m.** In the reference the square white tile runs

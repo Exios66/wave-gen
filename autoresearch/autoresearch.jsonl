@@ -1,1 +1,1 @@
-{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.7912, "render_seconds_baseline": 24, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the larger emblem and hiding the alcove fills from refraction rays"}
+{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.7922, "render_seconds_baseline": 24, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after moving the keyboard so it stays in frame through the sweep"}
