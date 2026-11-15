@@ -576,3 +576,28 @@ def test_floor_tile_follows_the_wall_tile_unless_given_its_own_colour():
     build_scene(config.load(None, ["atmosphere.dust_count=0", "palette.floor_tile=[0.9,0.5,0.7]"]))
     assert _tile_colour("FloorTile") == pytest.approx((0.9, 0.5, 0.7))
     assert _tile_colour("Tile") != pytest.approx((0.9, 0.5, 0.7))
+
+
+def test_no_lamp_halos_by_default():
+    cfg = config.load(None, ["atmosphere.dust_count=0"])
+    assert cfg["lights"]["halo_radius"] == 0.0
+    build_scene(cfg)
+    assert not [o for o in bpy.data.objects if o.name.startswith("SconceHalo")]
+
+
+def test_poolrooms_alcove_lamps_have_a_soft_wall_halo(scene):
+    """The reference lamps bloom into a wide warm glow on the tile around them."""
+    cfg, _ = scene
+    radius = cfg["lights"]["halo_radius"]
+    assert radius >= 0.4
+    bpy.context.view_layer.update()
+    sconces = [o for o in bpy.data.objects if o.name.startswith("Sconce.")]
+    halos = [o for o in bpy.data.objects if o.name.startswith("SconceHalo.")]
+    assert len(halos) == len(sconces) > 0
+    for h in halos:
+        lamp = bpy.data.objects[h.name.replace("SconceHalo.", "Sconce.")]
+        assert (h.location - lamp.location).length < 0.1            # centred on its lamp, against the wall
+        assert max(h.dimensions) == pytest.approx(2 * radius, rel=0.05)
+        assert not h.visible_shadow                                  # a glow must not block the lamp's light
+    nodes = {n.bl_idname for n in halos[0].active_material.node_tree.nodes}
+    assert {"ShaderNodeEmission", "ShaderNodeBsdfTransparent", "ShaderNodeTexGradient"} <= nodes   # fades to nothing

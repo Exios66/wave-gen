@@ -207,6 +207,23 @@ def emission(name, color, strength=1.0):
     return mat
 
 
+def halo(name, color, strength=1.0, falloff=2.5):
+    """Additive glow for a disc of unit radius: full at the centre, fading to nothing at the rim."""
+    mat, nt, out = _new(name)
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    grad = nt.nodes.new("ShaderNodeTexGradient")
+    grad.gradient_type = "SPHERICAL"
+    nt.links.new(coord.outputs["Object"], grad.inputs["Vector"])
+    e = nt.nodes.new("ShaderNodeEmission")
+    e.inputs["Color"].default_value = _rgb(color)
+    nt.links.new(_math(nt, "MULTIPLY", _math(nt, "POWER", grad.outputs["Fac"], falloff), strength), e.inputs["Strength"])
+    add = nt.nodes.new("ShaderNodeAddShader")
+    nt.links.new(nt.nodes.new("ShaderNodeBsdfTransparent").outputs[0], add.inputs[0])
+    nt.links.new(e.outputs[0], add.inputs[1])
+    nt.links.new(add.outputs[0], out.inputs["Surface"])
+    return mat
+
+
 def dark(name, color=(0.05, 0.05, 0.06), roughness=0.6):
     mat, nt, out = _new(name)
     p = principled(nt, color, roughness)
