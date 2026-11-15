@@ -36,12 +36,12 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    corner and a raised kerb of turquoise tile. Ours is a plain rectangle.
 
 ### Materials and light
-8. **Floor colour.** Still the worst-matched surface (colour error 0.09): the
-   reference floor is a pale lavender white with soft lamp reflections; ours is
-   cooler and bluer.
-9. **Water.** The reference water is paler and milkier, with large soft
-   reflections of each lamp. Ours is more saturated and shows the pool-floor
-   tile through it. Raise absorption/tint and soften the reflections.
+8. **Floor colour (improved).** The floor now has its own lavender tile
+   (`palette.floor_tile`); its colour error fell from 0.13 to 0.09 at matched
+   brightness. Still missing: the soft lamp reflections on it.
+9. **Water (improved).** Paler pool tile and absorption cut the water's colour
+   error from 0.06 to 0.03. Still missing: the large soft reflection of each
+   lamp, and the reference's milkiness.
 10. **Desk.** The reference desk is near-white with a pink cast; ours is a
     saturated periwinkle.
 11. **Lamp glow.** The reference lamps bloom into a wide warm halo that lights
