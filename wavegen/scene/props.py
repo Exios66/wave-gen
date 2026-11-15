@@ -202,8 +202,10 @@ def build(cfg: dict, emblem_images: tuple | None = None) -> dict:
     col.objects.link(kb_rig)
     _parent(kb_rig, rig)
     kb_tilt = math.radians(4)
-    kb_rig.location = (-0.22, -0.52, 0.09 * math.sin(kb_tilt) + 0.001)  # tilted up at the back; front edge rests on the desk
-    kb_rig.rotation_euler = (kb_tilt, 0, math.radians(-6))
+    kc = cc["keyboard"]
+    kx, ky = kc["offset"]
+    kb_rig.location = (kx, ky, 0.09 * math.sin(kb_tilt) + 0.001)  # tilted up at the back; front edge rests on the desk
+    kb_rig.rotation_euler = (kb_tilt, 0, math.radians(kc["yaw"]))
     _parent(kb, kb_rig)
 
     from . import screensaver
