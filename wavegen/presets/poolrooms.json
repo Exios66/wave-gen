@@ -2,7 +2,7 @@
   "name": "poolrooms",
   "_comment": "Faithful parallel of the reference clip. All values live in wavegen/config.py DEFAULTS; override anything here.",
   "render": {
-    "exposure": -2.3,
+    "exposure": -2.2,
     "lens": {
       "distortion": -0.012,
       "dispersion": 0.003
@@ -14,18 +14,18 @@
   "palette": {
     "plaster": [
       0.36,
-      0.84,
-      0.86
+      0.8,
+      0.9
     ],
     "ceiling": [
-      0.26,
-      0.7,
-      0.74
+      0.48,
+      0.84,
+      0.94
     ],
     "cool_light": [
-      0.62,
-      0.95,
-      0.95
+      0.55,
+      0.88,
+      1.0
     ],
     "desk": [
       0.36,
@@ -48,16 +48,21 @@
       0.36
     ],
     "accent_light": [
-      1.0,
-      0.8,
-      0.8
+      0.86,
+      0.74,
+      1.0
+    ],
+    "tile": [
+      0.86,
+      0.87,
+      0.97
     ]
   },
   "lights": {
     "alcove_power": 420.0,
     "alcove_fill": 220.0,
-    "accent_power": 600.0,
-    "cove_power": 3000.0
+    "accent_power": 250.0,
+    "cove_power": 3800.0
   },
   "atmosphere": {
     "dust_count": 90,
