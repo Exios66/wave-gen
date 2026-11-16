@@ -704,3 +704,76 @@ def test_monitor_head_tilts_back_only_when_asked():
     (_, _), (y0, y1), _ = _local_bounds("Computer.screen")
     assert y1 - y0 > (flat[1] - flat[0]) + 0.005                           # the top of the glass leans back
     assert bpy.data.objects["Computer.screen"].parent.name == "Computer.head"
+
+
+# ---- pool kerb and corner notch ----------------------------------------------
+
+def _kerbs():
+    return [o for o in bpy.data.objects if o.name.startswith("Coping.")]
+
+
+def test_default_pool_is_a_plain_rectangle_with_a_low_white_lip():
+    cfg = config.load(None, ["atmosphere.dust_count=0"])
+    assert cfg["pool"]["notch"] is None and cfg["pool"]["kerb"] == {"height": 0.05, "pool_tile": False}
+    build_scene(cfg)
+    bpy.context.view_layer.update()
+    assert "PoolNotch" not in bpy.data.objects and len(_kerbs()) == 4
+    for o in _kerbs():
+        assert o.material_slots[0].material.name == "Tile"
+        assert abs(_world_bounds(o)[1][2] - 0.05) < 1e-4
+
+
+def test_kerb_can_be_a_raised_course_of_pool_tile():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=0", "pool.kerb.height=0.13", "pool.kerb.pool_tile=true"])
+    build_scene(cfg)
+    bpy.context.view_layer.update()
+    mat = bpy.data.materials["KerbTile"]
+    assert "caustics" not in mat.node_tree.nodes                        # it is above the water: no light lines
+    assert len(_kerbs()) == 6
+    for o in _kerbs():
+        assert o.material_slots[0].material == mat
+        assert abs(_world_bounds(o)[1][2] - 0.13) < 1e-4
+
+
+def test_poolrooms_pool_has_a_stepped_notch_in_its_far_left_corner(scene):
+    cfg, _ = scene
+    bpy.context.view_layer.update()
+    pool = cfg["pool"]
+    w, d = pool["notch"]
+    (px0, px1), (py0, py1) = pool["x"], pool["y"]
+    assert 0 < w < (px1 - px0) / 2 and 0 < d < (py1 - py0) / 4
+    lo, hi = _world_bounds(bpy.data.objects["PoolNotch"])
+    assert np.allclose(lo, (px0, py1 - d, -pool["depth"]), atol=1e-4)
+    assert np.allclose(hi, (px0 + w, py1, 0.0), atol=1e-4)
+    assert bpy.data.objects["PoolNotch"].material_slots[0].material.name == "PoolTile"
+    top_lo, top_hi = _world_bounds(bpy.data.objects["Floor.notch"])     # walkable floor over the step
+    assert np.allclose(top_lo[:2], lo[:2], atol=1e-4) and np.allclose(top_hi[:2], hi[:2], atol=1e-4)
+
+
+def test_poolrooms_kerb_follows_the_notched_edge_and_never_sits_on_the_water(scene):
+    cfg, _ = scene
+    bpy.context.view_layer.update()
+    pool = cfg["pool"]
+    w, d = pool["notch"]
+    (px0, px1), (py0, py1) = pool["x"], pool["y"]
+    c = pool["coping"]
+
+    def wet(x, y):                                  # open water: the rectangle less the notch
+        return px0 < x < px1 and py0 < y < py1 and not (x < px0 + w and y > py1 - d)
+
+    rects = [(lo[0], lo[1], hi[0], hi[1]) for lo, hi in map(_world_bounds, _kerbs())]
+    for x0, y0, x1, y1 in rects:
+        for x in np.linspace(x0 + 1e-3, x1 - 1e-3, 9):
+            for y in np.linspace(y0 + 1e-3, y1 - 1e-3, 9):
+                assert not wet(x, y), (x0, y0, x1, y1)
+
+    def kerbed(x, y):
+        return any(x0 - 1e-4 <= x <= x1 + 1e-4 and y0 - 1e-4 <= y <= y1 + 1e-4 for x0, y0, x1, y1 in rects)
+
+    h = c / 2                                       # just outside every stretch of the water's edge
+    assert kerbed(px0 + w / 2, py1 - d + h)         # the step's near edge
+    assert kerbed(px0 + w - h, py1 - d / 2)         # the step's side
+    assert kerbed((px0 + w + px1) / 2, py1 + h)     # the rest of the far edge
+    assert kerbed(px0 - h, (py0 + py1 - d) / 2) and kerbed(px1 + h, (py0 + py1) / 2)
+    assert kerbed((px0 + px1) / 2, py0 - h)
+    assert not kerbed(px0 + w / 2 - c, py1 + h)     # no kerb left stranded behind the step

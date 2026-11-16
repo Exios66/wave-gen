@@ -81,6 +81,21 @@ def _prism(name, outline, z0, z1, col, material):
     return obj
 
 
+def _kerb_rects(px, py, c: float, nw: float = 0.0, nd: float = 0.0):
+    """Plan rectangles ``((x0, y0), (x1, y1))`` of the kerb, ``c`` wide, around the water's edge.
+    With a notch (``nw`` by ``nd`` in the far-left corner) the kerb steps in around it."""
+    (px0, px1), (py0, py1) = px, py
+    rects = [((px0 - c, py0 - c), (px1 + c, py0)), ((px1, py0), (px1 + c, py1))]
+    if not (nw and nd):
+        return rects + [((px0 - c, py1), (px1 + c, py1 + c)), ((px0 - c, py0), (px0, py1))]
+    return rects + [
+        ((px0 + nw, py1), (px1 + c, py1 + c)),                  # the far edge right of the step
+        ((px0 + nw - c, py1 - nd), (px0 + nw, py1 + c)),        # the step's side
+        ((px0 - c, py1 - nd), (px0 + nw - c, py1 - nd + c)),    # the step's near edge
+        ((px0 - c, py0), (px0, py1 - nd)),                      # the left edge up to the step
+    ]
+
+
 def build(cfg: dict) -> dict:
     room, pool, pal = cfg["room"], cfg["pool"], cfg["palette"]
     W, D, H, T = room["width"], room["depth"], room["height"], room["wall_thickness"]
@@ -91,6 +106,7 @@ def build(cfg: dict) -> dict:
     mats = {
         "tile": M.tiles("Tile", pal["tile"], pal["grout"], room["tile_size"], room["grout_width"], pal["tile_jitter"]),
         "pool_tile": M.tiles("PoolTile", pal["pool_tile"], pal["grout"], room["tile_size"], room["grout_width"], 0.02, 0.08),
+        "kerb_tile": M.tiles("KerbTile", pal["pool_tile"], pal["grout"], room["tile_size"], room["grout_width"], 0.02, 0.08),
         "floor": M.tiles("FloorTile", pal.get("floor_tile") or pal["tile"], pal["grout"], room["floor_tile_size"], room["grout_width"],
                          pal["tile_jitter"]),
         "plaster": M.plaster("Plaster", pal["plaster"]),
@@ -126,12 +142,16 @@ def build(cfg: dict) -> dict:
     depth = pool["depth"]
     box("PoolBasin", (px0, py0, -depth), (px1, py1, 0.0), col, mats["pool_tile"], inward=True, skip=("+z",))
     c = pool["coping"]
-    lip_h = 0.05
-    for i, (mn, mx) in enumerate([
-        ((px0 - c, py0 - c), (px1 + c, py0)), ((px0 - c, py1), (px1 + c, py1 + c)),
-        ((px0 - c, py0), (px0, py1)), ((px1, py0), (px1 + c, py1)),
-    ]):
-        lip = box(f"Coping.{i}", (mn[0], mn[1], 0.0), (mx[0], mx[1], lip_h), col, mats["tile"])
+    kerb = pool["kerb"]
+    nw, nd = pool["notch"] or (0.0, 0.0)
+    if nw and nd:                               # a step filling the far-left corner, walkable on top
+        box("PoolNotch", (px0, py1 - nd, -depth), (px0 + nw, py1, 0.0), col, mats["pool_tile"],
+            skip=("-x", "+y", "-z", "+z"))
+        box("Floor.notch", (px0, py1 - nd, -0.01), (px0 + nw, py1, 0.0), col, mats["floor"],
+            skip=("-x", "+x", "-y", "+y", "-z"))
+    for i, (mn, mx) in enumerate(_kerb_rects((px0, px1), (py0, py1), c, nw, nd)):
+        lip = box(f"Coping.{i}", (mn[0], mn[1], 0.0), (mx[0], mx[1], kerb["height"]), col,
+                  mats["kerb_tile"] if kerb["pool_tile"] else mats["tile"])
         bevel(lip, 0.018, 3)
     e = 0.004
     box("Water", (px0 + e, py0 + e, -depth + e), (px1 - e, py1 - e, pool["water_level"]), col, mats["water"])
