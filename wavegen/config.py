@@ -107,6 +107,7 @@ DEFAULTS: dict = {
         "rotation_z": 55.0,                # degrees
         "scale": 1.0,
         "depth": 0.48,                     # housing depth (m); the front stays put, the tube grows back
+        "tilt": 0.0,                       # degrees the monitor head leans back on its foot
         "keyboard": {"offset": [-0.10, -0.44], "yaw": -10.0},   # in the computer's own frame: x right, y back (m, degrees)
         "screen_strength": 2.4,
         "scanlines": 240,

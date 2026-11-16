@@ -294,6 +294,9 @@ def test_reference_framing(look):
     off = {}
     for name, ref in REF_FRAMING.items():
         got = project_bounds(name, 1)
+        if name == "Computer.body":                # the reference outline is the whole unit: head and foot
+            foot = project_bounds("Computer.foot", 1)
+            got = (min(got[0], foot[0]), max(got[1], foot[1]), min(got[2], foot[2]), max(got[3], foot[3]))
         off[name] = [round(g - r, 3) for g, r in zip(got, ref)]
     assert all(abs(d) <= 0.06 for ds in off.values() for d in ds), off
 
@@ -650,3 +653,54 @@ def test_frame_range_follows_the_shared_loop_length():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     render.configure(cfg)
     assert bpy.context.scene.frame_end == loop_frame_count(cfg) == 61
+
+
+def _local_bounds(name):
+    """Bounds of an object's raw mesh in the computer rig's frame."""
+    bpy.context.view_layer.update()
+    o = bpy.data.objects[name]
+    inv = bpy.data.objects["Computer.rig"].matrix_world.inverted()
+    vs = [inv @ (o.matrix_world @ v.co) for v in o.data.vertices]
+    return [(min(v[i] for v in vs), max(v[i] for v in vs)) for i in range(3)]
+
+
+def test_monitor_head_overhangs_a_narrower_foot(scene):
+    (hx0, hx1), (hy0, _), (_, hz1) = _local_bounds("Computer.body")
+    (fx0, fx1), (fy0, _), (fz0, fz1) = _local_bounds("Computer.foot")
+    assert fz0 == pytest.approx(0.0, abs=1e-4) and 0.05 <= fz1 <= 0.1      # a low pedestal on the desk
+    assert fx0 > hx0 + 0.015 and fx1 < hx1 - 0.015                         # narrower than the head
+    assert fy0 >= hy0 + 0.05                                               # set back: the head overhangs it
+    assert hz1 > 0.40 > hx1 - hx0                                          # taller than it is wide
+
+
+def test_monitor_front_is_plain_with_vents_on_the_side_of_the_foot(scene):
+    names = [o.name for o in bpy.data.objects]
+    assert not any(n.startswith(("Computer.floppy", "Computer.led", "Computer.vent.")) for n in names)
+    vents = [n for n in names if n.startswith("Computer.sidevent.")]
+    assert len(vents) >= 8
+    (fx0, _), _, (_, fz1) = _local_bounds("Computer.foot")
+    for n in vents:
+        (x0, x1), _, (_, z1) = _local_bounds(n)
+        assert x0 < fx0 < x1 and x0 > fx0 - 0.005 and z1 < fz1             # slots in the foot's left face
+
+
+def test_monitor_glass_is_curved_and_framed_by_a_rounded_bezel(scene):
+    _, sc = scene
+    _, (y0, y1), _ = _local_bounds("Computer.screen")
+    assert y1 - y0 >= 0.018                                                # visibly bulged glass
+    bezel = bpy.data.objects["Computer.bezel"]
+    hole = bpy.data.objects["BezelHoleCut"]
+    dg = bpy.context.evaluated_depsgraph_get()
+    assert len(hole.evaluated_get(dg).data.vertices) > 40                  # the opening has rounded corners
+    assert len(bezel.evaluated_get(dg).data.vertices) > 150
+
+
+def test_monitor_head_tilts_back_only_when_asked():
+    cfg = config.load(None, ["atmosphere.dust_count=0"])
+    build_scene(cfg)
+    assert cfg["computer"]["tilt"] == 0.0
+    flat = _local_bounds("Computer.screen")[1]
+    build_scene(config.load(None, ["atmosphere.dust_count=0", "computer.tilt=5"]))
+    (_, _), (y0, y1), _ = _local_bounds("Computer.screen")
+    assert y1 - y0 > (flat[1] - flat[0]) + 0.005                           # the top of the glass leans back
+    assert bpy.data.objects["Computer.screen"].parent.name == "Computer.head"
