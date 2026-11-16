@@ -202,6 +202,7 @@ DEFAULTS: dict = {
     "post": {
         "grade": True,
         "halation": 0.22,
+        "diffusion": 0.0,             # 0..1 mist-filter softness: mixes in a wide blur of the whole frame
         "grain": 5,
         "vignette": 0.30,
         "chroma_shift": 2,

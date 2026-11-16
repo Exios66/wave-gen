@@ -66,9 +66,11 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
     with no lamp behind them, so they add no render time or noise.
 
 ### Camera and finish
-13. **Film softness.** The reference is soft, slightly hazy and low-contrast,
-    with visible dust sparkles near the camera. Ours is crisp. Options: a touch
-    more haze, a light diffusion pass in post, larger and brighter dust.
+13. **Film softness (improved).** A light mist-filter pass in post
+    (`post.diffusion`) mixes a wide blur of the frame back in, softening edges
+    and lifting shadows. Measured: 0.1 raised the score (0.825 to 0.828); 0.2
+    and above lowered it (0.818, 0.806) as tile detail washed out. Still open:
+    the reference's dust sparkles near the camera are larger and brighter.
 14. **CRT model (fixed).** The monitor is now a head overhanging a narrower,
     set-back foot, leaning back 4 degrees (`computer.tilt`). The front is plain
     (the floppy slot, LED and front grille are gone; cooling slots sit in the
