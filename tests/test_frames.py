@@ -99,6 +99,7 @@ def test_config_hash_ignores_comment_keys():
     assert config_hash(a) == config_hash(b)
 
 
+@ffmpeg
 def test_assemble_refuses_frames_rendered_from_another_config(tmp_path):
     from wavegen.post import assemble
     _make_frames(tmp_path / "f", range(1, 5))
@@ -128,9 +129,41 @@ def test_an_empty_frame_file_does_not_count_as_rendered(tmp_path):
     assert usable_frame(p)
 
 
+@ffmpeg
 def test_assemble_treats_an_empty_frame_as_missing(tmp_path):
     from wavegen.post import IncompleteLoopError, assemble
     _make_frames(tmp_path / "f", range(1, 5))
     (tmp_path / "f" / "frame_00003.png").write_bytes(b"")
     with pytest.raises(IncompleteLoopError, match="3"):
         assemble(tmp_path / "f", tmp_path / "o.mp4", _tiny_cfg(4))
+
+
+def test_a_manifest_that_names_no_config_is_stale_not_absent(tmp_path):
+    from wavegen.frames import check_manifest, read_manifest
+    cfg = config.load("poolrooms")
+    for junk in ("{}", "", "[1, 2]", "{not json"):
+        (tmp_path / "manifest.json").write_text(junk)
+        with pytest.raises(StaleFramesError):
+            check_manifest(read_manifest(tmp_path), cfg)
+    check_manifest(None, cfg)                      # no manifest at all is still "nothing to compare"
+
+
+def test_config_hash_changes_when_the_font_file_is_replaced(tmp_path):
+    import os
+    font = tmp_path / "f.ttf"
+    font.write_bytes(b"one")
+    os.utime(font, (1, 1))
+    cfg = config.load("poolrooms", [f'computer.emblem.font="{font}"'])
+    h = config_hash(cfg)
+    assert config_hash(cfg) == h
+    font.write_bytes(b"two")                       # same path, same size, same mtime
+    os.utime(font, (1, 1))
+    assert config_hash(cfg) != h
+
+
+def test_each_writer_gets_its_own_temp_frame_name(tmp_path):
+    from wavegen.frames import part_path
+    final = tmp_path / "frame_00007.png"
+    a, b = part_path(final), part_path(final)
+    assert a != b and a.parent == b.parent == tmp_path
+    assert a.suffix == ".png" and a.name.startswith(".part_")      # hidden from frame_*.* and still a PNG

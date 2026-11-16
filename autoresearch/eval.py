@@ -44,18 +44,23 @@ def crop_dark_border(a: np.ndarray, thresh: float = 0.08) -> np.ndarray:
     return a[rows[0]:rows[-1] + 1, cols[0]:cols[-1] + 1]
 
 
+def _area_weights(size: int, n: int) -> np.ndarray:
+    """(n, size) matrix: row ``i`` holds the share of each source pixel that output pixel ``i`` covers."""
+    lo = np.arange(n)[:, None] * size / n
+    px = np.arange(size)[None, :]
+    overlap = np.clip(np.minimum(lo + size / n, px + 1) - np.maximum(lo, px), 0, None)
+    return overlap * n / size
+
+
 def _resize(a: np.ndarray, w: int, h: int) -> np.ndarray:
-    """Area-average when shrinking (no aliasing from skipped pixels); nearest sample when enlarging."""
+    """Area-average when shrinking (each source pixel weighted by the area it covers, so
+    uneven ratios such as 720 -> 480 stay exact); nearest sample when enlarging."""
     if a.shape[:2] == (h, w):
         return a
     for axis, n in ((0, h), (1, w)):
         size = a.shape[axis]
         if n < size:
-            edges = np.arange(n + 1) * size // n
-            sums = np.add.reduceat(a, edges[:-1], axis=axis)
-            shape = [1] * a.ndim
-            shape[axis] = n
-            a = sums / np.diff(edges).reshape(shape)
+            a = np.moveaxis(np.tensordot(_area_weights(size, n), a, axes=(1, axis)), 0, axis)
         elif n > size:
             a = np.take(a, (np.arange(n) * size / n).astype(int), axis=axis)
     return a

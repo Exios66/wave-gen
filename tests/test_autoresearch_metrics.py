@@ -70,6 +70,14 @@ def test_downsizing_averages_instead_of_picking_single_pixels():
     assert small.shape == (4, 4, 3) and np.allclose(small, 0.5)
 
 
+def test_uneven_shrink_weights_each_pixel_by_the_area_it_covers():
+    row = np.tile([0.2, 0.8], 3)[None, :, None] * np.ones((1, 1, 3))      # 6 columns -> 4
+    small = ar._resize(row, 4, 1)
+    assert np.allclose(small[0, :, 0], [0.4, 0.4, 0.6, 0.6])
+    ramp = np.arange(5.0)[:, None] * np.ones((1, 2))                       # 5 rows -> 3, no channel axis
+    assert np.allclose(ar._resize(ramp, 2, 3)[:, 0], [0.4, 2.0, 3.6])
+
+
 def test_resize_to_the_same_size_changes_nothing():
     a = np.random.default_rng(0).random((6, 9, 3))
     assert np.array_equal(ar._resize(a, 9, 6), a)

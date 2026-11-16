@@ -251,3 +251,13 @@ def test_subset_hint_points_post_at_the_saved_config():
     from wavegen import cli
     hint = cli.post_hint(Path("out/run"))
     assert "--preset out/run/config.json" in hint and "out/run/frames" in hint
+
+
+def test_subset_hint_survives_a_folder_name_with_spaces():
+    import shlex
+    from pathlib import Path
+    from wavegen import cli
+    hint = cli.post_hint(Path("out/my run"))
+    cmd = hint[hint.index("`") + 1:hint.rindex("`")]
+    assert shlex.split(cmd) == ["wavegen", "post", "out/my run/frames", "--preset", "out/my run/config.json",
+                                "-o", "out/my run/loop.mp4"]

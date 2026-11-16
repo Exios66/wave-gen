@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import uuid
 from pathlib import Path
 
 # Bump whenever scene code changes what pixels a given config produces.
@@ -69,8 +71,20 @@ def _drop_notes(node):
     return node
 
 
+def file_digest(path) -> str | None:
+    """Content hash of a file a config points at (None if there is no such file). Content, not
+    mtime, so the same file gives the same answer on every machine that renders a shard."""
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16] if path else None
+    except OSError:
+        return None
+
+
 def config_hash(cfg: dict) -> str:
     pixel_cfg = _drop_notes({k: v for k, v in cfg.items() if k not in _NON_PIXEL_KEYS})
+    font = file_digest(cfg.get("computer", {}).get("emblem", {}).get("font"))
+    if font:                                        # a font swapped in at the same path is a different picture
+        pixel_cfg["_font_file"] = font
     blob = json.dumps(pixel_cfg, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
@@ -88,8 +102,23 @@ def usable_frame(path: Path) -> bool:
 
 
 def read_manifest(out_dir: Path) -> dict | None:
+    """The folder's manifest, ``None`` if it has none. One that cannot be read as a manifest
+    comes back empty, which matches no config."""
     mpath = Path(out_dir) / "manifest.json"
-    return json.loads(mpath.read_text()) if mpath.exists() else None
+    if not mpath.exists():
+        return None
+    try:
+        data = json.loads(mpath.read_text())
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def part_path(path: Path) -> Path:
+    """Where one writer renders ``path`` before publishing it: hidden from ``frame_*.*``, same
+    extension, and unique per writer so concurrent renders never share a temp file."""
+    path = Path(path)
+    return path.with_name(f".part_{os.getpid()}_{uuid.uuid4().hex[:8]}_{path.name}")
 
 
 def frame_files(out_dir: Path) -> list[Path]:
@@ -97,7 +126,7 @@ def frame_files(out_dir: Path) -> list[Path]:
 
 
 def check_manifest(existing: dict | None, cfg: dict, where: str = "") -> None:
-    if not existing:
+    if existing is None:
         return
     want = manifest_for(cfg)
     if any(existing.get(k) != want[k] for k in want):
