@@ -315,6 +315,20 @@ def build(cfg: dict) -> dict:
     co.visible_camera = False
     collection("Lights").objects.link(co)
 
+    # ---- small downlights in the flat ceiling over the right walkway ----------
+    dl = cfg["lights"]["downlights"]
+    if dl["count"] > 0:
+        spot = M.emission("Downlight", pal["warm_light"], dl["strength"])
+        a, b = dl["span"]
+        for i in range(dl["count"]):
+            t = a + (b - a) * (i + 0.5) / dl["count"]
+            bm = bmesh.new()
+            bmesh.ops.create_circle(bm, cap_ends=True, segments=24, radius=dl["radius"])
+            d = obj_from_bmesh(f"Downlight.{i}", bm, col, spot)
+            d.location = (x1 - tray["inset"] / 2, Y0 + D * t, H - 0.004)
+            d.rotation_euler = (math.pi, 0, 0)          # face the floor
+            d.visible_shadow = False
+
     # ---- pier behind the computer, and the lit tiled passage to its left -----
     if room["column"]:
         pr = room["pier"]

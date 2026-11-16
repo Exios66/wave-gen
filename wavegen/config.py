@@ -142,6 +142,9 @@ DEFAULTS: dict = {
         "sconces": True,
         "halo_radius": 0.0,          # > 0: a soft glow disc of this radius on the wall behind each alcove lamp
         "halo_strength": 4.0,
+        # small bright discs in the flat ceiling over the right walkway; span = where the row
+        # starts and ends as fractions of the room's depth
+        "downlights": {"count": 0, "radius": 0.06, "strength": 25.0, "span": [0.3, 0.9]},
         "cove_power": 2200.0,
         "accent_power": 2400.0,
         "accent_size": 4.5,
