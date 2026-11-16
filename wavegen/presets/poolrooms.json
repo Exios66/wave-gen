@@ -157,6 +157,9 @@
         0.86,
         0.8
       ]
+    },
+    "ceiling_tray": {
+      "inset": 0.6
     }
   },
   "computer": {

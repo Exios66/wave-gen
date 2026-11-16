@@ -813,3 +813,17 @@ def test_poolrooms_has_a_row_of_small_downlights_over_the_right_walkway(scene):
     sc.frame_set(1)
     seen = [p for p in (_project(sc, o) for o in lamps) if 0 < p.x < 1 and 0 < p.y < 1 and p.z > 0]
     assert len(seen) >= 2 and all(p.x > 0.6 and p.y > 0.7 for p in seen)   # bright points high on the right
+
+
+def test_poolrooms_ceiling_tray_reaches_close_to_the_walls(scene):
+    """In the clip the tray's stepped edge sits just inside the walls, with a narrow flat margin for the downlights."""
+    cfg, _ = scene
+    bpy.context.view_layer.update()
+    room = cfg["room"]
+    inset = room["ceiling_tray"]["inset"]
+    assert 0.4 <= inset <= 0.8
+    lo, hi = _world_bounds(bpy.data.objects["TrayCut.0"])
+    assert abs(lo[0] - (-room["width"] / 2 + inset)) < 1e-3 and abs(hi[0] - (room["width"] / 2 - inset)) < 1e-3
+    r = cfg["lights"]["downlights"]["radius"]
+    for o in _downlights():                                    # the lamps still fit on the margin
+        assert room["width"] / 2 - inset + r < o.matrix_world.translation.x < room["width"] / 2 - r

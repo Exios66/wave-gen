@@ -31,11 +31,13 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    the left-side pink error from 0.053 to 0.048. Still different: the
    reference's passage tile reads warm white with a strong glow. A stronger
    reshaping matched the pink better (0.042) but cost a point of score.
-6. **Ceiling (open).** The reference tray has a round medallion and a brighter
-   cyan glow in the cove. A stepped medallion at the tray centre was built and
-   dropped: our camera never sees the tray centre, and it shadowed the cove
-   light (score 0.820 to 0.816). The real gap is framing: the reference's tray
-   sits lower and nearer the camera than ours.
+6. **Ceiling (improved).** The tray now reaches close to the walls
+   (`room.ceiling_tray.inset` 2.0 to 0.6), so its stepped edge and cove glow
+   sit where the reference frames them. This was the largest single gain of
+   the sweep (score 0.828 to 0.847); insets of 1.6, 1.3 and 0.9 scored 0.828,
+   0.831 and 0.840. A lower ceiling scored worse (0.811 at 5.8 m) and a taller
+   one made no difference beyond noise. Still open: the reference's round
+   medallion at the tray centre, which our camera never sees.
 7. **Pool far corner (fixed).** The pool now has the reference's stepped notch
    in its far-left corner (`pool.notch`), with the lip following the step.
    The turquoise band at the reference's pool edge is the basin wall above
