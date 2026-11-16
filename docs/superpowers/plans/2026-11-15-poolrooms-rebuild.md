@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** Rebuild the poolroom geometry, composition and camera so the render reads like the reference clip (`docs/ref/ref_t*.jpg`). Keep the bouncing WAVE GEN screensaver readable and the loop seamless.
+**Goal:** Rebuild the poolroom geometry, composition and camera so the render reads like the reference clip (frames of the video itself in `docs/ref/video/`; the older `docs/ref/ref_t*.jpg` are phone photos of a TV and only a rough guide). Keep the bouncing WAVE GEN screensaver readable and the loop seamless.
 
 **Why:** The 1080p grade on 2026-11-15 scored 0.60/1, with layout 0.01/1. Colour and brightness were close; the space itself was wrong:
 
@@ -67,7 +67,7 @@ The TV-photo refs (`docs/ref/ref_t*.jpg`) are skewed by the bezel and the phone 
 ### Task R2: Pier and tiled bay behind the CRT
 - Replace the round column with a full-height **pier**: a rectangle with a semicircular front, `room.pier = {xy, width, depth}`, in plaster.
 - Left of the pier, build a lit **tiled bay**: an inward box open toward the camera.
-  - Tile wainscot up to 1.9 m, plaster above, and a barrel-vault ceiling.
+  - Tile wainscot up to 1.9 m, plaster above, and a flat plaster ceiling (as built; a barrel vault was considered and dropped).
   - A plaster front wall with an arch cut.
   - A warm area light inside.
 - Test `test_pier_and_bay_exist`: the objects exist, and the bay light is inside the bay.

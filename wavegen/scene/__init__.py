@@ -8,10 +8,12 @@ from pathlib import Path
 def build_scene(cfg: dict, blend_path: str | Path | None = None) -> dict:
     import bpy
 
-    from . import architecture, atmosphere, camera, props, render
+    from . import architecture, atmosphere, camera, props, render, screensaver
 
     emblem_images = None
     cc = cfg.get("computer", {})
+    if cc.get("enabled", True):
+        screensaver.check_mode(cfg)              # refuse an unknown mode before any slow work
     if cc.get("enabled", True) and cc.get("screensaver", "emblem") == "emblem":
         from .emblem import render_emblem
         emblem_images = render_emblem(cfg)       # cached; resets the session, so do it first
@@ -40,7 +42,7 @@ def render_frames(out_dir: str | Path, cfg: dict, frames: list[int] | None = Non
     """
     import bpy
 
-    from ..frames import loop_frame_count, prepare_frames_dir
+    from ..frames import loop_frame_count, part_path, prepare_frames_dir, usable_frame
 
     sc = bpy.context.scene
     out_dir = Path(out_dir).resolve()
@@ -51,12 +53,17 @@ def render_frames(out_dir: str | Path, cfg: dict, frames: list[int] | None = Non
     ext = {"PNG": "png", "JPEG": "jpg", "OPEN_EXR": "exr"}.get(sc.render.image_settings.file_format, "png")
     for f in frames:
         path = out_dir / f"frame_{f:05d}.{ext}"
-        if path.exists():  # resumable: manifest already proved these match
+        if usable_frame(path):  # resumable: manifest already proved these match
             written.append(path)
             continue
+        part = part_path(path)                  # an interrupted render never leaves a half-written frame
         sc.frame_set(f)
-        sc.render.filepath = str(path)
-        bpy.ops.render.render(write_still=True)
+        sc.render.filepath = str(part)
+        try:
+            bpy.ops.render.render(write_still=True)
+            part.replace(path)
+        finally:
+            part.unlink(missing_ok=True)
         written.append(path)
         print(f"[wavegen] frame {f} -> {path.name}", flush=True)
     return written

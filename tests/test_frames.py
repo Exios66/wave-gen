@@ -83,10 +83,87 @@ def test_assemble_complete_loop_encodes_n_frames(tmp_path):
 
 
 def test_overwrite_replaces_damaged_manifest(tmp_path):
-    from wavegen.frames import prepare_frames_dir
     cfg = config.load("poolrooms", ["render.fps=2", "render.seconds=1"])
     (tmp_path / "frame_00001.png").write_bytes(b"x")
     (tmp_path / "manifest.json").write_text("")
     prepare_frames_dir(tmp_path, cfg, overwrite=True)
     assert not (tmp_path / "frame_00001.png").exists()
     assert (tmp_path / "manifest.json").read_text().strip().startswith("{")
+
+
+def test_config_hash_ignores_comment_keys():
+    a = config.load("poolrooms")
+    b = config.load("poolrooms")
+    b["_comment"] = "reworded"
+    b["room"]["_note"] = "notes are not pixels"
+    assert config_hash(a) == config_hash(b)
+
+
+@ffmpeg
+def test_assemble_refuses_frames_rendered_from_another_config(tmp_path):
+    from wavegen.post import assemble
+    _make_frames(tmp_path / "f", range(1, 5))
+    import json
+    from wavegen.frames import manifest_for
+    (tmp_path / "f" / "manifest.json").write_text(json.dumps(manifest_for(_tiny_cfg(4))))
+    other = _tiny_cfg(4)
+    other["room"]["width"] += 1.0
+    with pytest.raises(StaleFramesError):
+        assemble(tmp_path / "f", tmp_path / "o.mp4", other)
+
+
+def test_fractional_fps_is_rejected_instead_of_silently_truncated():
+    cfg = config.load("poolrooms", ["render.fps=29.97"])
+    with pytest.raises(ValueError, match="whole number"):
+        loop_frame_count(cfg)
+    assert loop_frame_count(config.load("poolrooms", ["render.fps=30.0", "render.seconds=2"])) == 60
+
+
+def test_an_empty_frame_file_does_not_count_as_rendered(tmp_path):
+    from wavegen.frames import usable_frame
+    p = tmp_path / "frame_00001.png"
+    assert not usable_frame(p)
+    p.write_bytes(b"")
+    assert not usable_frame(p)
+    p.write_bytes(b"\x89PNG")
+    assert usable_frame(p)
+
+
+@ffmpeg
+def test_assemble_treats_an_empty_frame_as_missing(tmp_path):
+    from wavegen.post import IncompleteLoopError, assemble
+    _make_frames(tmp_path / "f", range(1, 5))
+    (tmp_path / "f" / "frame_00003.png").write_bytes(b"")
+    with pytest.raises(IncompleteLoopError, match="3"):
+        assemble(tmp_path / "f", tmp_path / "o.mp4", _tiny_cfg(4))
+
+
+def test_a_manifest_that_names_no_config_is_stale_not_absent(tmp_path):
+    from wavegen.frames import check_manifest, read_manifest
+    cfg = config.load("poolrooms")
+    for junk in ("{}", "", "[1, 2]", "{not json"):
+        (tmp_path / "manifest.json").write_text(junk)
+        with pytest.raises(StaleFramesError):
+            check_manifest(read_manifest(tmp_path), cfg)
+    check_manifest(None, cfg)                      # no manifest at all is still "nothing to compare"
+
+
+def test_config_hash_changes_when_the_font_file_is_replaced(tmp_path):
+    import os
+    font = tmp_path / "f.ttf"
+    font.write_bytes(b"one")
+    os.utime(font, (1, 1))
+    cfg = config.load("poolrooms", [f'computer.emblem.font="{font}"'])
+    h = config_hash(cfg)
+    assert config_hash(cfg) == h
+    font.write_bytes(b"two")                       # same path, same size, same mtime
+    os.utime(font, (1, 1))
+    assert config_hash(cfg) != h
+
+
+def test_each_writer_gets_its_own_temp_frame_name(tmp_path):
+    from wavegen.frames import part_path
+    final = tmp_path / "frame_00007.png"
+    a, b = part_path(final), part_path(final)
+    assert a != b and a.parent == b.parent == tmp_path
+    assert a.suffix == ".png" and a.name.startswith(".part_")      # hidden from frame_*.* and still a PNG

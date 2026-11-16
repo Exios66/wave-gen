@@ -34,6 +34,15 @@ def _spread(total: float, widths: list[float]) -> list[float]:
     return centres
 
 
+def _alcove_pad(total: float, widths: list[float], pad: float = 0.35) -> float:
+    """How far an alcove runs past each side of its opening: ``pad``, or less on narrow
+    piers so neighbouring alcoves never overlap (overlapping faces render as speckle)."""
+    if not widths:
+        return pad
+    gap = (total - sum(widths)) / (len(widths) + 1)
+    return max(0.01, min(pad, gap / 2 - 0.005))
+
+
 def _horseshoe(width: float, spring: float, band: float, segments: int = 24, corner_radius: float | None = None):
     """Outline of an arch-shaped band ``band`` wide around an opening (u, v)."""
     outer_r = None if corner_radius is None else corner_radius + band
@@ -137,7 +146,7 @@ def build(cfg: dict) -> dict:
     lights = []
     sw, sd = room["arch_surround"]["width"], room["arch_surround"]["depth"]
 
-    def arch(wall: str, centre: float, width: float):
+    def arch(wall: str, centre: float, width: float, pad: float = 0.35):
         rc = room.get("arch_corner_radius")               # None = round-topped; else a flat top with rounded corners
         rise = width / 2 if rc is None else min(rc, width / 2)
         spring = min(room["spring_height"], H - 0.6 - rise)
@@ -148,8 +157,8 @@ def build(cfg: dict) -> dict:
         off = width / 2 - 0.35                     # two sconces, one toward each side of the alcove
         if wall == "back":
             m = Matrix.Translation((centre, Y1 + T / 2, 0))
-            alc = box(f"Alcove.back.{centre:.1f}", (centre - width / 2 - 0.35, Y1 + T - 0.01, 0),
-                      (centre + width / 2 + 0.35, Y1 + T + ad, top + 0.45), col, mats["alcove"],
+            alc = box(f"Alcove.back.{centre:.1f}", (centre - width / 2 - pad, Y1 + T - 0.01, 0),
+                      (centre + width / 2 + pad, Y1 + T + ad, top + 0.45), col, mats["alcove"],
                       inward=True, skip=("-y",))
             lamps = [(centre + k, Y1 + T + ad - 0.06, lamp_z) for k in (-off, off)]
             sconce_rot = (math.radians(90), 0, 0)
@@ -161,8 +170,8 @@ def build(cfg: dict) -> dict:
             m = Matrix.Translation((xw, centre, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z")
             xa = x0 - T + 0.01 if wall == "left" else x1 + T - 0.01
             xb = xa + sign * ad
-            alc = box(f"Alcove.{wall}.{centre:.1f}", (min(xa, xb), centre - width / 2 - 0.35, 0),
-                      (max(xa, xb), centre + width / 2 + 0.35, top + 0.45), col, mats["alcove"],
+            alc = box(f"Alcove.{wall}.{centre:.1f}", (min(xa, xb), centre - width / 2 - pad, 0),
+                      (max(xa, xb), centre + width / 2 + pad, top + 0.45), col, mats["alcove"],
                       inward=True, skip=("+x",) if wall == "left" else ("-x",))
             lamps = [(xb - sign * 0.06, centre + k, lamp_z) for k in (-off, off)]
             sconce_rot = (math.radians(90), 0, math.radians(90))
@@ -220,7 +229,8 @@ def build(cfg: dict) -> dict:
         collection("Lights").objects.link(fo)
         return cutter
 
-    back_cutters = [arch("back", cx, w) for cx, w in zip(_spread(W, room["back_arches"]), room["back_arches"])]
+    back_pad = _alcove_pad(W, room["back_arches"])
+    back_cutters = [arch("back", cx, w, back_pad) for cx, w in zip(_spread(W, room["back_arches"]), room["back_arches"])]
     na = room.get("nested_arch")
     if na:
         # a plaster screen across the alcove with a smaller arch in it, as in the clip's wide centre opening
@@ -228,7 +238,7 @@ def build(cfg: dict) -> dict:
         rc = room.get("arch_corner_radius")
         rise = w / 2 if rc is None else min(rc, w / 2)
         spring = min(room["spring_height"], H - 0.6 - rise)
-        iw, half = w - 2 * na["inset"], w / 2 + 0.35
+        iw, half = w - 2 * na["inset"], w / 2 + back_pad
         irc = None if rc is None else max(rc - na["inset"], 0.0)
         inner = arch_profile(iw, spring - na["drop"], bottom=0.0, corner_radius=irc)
         frame = [inner[1], (half, 0.0), (half, spring + rise + 0.45), (-half, spring + rise + 0.45), (-half, 0.0),
@@ -243,7 +253,7 @@ def build(cfg: dict) -> dict:
     for wall in ("left", "right"):
         centres = _spread(side_span, room["side_arches"])
         for cy, w in zip(centres, room["side_arches"]):
-            side_cutters[wall].append(arch(wall, Y0 + 3.0 + side_span / 2 + cy, w))
+            side_cutters[wall].append(arch(wall, Y0 + 3.0 + side_span / 2 + cy, w, _alcove_pad(side_span, room["side_arches"])))
 
     for wall, cutters in (("back", back_cutters), ("left", side_cutters["left"]), ("right", side_cutters["right"])):
         if cutters:

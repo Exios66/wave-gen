@@ -215,3 +215,49 @@ def test_wash_ramp_can_peak_inside_the_frame():
 def test_poolrooms_pink_wash_peaks_in_from_the_left_edge():
     wash = config.load("poolrooms")["post"]["pink_wash"]
     assert 0 < wash["peak"] < wash["extent"] and 0 <= wash["edge"] < 1
+
+
+def test_resolve_focus_rejects_distances_a_lens_cannot_focus_at():
+    from wavegen.scene.focus import resolve_focus
+    for bad in (-1.0, 0, "nan", "inf"):
+        with pytest.raises(ValueError):
+            resolve_focus(bad, False)
+
+
+def test_seconds_flag_must_be_positive():
+    from wavegen import cli
+    for bad in ("0", "-2", "nan"):
+        with pytest.raises(SystemExit):
+            cli.main(["audio", "--seconds", bad, "-o", "/nonexistent/never.wav"])
+
+
+def test_mutate_with_zero_strength_keeps_the_scene():
+    base = config.load("poolrooms")
+    v = config.mutate(base, 7, 0.0)
+    assert v["seed"] == 7 and v["name"] == f"{base['name']}-v7"
+    for k in base:
+        if k not in ("seed", "name"):
+            assert v[k] == base[k], k
+
+
+def test_lookdev_always_renders_a_png_still():
+    from wavegen import cli
+    cfg = config.load("poolrooms", cli.lookdev_sets(["render.format=\"JPEG\"", "render.samples=8"]))
+    assert cfg["render"]["format"] == "PNG" and cfg["render"]["samples"] == 8
+
+
+def test_subset_hint_points_post_at_the_saved_config():
+    from pathlib import Path
+    from wavegen import cli
+    hint = cli.post_hint(Path("out/run"))
+    assert "--preset out/run/config.json" in hint and "out/run/frames" in hint
+
+
+def test_subset_hint_survives_a_folder_name_with_spaces():
+    import shlex
+    from pathlib import Path
+    from wavegen import cli
+    hint = cli.post_hint(Path("out/my run"))
+    cmd = hint[hint.index("`") + 1:hint.rindex("`")]
+    assert shlex.split(cmd) == ["wavegen", "post", "out/my run/frames", "--preset", "out/my run/config.json",
+                                "-o", "out/my run/loop.mp4"]

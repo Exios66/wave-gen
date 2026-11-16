@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import uuid
 from pathlib import Path
 
 # Bump whenever scene code changes what pixels a given config produces.
@@ -19,9 +21,16 @@ class StaleFramesError(RuntimeError):
     """Frames on disk were rendered from a different config/scene version."""
 
 
+def loop_fps(cfg: dict) -> int:
+    """The frame rate as a whole number; video, audio and the frame count all share it."""
+    fps = float(cfg["render"]["fps"])
+    if not fps.is_integer() or fps < 1:
+        raise ValueError(f"render.fps={cfg['render']['fps']!r} must be a positive whole number")
+    return int(fps)
+
+
 def loop_frame_count(cfg: dict) -> int:
-    rc = cfg["render"]
-    return max(1, round(float(rc["seconds"]) * int(rc["fps"])))
+    return max(1, round(float(cfg["render"]["seconds"]) * loop_fps(cfg)))
 
 
 def parse_frames(spec: str | None, n: int) -> list[int] | None:
@@ -53,8 +62,29 @@ def parse_frames(spec: str | None, n: int) -> list[int] | None:
     return sorted(out)
 
 
+def _drop_notes(node):
+    """Remove ``_comment``-style keys at any depth: notes never change pixels."""
+    if isinstance(node, dict):
+        return {k: _drop_notes(v) for k, v in node.items() if not str(k).startswith("_")}
+    if isinstance(node, list):
+        return [_drop_notes(v) for v in node]
+    return node
+
+
+def file_digest(path) -> str | None:
+    """Content hash of a file a config points at (None if there is no such file). Content, not
+    mtime, so the same file gives the same answer on every machine that renders a shard."""
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16] if path else None
+    except OSError:
+        return None
+
+
 def config_hash(cfg: dict) -> str:
-    pixel_cfg = {k: v for k, v in cfg.items() if k not in _NON_PIXEL_KEYS}
+    pixel_cfg = _drop_notes({k: v for k, v in cfg.items() if k not in _NON_PIXEL_KEYS})
+    font = file_digest(cfg.get("computer", {}).get("emblem", {}).get("font"))
+    if font:                                        # a font swapped in at the same path is a different picture
+        pixel_cfg["_font_file"] = font
     blob = json.dumps(pixel_cfg, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
@@ -63,12 +93,40 @@ def manifest_for(cfg: dict) -> dict:
     return {"config_hash": config_hash(cfg), "scene_version": SCENE_VERSION, "n_frames": loop_frame_count(cfg)}
 
 
+def usable_frame(path: Path) -> bool:
+    """A frame counts only if it exists and is not empty (an interrupted write leaves a 0-byte file)."""
+    try:
+        return Path(path).stat().st_size > 0
+    except OSError:
+        return False
+
+
+def read_manifest(out_dir: Path) -> dict | None:
+    """The folder's manifest, ``None`` if it has none. One that cannot be read as a manifest
+    comes back empty, which matches no config."""
+    mpath = Path(out_dir) / "manifest.json"
+    if not mpath.exists():
+        return None
+    try:
+        data = json.loads(mpath.read_text())
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def part_path(path: Path) -> Path:
+    """Where one writer renders ``path`` before publishing it: hidden from ``frame_*.*``, same
+    extension, and unique per writer so concurrent renders never share a temp file."""
+    path = Path(path)
+    return path.with_name(f".part_{os.getpid()}_{uuid.uuid4().hex[:8]}_{path.name}")
+
+
 def frame_files(out_dir: Path) -> list[Path]:
     return sorted(Path(out_dir).glob("frame_*.*"))
 
 
 def check_manifest(existing: dict | None, cfg: dict, where: str = "") -> None:
-    if not existing:
+    if existing is None:
         return
     want = manifest_for(cfg)
     if any(existing.get(k) != want[k] for k in want):
@@ -88,7 +146,7 @@ def prepare_frames_dir(out_dir: Path, cfg: dict, overwrite: bool) -> None:
         for p in frame_files(out_dir):
             p.unlink()
     else:
-        existing = json.loads(mpath.read_text()) if mpath.exists() else None
+        existing = read_manifest(out_dir)
         if existing is None and frame_files(out_dir):
             raise StaleFramesError(f"{out_dir} has frames but no manifest; pass --overwrite to replace them")
         check_manifest(existing, cfg, str(out_dir))

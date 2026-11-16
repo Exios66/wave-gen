@@ -44,10 +44,31 @@ def crop_dark_border(a: np.ndarray, thresh: float = 0.08) -> np.ndarray:
     return a[rows[0]:rows[-1] + 1, cols[0]:cols[-1] + 1]
 
 
+def _area_weights(size: int, n: int) -> np.ndarray:
+    """(n, size) matrix: row ``i`` holds the share of each source pixel that output pixel ``i`` covers."""
+    lo = np.arange(n)[:, None] * size / n
+    px = np.arange(size)[None, :]
+    overlap = np.clip(np.minimum(lo + size / n, px + 1) - np.maximum(lo, px), 0, None)
+    return overlap * n / size
+
+
 def _resize(a: np.ndarray, w: int, h: int) -> np.ndarray:
-    ys = (np.arange(h) * a.shape[0] / h).astype(int)
-    xs = (np.arange(w) * a.shape[1] / w).astype(int)
-    return a[ys][:, xs]
+    """Area-average when shrinking (each source pixel weighted by the area it covers, so
+    uneven ratios such as 720 -> 480 stay exact); nearest sample when enlarging."""
+    if a.shape[:2] == (h, w):
+        return a
+    for axis, n in ((0, h), (1, w)):
+        size = a.shape[axis]
+        if n < size:
+            a = np.moveaxis(np.tensordot(_area_weights(size, n), a, axes=(1, axis)), 0, axis)
+        elif n > size:
+            a = np.take(a, (np.arange(n) * size / n).astype(int), axis=axis)
+    return a
+
+
+def sbs_path(out_dir: Path, target: str, i: int) -> Path:
+    """Side-by-side image against reference ``i``; the first keeps the plain name."""
+    return Path(out_dir) / (f"{target}_sbs.jpg" if i == 0 else f"{target}_sbs_{i + 1}.jpg")
 
 
 def _grid(l: np.ndarray, gx: int = 8, gy: int = 5) -> np.ndarray:
@@ -135,9 +156,11 @@ def run(target: str, device: str, out_dir: Path) -> dict:
     for r in t["refs"]:
         per_ref.append(components(img, lookdev._load(ROOT / r)))
     comp = {k: float(np.mean([c[k] for c in per_ref])) for k in WEIGHTS}
-    lookdev.compare(graded, ROOT / t["refs"][0], out_dir / f"{target}_sbs.jpg")
+    sbs = [sbs_path(out_dir, target, i) for i in range(len(t["refs"]))]
+    for r, path in zip(t["refs"], sbs):                 # one per reference, so each can be eyeballed
+        lookdev.compare(graded, ROOT / r, path)
     return {"score": score(comp), "components": comp, "render_seconds": secs,
-            "sbs": str(out_dir / f"{target}_sbs.jpg")}
+            "sbs": str(sbs[0]), "sbs_all": [str(s) for s in sbs]}
 
 
 def loopcheck(target: str) -> bool:
@@ -160,7 +183,7 @@ def main() -> None:
     print(f"RENDER_SECONDS: {r['render_seconds']:.1f}")
     if not a.no_loopcheck:
         print(f"LOOPCHECK: {'PASS' if loopcheck(a.target) else 'FAIL'}")
-    print(f"SBS: {r['sbs']}")
+    print(f"SBS: {' '.join(r['sbs_all'])}")
     print(f"SCORE: {r['score']:.4f}")
 
 

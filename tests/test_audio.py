@@ -138,3 +138,9 @@ def test_true_peak_keeps_even_length_nyquist():
 def test_reverb_ir_shorter_than_pre_ramp():
     ir = dsp._reverb_ir(16000, 0.01, np.random.default_rng(0))
     assert len(ir) == 160 and np.all(np.isfinite(ir)) and np.abs(ir).max() > 0
+
+
+def test_a_negative_seed_still_renders_and_differs_from_its_positive_twin():
+    a = audio.render_stems(_cfg(2, "seed=-3"))["mix"]
+    b = audio.render_stems(_cfg(2, "seed=3"))["mix"]
+    assert np.isfinite(a).all() and not np.allclose(a, b)

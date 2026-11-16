@@ -19,6 +19,8 @@ from pathlib import Path
 
 import numpy as np
 
+from ..frames import file_digest
+
 W, H = 1024, 512
 EMBLEM_VERSION = 4
 
@@ -30,6 +32,8 @@ def cache_dir() -> Path:
 def _key(ec: dict) -> str:
     keep = {k: ec.get(k) for k in ("text", "shape", "font")}
     keep["v"] = EMBLEM_VERSION
+    font = ec.get("font")
+    keep["font_file"] = file_digest(font)           # a font swapped in at the same path is a new emblem
     return hashlib.sha256(json.dumps(keep, sort_keys=True).encode()).hexdigest()[:12]
 
 
