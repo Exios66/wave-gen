@@ -166,3 +166,16 @@ def test_tile_wav_repeats_the_loop_and_cuts_to_length(tmp_path):
         assert (w.getframerate(), w.getnchannels(), w.getnframes()) == (sr, 2, 250)
         got = np.frombuffer(w.readframes(250), "<i2").reshape(-1, 2)
     assert np.array_equal(got, np.tile(one, (3, 1))[:250])
+
+
+def test_tile_wav_rejects_a_source_whose_audio_is_cut_short(tmp_path):
+    import wave
+    src = audio.write_wav(tmp_path / "loop.wav", np.zeros((100, 2)), 8000)
+    raw = src.read_bytes()
+    src.write_bytes(raw[:-400])                    # header still promises 100 frames; the payload is gone
+    with wave.open(str(src)) as w:
+        w.readframes(100)
+        assert w.readframes(1) == b""
+    src.write_bytes(raw[:44])                      # header only: every read comes back empty
+    with pytest.raises(ValueError, match="no audio"):
+        post.tile_wav(src, tmp_path / "long.wav", 250, chunk_frames=64)

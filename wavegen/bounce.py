@@ -21,9 +21,9 @@ def choose_trips(n_frames: int, fps: int, speed: float, palette_len: int, span: 
     want_x = max(1.0, speed * loop_s / (2 * max(span, 1e-6)))   # one round trip = 2 spans of travel
     want_y = want_x * 0.78                          # a different rhythm vertically
     best, best_cost = None, math.inf
-    hi = int(want_x * 2 + 2 * palette_len + 4)
-    for tx in range(1, hi):
-        for ty in range(1, hi):
+    reach = 2 * palette_len + 4                     # a valid pair always lies this close to the target
+    for tx in range(max(1, int(want_x) - reach), int(want_x) + reach + 2):
+        for ty in range(max(1, int(want_y) - reach), int(want_y) + reach + 2):
             if tx == ty or (tx + ty) % palette_len or math.gcd(tx, ty) != 1:
                 continue
             cost = abs(tx - want_x) / want_x + abs(ty - want_y) / want_y

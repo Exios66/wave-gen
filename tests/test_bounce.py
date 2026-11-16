@@ -67,3 +67,32 @@ def test_default_emblem_keeps_its_reviewed_pace():
     tx, ty = choose_trips(n, cfg["render"]["fps"], ec["speed"], len(ec["palette"]), span=span)
     assert (tx, ty) == (5, 3)
     assert 2 * tx * span / cfg["render"]["seconds"] == pytest.approx(ec["speed"], rel=0.5)   # the setting means what it says
+
+
+def test_a_sliver_of_travel_room_does_not_stall_the_trip_search():
+    import time
+    t = time.perf_counter()
+    tx, ty = choose_trips(1800, 30, 0.12, 4, span=1e-5)
+    assert time.perf_counter() - t < 1.0
+    assert tx != ty and (tx + ty) % 4 == 0 and math.gcd(tx, ty) == 1
+    assert abs(tx - 360000) < 20
+
+
+def test_the_bounded_search_picks_what_the_full_search_did():
+    def full(n, fps, speed, p, span):
+        want_x = max(1.0, speed * (n / fps) / (2 * span))
+        want_y = want_x * 0.78
+        best, cost = None, math.inf
+        for tx in range(1, int(want_x * 2 + 2 * p + 4)):
+            for ty in range(1, int(want_x * 2 + 2 * p + 4)):
+                if tx == ty or (tx + ty) % p or math.gcd(tx, ty) != 1:
+                    continue
+                c = abs(tx - want_x) / want_x + abs(ty - want_y) / want_y
+                if c < cost:
+                    best, cost = (tx, ty), c
+        return best
+    for n in (300, 1800, 5400):
+        for speed in (0.02, 0.12, 0.3, 0.7):
+            for p in (2, 4, 5, 7):
+                for span in (1.0, 0.36, 0.08):
+                    assert choose_trips(n, 30, speed, p, span=span) == full(n, 30, speed, p, span)

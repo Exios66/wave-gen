@@ -63,8 +63,10 @@ def lookdev_sets(user_sets: list[str] | None) -> list[str]:
 
 def post_hint(out: Path) -> str:
     """How to finish a run that rendered only some frames, with the exact config it used."""
+    import shlex
+    frames, preset, mp4 = (shlex.quote(str(out / name)) for name in ("frames", "config.json", "loop.mp4"))
     return (f"rendered a subset of frames; once all of them exist run "
-            f"`wavegen post {out / 'frames'} --preset {out / 'config.json'} -o {out / 'loop.mp4'}`")
+            f"`wavegen post {frames} --preset {preset} -o {mp4}`")
 
 
 def _frames(spec: str | None, cfg: dict) -> list[int] | None:

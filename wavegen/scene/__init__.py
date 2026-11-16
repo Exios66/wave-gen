@@ -42,7 +42,7 @@ def render_frames(out_dir: str | Path, cfg: dict, frames: list[int] | None = Non
     """
     import bpy
 
-    from ..frames import loop_frame_count, prepare_frames_dir, usable_frame
+    from ..frames import loop_frame_count, part_path, prepare_frames_dir, usable_frame
 
     sc = bpy.context.scene
     out_dir = Path(out_dir).resolve()
@@ -56,11 +56,14 @@ def render_frames(out_dir: str | Path, cfg: dict, frames: list[int] | None = Non
         if usable_frame(path):  # resumable: manifest already proved these match
             written.append(path)
             continue
-        part = path.with_name(f".part_{path.name}")   # an interrupted render never leaves a half-written frame
+        part = part_path(path)                  # an interrupted render never leaves a half-written frame
         sc.frame_set(f)
         sc.render.filepath = str(part)
-        bpy.ops.render.render(write_still=True)
-        part.replace(path)
+        try:
+            bpy.ops.render.render(write_still=True)
+            part.replace(path)
+        finally:
+            part.unlink(missing_ok=True)
         written.append(path)
         print(f"[wavegen] frame {f} -> {path.name}", flush=True)
     return written

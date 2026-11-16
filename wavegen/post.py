@@ -154,14 +154,20 @@ def tile_wav(src: str | Path, dst: str | Path, n_frames: int, chunk_frames: int 
         if r.getnframes() < 1:
             raise ValueError(f"{src} has no audio to repeat")
         w.setparams(r.getparams())
-        left = n_frames
+        frame_bytes = r.getsampwidth() * r.getnchannels()
+        left, rewound = n_frames, False
         while left > 0:
             data = r.readframes(min(chunk_frames, left))
-            if not data:
+            got = len(data) // frame_bytes
+            if not got:
+                if rewound:                         # the header promised frames the file does not hold
+                    raise ValueError(f"{src} has no audio to repeat (the file is cut short)")
                 r.rewind()
+                rewound = True
                 continue
-            w.writeframes(data)
-            left -= len(data) // (r.getsampwidth() * r.getnchannels())
+            rewound = False
+            w.writeframes(data[:got * frame_bytes])
+            left -= got
     return dst
 
 
