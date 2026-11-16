@@ -31,6 +31,10 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    the left-side pink error from 0.053 to 0.048. Still different: the
    reference's passage tile reads warm white with a strong glow. A stronger
    reshaping matched the pink better (0.042) but cost a point of score.
+   A brighter passage lamp (`room.bay.sconce_power` 220 and 400) and a weaker
+   wash (0.8) were also measured and scored lower (0.841, 0.842, 0.841 against
+   0.847), so the passage is unchanged. Larger and brighter dust made no
+   difference beyond run-to-run noise.
 6. **Ceiling (improved).** The tray now reaches close to the walls
    (`room.ceiling_tray.inset` 2.0 to 0.6), so its stepped edge and cove glow
    sit where the reference frames them. This was the largest single gain of
