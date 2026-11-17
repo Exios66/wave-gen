@@ -71,6 +71,16 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
     reference's bright points high on the right. They are glowing discs only,
     with no lamp behind them, so they add no render time or noise.
 
+### Where single settings stop helping
+After the tray change (score 0.847), each of these was measured on its own and
+none helped: a near-white or lavender-white desk (0.803, 0.817; the desk
+covers a large part of the frame, so a colour that looks closer by eye moves
+the whole palette), brighter alcove lamps or fill (0.840, 0.841), a stronger
+vignette (0.811), and more or less haze (0.847, 0.845). Region by region the
+render is now within about 0.1 of the references. What remains is the back
+alcoves reading a little dark and the floor a little bright, which no single
+setting fixes without costing elsewhere.
+
 ### Camera and finish
 13. **Film softness (improved).** A light mist-filter pass in post
     (`post.diffusion`) mixes a wide blur of the frame back in, softening edges
