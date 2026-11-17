@@ -810,6 +810,7 @@ def test_poolrooms_has_a_row_of_small_downlights_over_the_right_walkway(scene):
         assert hi[0] - lo[0] <= 0.3                             # small points, not panels
         em = o.material_slots[0].material.node_tree.nodes["Emission"]
         assert em.inputs["Strength"].default_value >= 5
+        assert o.material_slots[0].material.cycles.emission_sampling == "NONE"   # a glow, not a light to sample
     sc.frame_set(1)
     seen = [p for p in (_project(sc, o) for o in lamps) if 0 < p.x < 1 and 0 < p.y < 1 and p.z > 0]
     assert len(seen) >= 2 and all(p.x > 0.6 and p.y > 0.7 for p in seen)   # bright points high on the right
