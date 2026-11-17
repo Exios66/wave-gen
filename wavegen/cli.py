@@ -11,8 +11,7 @@
   python -m wavegen loopcheck --preset poolrooms
   python -m wavegen variants --preset poolrooms --seeds 1 2 3 -o out/variants
   python -m wavegen presets  [list | show NAME [--resolved|--lineage]]
-  python -m wavegen presets save rose_room --from poolrooms --set palette.water=[0.8,0.78,0.98] \
-                                 --description "..." --tags pink,day
+  python -m wavegen presets save rose_room --from poolrooms --set palette.water=[0.8,0.78,0.98] --tags pink,day
   python -m wavegen presets save keeper --from poolrooms --config out/variants/poolrooms-v3/config.json
 
 Common flags: --preview (fast low-res draft), --set key.path=value (repeatable).
