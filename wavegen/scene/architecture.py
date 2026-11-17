@@ -319,6 +319,7 @@ def build(cfg: dict) -> dict:
     dl = cfg["lights"]["downlights"]
     if dl["count"] > 0:
         spot = M.emission("Downlight", pal["warm_light"], dl["strength"])
+        spot.cycles.emission_sampling = "NONE"     # seen and reflected, but never sampled as a light
         a, b = dl["span"]
         for i in range(dl["count"]):
             t = a + (b - a) * (i + 0.5) / dl["count"]
