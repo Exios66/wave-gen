@@ -36,7 +36,7 @@ def test_reference_bezel_is_ignored():
 
 
 def test_unknown_preset_keys_are_reported():
-    base = {"render": {"samples": 1}, "palette": {"water": [0, 0, 0]}}
+    base = {"name": "", "render": {"samples": 1}, "palette": {"water": [0, 0, 0]}}
     assert ar.unknown_keys({"name": "x", "render": {"samples": 2, "bogus": 1}, "nope": 1}, base) == \
         ["render.bogus", "nope"]
 

@@ -29,7 +29,6 @@ HERE = Path(__file__).resolve().parent
 EVAL_SETS = ["render.resolution=[480,270]", "render.percentage=100", "render.samples=24"]
 WEIGHTS = {"palette": 0.25, "histogram": 0.20, "layout": 0.20, "detail": 0.15,
            "brightness": 0.10, "contrast": 0.10}
-FREE_KEYS = {"name", "_comment"}
 
 
 # ---------- metrics (pure numpy; tested in tests/test_autoresearch_metrics.py) ----------
@@ -118,26 +117,16 @@ def score(comp: dict) -> float:
 
 # ---------- harness ----------
 
-def unknown_keys(over: dict, base: dict, path: str = "") -> list[str]:
-    """Keys in a preset that DEFAULTS doesn't define (set_dotted would accept them silently)."""
-    bad = []
-    for k, v in over.items():
-        p = f"{path}{k}"
-        if not path and k in FREE_KEYS:
-            continue
-        if k not in base:
-            bad.append(p)
-        elif isinstance(v, dict) and isinstance(base[k], dict):
-            bad += unknown_keys(v, base[k], p + ".")
-    return bad
+unknown_keys = config.unknown_keys          # one rule for what a preset may set, shared with the loader
 
 
 def run(target: str, device: str, out_dir: Path) -> dict:
     t = json.loads((HERE / "targets.json").read_text())[target]
     preset = ROOT / t["preset"]
-    bad = unknown_keys(json.loads(preset.read_text()), config.DEFAULTS)
-    if bad:
-        raise SystemExit(f"CRASH: preset sets keys DEFAULTS does not have: {bad}")
+    try:
+        config.load(str(preset))                  # refuses unknown keys anywhere in the preset's lineage
+    except (ValueError, FileNotFoundError) as e:
+        raise SystemExit(f"CRASH: {e}") from None
     out_dir = Path(out_dir).resolve()  # the render runs with cwd=ROOT
     out_dir.mkdir(parents=True, exist_ok=True)
     still = out_dir / f"{target}.png"
