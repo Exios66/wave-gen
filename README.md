@@ -64,6 +64,10 @@ python -m wavegen still --set camera.lens=18 --set palette.water=[0.7,0.9,1.0] \
 | `poolrooms` | faithful parallel of the reference: cyan tray light, warm alcoves, lavender foreground |
 | `poolrooms_dusk` | builds on `poolrooms`: peach plaster, rose water, sweeter and slower pad |
 | `poolrooms_night` | builds on `poolrooms`: after hours, deep blue, magenta neon, thick haze, long reverb |
+| `rose_natatorium` | builds on `poolrooms`: blush plaster, cream tile, peach lamps, lilac water |
+| `lavender_hall` | builds on `poolrooms`: a tall violet room with one wide back arch, in the emblem's purples |
+
+[`docs/PRESETS.md`](docs/PRESETS.md) shows every preset with a thumbnail and its family tree.
 
 Presets build on one another. A new design names its parent and lists only
 what it changes:
@@ -102,6 +106,13 @@ python -m wavegen presets save rose_room --from poolrooms \
 # keep a seeded variant you liked
 python -m wavegen variants --preset rose_room --seeds 3 -o out/variants
 python -m wavegen presets save rose_room_tall --from rose_room --config out/variants/rose_room-v3/config.json
+```
+
+After adding or changing presets, refresh the catalog page and its thumbnails
+(`--out` picks another folder, `--no-render` rewrites only the page):
+
+```bash
+python -m wavegen presets catalog          # docs/PRESETS.md + docs/presets/<name>.jpg
 ```
 
 A saved preset is checked before it is kept: it must rebuild exactly the

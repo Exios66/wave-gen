@@ -1,0 +1,67 @@
+{
+  "name": "rose_natatorium",
+  "extends": "poolrooms",
+  "description": "Rose natatorium: blush plaster, cream tile, peach lamps and lilac water; the pink end of the reference's palette taken room-wide.",
+  "tags": [
+    "pink",
+    "day",
+    "warm"
+  ],
+  "palette": {
+    "tile": [
+      0.96,
+      0.92,
+      0.84
+    ],
+    "floor_tile": [
+      0.94,
+      0.84,
+      0.86
+    ],
+    "plaster": [
+      0.92,
+      0.7,
+      0.76
+    ],
+    "ceiling": [
+      0.95,
+      0.78,
+      0.84
+    ],
+    "pool_tile": [
+      0.78,
+      0.72,
+      0.88
+    ],
+    "water": [
+      0.8,
+      0.78,
+      0.98
+    ],
+    "water_absorb": [
+      0.72,
+      0.64,
+      0.92
+    ],
+    "warm_light": [
+      1.0,
+      0.72,
+      0.52
+    ],
+    "cool_light": [
+      1.0,
+      0.8,
+      0.88
+    ],
+    "beige": [
+      0.88,
+      0.74,
+      0.62
+    ]
+  },
+  "post": {
+    "pink_wash": {
+      "strength": 0.4
+    }
+  }
+}

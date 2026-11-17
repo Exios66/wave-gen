@@ -99,11 +99,12 @@ setting fixes without costing elsewhere.
 ## Other poolscapes the same toolkit can render
 
 Each is a preset: a JSON file of overrides on `wavegen/config.py`. Presets
-`poolrooms_dusk` and `poolrooms_night` already exist.
+`poolrooms_dusk`, `poolrooms_night`, `rose_natatorium` and `lavender_hall`
+already exist; see [`PRESETS.md`](PRESETS.md) for thumbnails.
 
 ### Possible today, with config values only
-- **Rose Natatorium.** Blush plaster, cream tile, peach lamps, lilac water. The
-  pink end of the reference's palette taken room-wide.
+- **Rose Natatorium** (`rose_natatorium`, done). Blush plaster, cream tile, peach
+  lamps, lilac water. The pink end of the reference's palette taken room-wide.
 - **Midnight Lap Pool.** Indigo walls, dim cove, strong warm alcoves and a
   bright CRT; the screen becomes the main light. Extends `poolrooms_night`.
 - **Long Gallery.** A narrow, deep room (`room.width` 9, `room.depth` 40) with
@@ -111,7 +112,7 @@ Each is a preset: a JSON file of overrides on `wavegen/config.py`. Presets
   shot.
 - **Mint Bathhouse.** Seafoam plaster, white tile, pale gold lamps, low ceiling
   with a deeper tray. A 1930s public-bath feel.
-- **Lavender Hall.** High ceiling, a single very wide back arch, violet cove
+- **Lavender Hall** (`lavender_hall`, done). High ceiling, a single very wide back arch, violet cove
   light and purple accent, matched to the WAVE GEN emblem palette.
 - **Seeded parallels.** `wavegen variants --seeds …` already mutates any preset
   into near-relatives for a series.
