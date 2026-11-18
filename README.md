@@ -84,6 +84,31 @@ config does not have (a typo) is refused at load time. `description`, `tags`
 and `_`-prefixed notes never change the render, so rewording them does not
 invalidate frames you have already rendered.
 
+### Your preset library
+
+Set `WAVEGEN_PRESET_PATH` to one or more folders (separated like `PATH`) to
+keep your own designs beside the bundled ones. Your folders are searched first,
+and `presets save` writes to the first one.
+
+```bash
+export WAVEGEN_PRESET_PATH=~/poolroom-library
+python -m wavegen presets                                  # every preset, its parent, tags, description
+python -m wavegen presets show poolrooms_night --lineage   # poolrooms_night -> poolrooms
+python -m wavegen presets show poolrooms_night --resolved  # the full config it renders with
+# keep a tweak as a new design that lists only what it changes
+python -m wavegen presets save rose_room --from poolrooms \
+    --set palette.plaster=[0.92,0.70,0.76] --set palette.water=[0.80,0.78,0.98] \
+    --description "Blush plaster, lilac water" --tags pink,day
+# keep a seeded variant you liked
+python -m wavegen variants --preset rose_room --seeds 3 -o out/variants
+python -m wavegen presets save rose_room_tall --from rose_room --config out/variants/rose_room-v3/config.json
+```
+
+A saved preset is checked before it is kept: it must rebuild exactly the
+config it was saved from, and a key the config does not have is refused.
+`save` will not overwrite a preset, or hide a bundled one under the same name,
+unless you pass `--force`.
+
 `variants` derives new rooms from any preset by seed. It changes arch count and
 widths, room proportions, pool footprint, lighting balance, palette, lens and
 chord order, and the result is deterministic for a given seed.

@@ -10,6 +10,9 @@
   python -m wavegen extend   out/poolrooms/poolrooms.mp4 --duration 1h -o out/poolrooms_1h.mp4
   python -m wavegen loopcheck --preset poolrooms
   python -m wavegen variants --preset poolrooms --seeds 1 2 3 -o out/variants
+  python -m wavegen presets  [list | show NAME [--resolved|--lineage]]
+  python -m wavegen presets save rose_room --from poolrooms --set palette.water=[0.8,0.78,0.98] --tags pink,day
+  python -m wavegen presets save keeper --from poolrooms --config out/variants/poolrooms-v3/config.json
 
 Common flags: --preview (fast low-res draft), --set key.path=value (repeatable).
 Inside desktop Blender:  blender -b -P scripts/blender_run.py -- make --preset poolrooms
@@ -220,9 +223,88 @@ def cmd_loopcheck(args):
     print(f"loopcheck: all {n} driven values match at the loop point")
 
 
-def cmd_presets(args):
-    for p in config.list_presets():
-        print(p)
+def cmd_presets_list(args):
+    names = config.list_presets()
+    if getattr(args, "names", False):
+        print("\n".join(names))
+        return
+    print(f"{'NAME':<24} {'EXTENDS':<20} {'TAGS':<26} DESCRIPTION")
+    print("-" * 100)
+    for n in names:
+        i = config.preset_info(n)
+        print(f"{n:<24} {i['extends'] or '-':<20} {','.join(i['tags']) or '-':<26} {i['description']}")
+
+
+def cmd_presets_show(args):
+    if args.lineage:
+        print(" -> ".join(config.lineage(args.name)))
+    elif args.resolved:
+        print(json.dumps(config.load(args.name), indent=2))
+    else:
+        print(config.find_preset(args.name).read_text().rstrip())
+
+
+def _parent_ref(parent: Path, dest: Path, name: str) -> str:
+    """How the saved preset should name its parent: by name when that finds the same file
+    from the destination folder, else by its full path. A preset that shadows its parent's
+    name always uses the path, since the name would find the preset itself."""
+    try:
+        if parent.stem != name and config.find_preset(parent.stem, near=dest).resolve() == parent.resolve():
+            return parent.stem
+    except FileNotFoundError:
+        pass
+    return str(parent.resolve())
+
+
+def cmd_presets_save(args):
+    name = args.name
+    if not name or Path(name).name != name or name.endswith(".json"):
+        raise SystemExit(f"wavegen: preset name must be a plain name like 'rose_room', got {name!r}")
+    try:
+        parent = config.find_preset(args.parent)
+        base = config.load(args.parent)
+        target = config.load(args.config if args.config else args.parent, args.set)
+    except (FileNotFoundError, ValueError) as e:
+        raise SystemExit(f"wavegen: {e}") from None
+    bad = config.unknown_keys(target, config.DEFAULTS)
+    if bad:
+        raise SystemExit(f"wavegen: the config does not have {', '.join(bad)}; nothing saved")
+    dest = Path(args.dir) if args.dir else config.library_dirs()[0]
+    path = dest / f"{name}.json"
+    if not args.force:
+        try:
+            existing = path if path.exists() else config.find_preset(name)
+        except FileNotFoundError:
+            existing = None
+        if existing is not None:
+            raise SystemExit(f"wavegen: preset '{name}' already exists at {existing}; "
+                             f"pick another name or pass --force to replace or shadow it")
+    strip = lambda c: {k: v for k, v in c.items() if k != "name"}   # noqa: E731
+    body = {"name": name, "extends": _parent_ref(parent, dest, name)}
+    if args.description:
+        body["description"] = args.description
+    if args.tags:
+        body["tags"] = [t.strip() for t in args.tags.split(",") if t.strip()]
+    body.update(config.diff_config(strip(target), strip(base)))
+    dest.mkdir(parents=True, exist_ok=True)
+    old = path.read_text() if path.exists() else None
+    text = json.dumps(body, indent=2) + "\n"
+    try:                                       # without --force, never replace a file another save just wrote
+        with open(path, "w" if args.force else "x") as f:
+            f.write(text)
+    except FileExistsError:
+        raise SystemExit(f"wavegen: preset '{name}' already exists at {path}; "
+                         f"pick another name or pass --force to replace it") from None
+    try:                                       # the saved preset must rebuild the same config
+        ok = strip(config.load(str(path))) == strip(target)
+        why = "would not reproduce the config"
+    except (ValueError, FileNotFoundError) as e:
+        ok, why = False, f"would not load ({e})"
+    if not ok:
+        path.write_text(old) if old is not None else path.unlink()
+        raise SystemExit(f"wavegen: saving {name} {why}; nothing saved")
+    changed = len(body) - 2 - ("description" in body) - ("tags" in body)
+    print(f"saved {path} (extends {body['extends']}, {changed} changed section{'s' if changed != 1 else ''})")
 
 
 def main(argv: list[str] | None = None):
@@ -313,8 +395,28 @@ def main(argv: list[str] | None = None):
     common(p)
     p.set_defaults(fn=cmd_loopcheck)
 
-    p = sub.add_parser("presets", help="list bundled presets")
-    p.set_defaults(fn=cmd_presets)
+    p = sub.add_parser("presets", help="list, show and save presets (your library: WAVEGEN_PRESET_PATH)")
+    p.set_defaults(fn=cmd_presets_list, names=False)
+    ps = p.add_subparsers(dest="presets_cmd")
+    q = ps.add_parser("list", help="every preset with its parent, tags and description")
+    q.add_argument("--names", action="store_true", help="names only, one per line")
+    q.set_defaults(fn=cmd_presets_list)
+    q = ps.add_parser("show", help="print a preset as written (or --resolved / --lineage)")
+    q.add_argument("name")
+    g = q.add_mutually_exclusive_group()
+    g.add_argument("--resolved", action="store_true", help="the full config it resolves to")
+    g.add_argument("--lineage", action="store_true", help="the chain of parents back to the root")
+    q.set_defaults(fn=cmd_presets_show)
+    q = ps.add_parser("save", help="save a design as a preset that lists only what differs from its parent")
+    q.add_argument("name", help="plain name for the new preset, e.g. rose_room")
+    q.add_argument("--from", dest="parent", default="poolrooms", help="parent preset (default: poolrooms)")
+    q.add_argument("--config", help="a config.json written by make/variants to keep as a preset")
+    q.add_argument("--set", action="append", metavar="KEY=VALUE", help="change a value on top of the parent")
+    q.add_argument("--description", help="one line on what makes this design")
+    q.add_argument("--tags", help="comma-separated, e.g. pink,dusk")
+    q.add_argument("--dir", help="folder to save into (default: first WAVEGEN_PRESET_PATH folder, else bundled)")
+    q.add_argument("--force", action="store_true", help="replace an existing preset, or shadow a bundled one")
+    q.set_defaults(fn=cmd_presets_save)
 
     args = ap.parse_args(argv)
     from .frames import StaleFramesError

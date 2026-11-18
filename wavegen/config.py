@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import random
 from pathlib import Path
 
@@ -232,23 +233,49 @@ def deep_merge(base: dict, over: dict) -> dict:
 LIBRARY_KEYS = ("extends", "description", "tags")
 
 
+def library_dirs() -> list[Path]:
+    """Where presets are looked up: the folders in ``WAVEGEN_PRESET_PATH`` (your own
+    library, searched first), then the bundled presets."""
+    extra = [Path(p).expanduser() for p in os.environ.get("WAVEGEN_PRESET_PATH", "").split(os.pathsep) if p]
+    return extra + [PRESET_DIR]
+
+
 def list_presets() -> list[str]:
-    return sorted(p.stem for p in PRESET_DIR.glob("*.json"))
+    names: list[str] = []
+    for d in library_dirs():
+        names += [p.stem for p in d.glob("*.json") if p.stem not in names]
+    return sorted(names)
 
 
 def find_preset(ref: str, near: Path | None = None) -> Path:
-    """Path of preset ``ref``: a path as given, else ``<ref>.json`` beside the preset
-    that asked for it (``near``), else a bundled preset."""
+    """Path of preset ``ref``: a path as given, else ``<ref>.json`` beside the preset that
+    asked for it (``near``), else in your library folders, else a bundled preset."""
     path = Path(ref)
     if path.suffix == ".json" and path.exists():
         return path
-    for d in ([Path(near)] if near else []) + [PRESET_DIR]:
+    for d in ([Path(near)] if near else []) + library_dirs():
         cand = d / (ref if ref.endswith(".json") else f"{ref}.json")
         if cand.exists():
             return cand
     if path.exists():
         return path
     raise FileNotFoundError(f"preset '{ref}' not found (have: {', '.join(list_presets())})")
+
+
+def diff_config(cfg: dict, base: dict) -> dict:
+    """The smallest override that turns ``base`` into ``cfg``: nested keys whose values
+    differ (lists and non-dict values are compared and kept whole)."""
+    out = {}
+    for k, v in cfg.items():
+        if k not in base:
+            out[k] = copy.deepcopy(v)
+        elif isinstance(v, dict) and isinstance(base[k], dict):
+            sub = diff_config(v, base[k])
+            if sub:
+                out[k] = sub
+        elif v != base[k]:
+            out[k] = copy.deepcopy(v)
+    return out
 
 
 def _read(path: Path) -> dict:
