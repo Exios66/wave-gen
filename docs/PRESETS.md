@@ -41,31 +41,31 @@ Lavender hall: a tall violet room with one very wide back arch, matched to the W
 
 ![lotus_court](presets/lotus_court.jpg)
 
-Lotus court: the dusk room as a water garden. Lily pads drift in clusters with pink blooms, ferns soften the edges, the floor is laid in honeycomb.
+Lotus court: the dusk room as a water garden, seen from the doorway looking down onto the water. Lily pads drift in clusters with pink blooms, ferns soften the edges, the floor is laid in honeycomb.
 
 - Builds on `poolrooms_dusk` (lineage: lotus_court -> poolrooms_dusk -> poolrooms)
 - Tags: nature, dusk, pink, water-garden
-- Changes: palette (2), room (1), nature (7)
+- Changes: palette (2), room (1), nature (7), camera (3)
 
 ## moonlit_conservatory
 
 ![moonlit_conservatory](presets/moonlit_conservatory.jpg)
 
-Moonlit conservatory: the night room under an open canopy. Pale moonlight falls through the leaves from beyond the far wall, palms stand in the dark, a few lilies glow on the water.
+Moonlit conservatory: the night room under an open canopy. Pale moonbeams slant through the leaves into the haze, palms stand in the dark, a few lilies on the water.
 
 - Builds on `poolrooms_night` (lineage: moonlit_conservatory -> poolrooms_night -> poolrooms)
 - Tags: nature, night, blue, moon
-- Changes: palette (1), nature (7), atmosphere (1)
+- Changes: palette (1), nature (9), atmosphere (1), camera (3)
 
 ## palm_solarium
 
 ![palm_solarium](presets/palm_solarium.jpg)
 
-Palm solarium: a sunlit greenhouse pool. Dappled sun through a leafy skylight, potted palms and ferns, water lilies, warm ivory plaster and sea-green tile.
+Palm solarium: an ivory greenhouse. Sun shafts slant through a leaf canopy and dapple the pool floor; areca palms and ferns in planters, lily pads on sea-green water, seen from the doorway.
 
 - Builds on `poolrooms` (lineage: palm_solarium -> poolrooms)
 - Tags: nature, day, green, sun
-- Changes: palette (9), nature (7), atmosphere (1), post (1)
+- Changes: palette (9), nature (11), atmosphere (1), post (1), camera (3)
 
 ## poolrooms
 

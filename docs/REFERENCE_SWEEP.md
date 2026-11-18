@@ -119,16 +119,25 @@ already exist; see [`PRESETS.md`](PRESETS.md) for thumbnails.
   into near-relatives for a series.
 
 ### Nature and biomimicry (the `nature` section, now built)
-- **Palm Solarium** (`palm_solarium`, done). A skylight with a swaying leaf
-  canopy throws dappled sun on the walls; areca palms and ferns in planters,
-  lily pads on sea-green water.
+- **Palm Solarium** (`palm_solarium`, done). Sun from beyond the far wall
+  slants through a swaying leaf canopy as god rays (`nature.skylight.beams`)
+  and dapples the pool floor; areca palms and ferns, lily pads on sea-green
+  water. The camera stands back in the doorway, higher and looking down, so
+  the water shows its floor instead of mirroring the room.
 - **Catenary Nave** (`catenary_nave`, done). Gaudí's poolroom: hanging-chain
   (`room.catenary`) arches, tree columns that branch into the ceiling like the
   Sagrada Família's, a honeycomb floor (`room.floor_pattern: "hex"`).
-- **Lotus Court** (`lotus_court`, done). The dusk room as a water garden:
-  clustered lily pads in bloom, ferns, honeycomb floor.
+- **Lotus Court** (`lotus_court`, done). The dusk room as a water garden,
+  seen from the same doorway camera: clustered lily pads in bloom, ferns,
+  honeycomb floor.
 - **Moonlit Conservatory** (`moonlit_conservatory`, done). The night room with
-  pale moonlight through the canopy from beyond the far wall.
+  pale moonbeams slanting through the canopy into the haze.
+
+Why the beams need their own haze: the room's haze is lit by the cove and
+alcove lights everywhere, which lifts it as much as the sun lifts the shaft,
+so no beam shows however thick it is. A second haze that only the sun lights
+has nothing but the shaft in it. Beams read best looking toward the sun
+(azimuth ~155, forward-scattering anisotropy 0.75).
 
 ### Need one new feature each
 - **Glowing Pool.** Underwater lights so the water lights the room from below.

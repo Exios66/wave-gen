@@ -102,6 +102,24 @@ def _skylight(cfg: dict, bounds) -> None:
     so.location = (cx, cy, cz + 3.0)
     so.rotation_euler = look_at_matrix(so.location, tuple(so.location[k] - s[k] for k in range(3))).to_euler()
     collection("Lights").objects.link(so)
+    if sky["beams"]["density"] > 0:
+        _sunbeams(cfg, bounds, so)
+
+
+def _sunbeams(cfg: dict, bounds, sun) -> None:
+    """Haze lit by the sun alone (Cycles light linking): every other light and glowing
+    surface skips it, so it shows only where the sun's shafts cross the room."""
+    x0, x1, y0, y1, H = bounds
+    bm = cfg["nature"]["skylight"]["beams"]
+    beams = box("Sunbeams", (x0 + 0.05, y0 + 0.05, 0.02), (x1 - 0.05, y1 - 0.05, H - 0.05), collection("Atmosphere"),
+                M.volume_haze("Sunbeams", cfg["palette"]["haze"], bm["density"], bm["anisotropy"]))
+    beams.visible_shadow = False
+    skip = bpy.data.collections.new("NoSunbeams")
+    skip.objects.link(beams)
+    skip.collection_objects[0].light_linking.link_state = "EXCLUDE"
+    for o in bpy.data.objects:
+        if o is not sun and o is not beams and o.type in ("LIGHT", "MESH"):
+            o.light_linking.receiver_collection = skip
 
 
 
