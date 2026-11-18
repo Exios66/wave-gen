@@ -72,6 +72,8 @@ DEFAULTS: dict = {
         "leaf": [0.2, 0.42, 0.14],
         "planter": [0.93, 0.9, 0.86],
         "column": None,                         # tree columns; None = plaster
+        "lily_pad": [0.11, 0.3, 0.09],
+        "lily_flower": [1.0, 0.72, 0.86],
         "icon": [[1.0, 0.45, 0.65], [1.0, 0.85, 0.35], [0.45, 1.0, 0.65],
                  [0.40, 0.75, 1.0], [0.75, 0.50, 1.0], [1.0, 0.60, 0.40]],
     },
@@ -193,6 +195,15 @@ DEFAULTS: dict = {
             "split": 0.5,               # where the trunk branches, as a share of the room height
             "branches": 4,              # limbs from the trunk; each forks once more toward the ceiling
             "spread": 1.5,              # how far the branch tips reach from the trunk (m)
+        },
+        # water lilies drifting in loose clusters on the pool
+        "lily_pads": {
+            "enabled": False,
+            "count": 22,
+            "clusters": 3,
+            "size": [0.25, 0.55],       # pad radius range (m)
+            "flowers": 0.25,            # share of pads with a flower
+            "bob": 0.003,               # metres of slow rise and fall (0 = still)
         },
     },
     "atmosphere": {

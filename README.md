@@ -133,6 +133,7 @@ chord order, and the result is deterministic for a given seed.
   casting dappled light across walls and water (`nature.skylight`).
   Potted areca palms and Boston ferns grown from the seed, swaying gently (`nature.plants`).
   Tree columns that branch into the ceiling like a forest nave (`nature.tree_columns`).
+  Water lilies drifting in loose clusters on the pool, some in flower (`nature.lily_pads`).
 - **Atmosphere:** volumetric haze, drifting dust motes, a floating camera with independent look-at drift, and depth of field focused on the screen.
 - **Look:** AgX tone mapping, compositor bloom and lens dispersion, then an ffmpeg grade (lavender lift, halation, chroma shift, grain, vignette). An optional `crt_on_tv` mode adds the "filmed off a TV" look.
 - **Sound:** a detuned maj9 pad slowed ×0.975, FM glass bells, water lapping and drips, a 4.8 s room reverb, tape wow and hiss.
