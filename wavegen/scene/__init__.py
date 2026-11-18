@@ -10,6 +10,8 @@ def build_scene(cfg: dict, blend_path: str | Path | None = None) -> dict:
 
     from . import architecture, atmosphere, camera, nature, props, render, screensaver
 
+    from .. import layout
+    layout.check(cfg)                            # a bad layout is refused before the open scene is reset
     emblem_images = None
     cc = cfg.get("computer", {})
     if cc.get("enabled", True):

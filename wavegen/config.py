@@ -17,6 +17,8 @@ import os
 import random
 from pathlib import Path
 
+from . import layout
+
 PRESET_DIR = Path(__file__).parent / "presets"
 
 # Colors are linear-ish RGB in 0..1 (Blender takes scene-linear values).
@@ -499,4 +501,5 @@ def mutate(cfg: dict, seed: int, strength: float = 1.0) -> dict:
     cam["lens"] = rng.choice([22.0, 24.0, 24.0, 28.0])
     c["computer"]["rotation_z"] = rng.uniform(18, 36)
     c["audio"]["chords"] = rng.sample(cfg["audio"]["chords"], len(cfg["audio"]["chords"]))
+    layout.refit_nature(cfg, c)                 # plants follow the new walls and pool
     return c
