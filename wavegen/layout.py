@@ -44,3 +44,36 @@ def check_plants(cfg: dict) -> None:
     pl = cfg["nature"]["plants"]
     for i, (x, y, _) in enumerate(pl["spots"]):
         check_spot(cfg, f"plant {i}", x, y, pl["pot_radius"])
+
+
+def fits(cfg: dict, x: float, y: float, r: float) -> bool:
+    try:
+        check_spot(cfg, "", x, y, r)
+    except ValueError:
+        return False
+    return True
+
+
+def _refit(old: dict, new: dict, spots: list, r: float) -> list[int]:
+    """Indices of ``spots`` kept after moving them in place: each is scaled with the
+    room from ``old`` to ``new``, and dropped if it then lands in the pool or a wall."""
+    sx = new["room"]["width"] / old["room"]["width"]
+    sy = new["room"]["depth"] / old["room"]["depth"]
+    keep = []
+    for i, (x, y, *rest) in enumerate(spots):
+        x, y = round(x * sx, 3), round(Y0 + (y - Y0) * sy, 3)
+        spots[i] = [x, y, *rest]
+        if fits(new, x, y, r):
+            keep.append(i)
+    return keep
+
+
+def refit_nature(old: dict, new: dict) -> None:
+    """After ``new`` has redrawn the room and pool of ``old`` (``config.mutate``), move the
+    natural features' spots with it so none ends up in the pool or through a wall."""
+    pl = (new.get("nature") or {}).get("plants")
+    if pl:
+        keep = _refit(old, new, pl["spots"], pl["pot_radius"])
+        kinds = pl["kinds"]
+        pl["kinds"] = [kinds[i % len(kinds)] for i in keep] or kinds   # each plant keeps its kind
+        pl["spots"] = [pl["spots"][i] for i in keep]

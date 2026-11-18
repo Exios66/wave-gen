@@ -43,3 +43,13 @@ def test_a_plant_through_a_wall_is_refused():
     cfg["nature"]["plants"]["spots"] = [[cfg["room"]["width"] / 2 - 0.1, 10.0, 2.0]]
     with pytest.raises(ValueError, match="plant 0 .* outside the room"):
         layout.check_plants(cfg)
+
+
+def test_variants_keep_the_plants_on_the_floor():
+    cfg = _cfg("nature.plants.enabled=true")
+    kept = 0
+    for seed in range(40):
+        v = config.mutate(cfg, seed=seed)
+        layout.check_plants(v)                       # every pot in the room, none in the pool
+        kept += len(v["nature"]["plants"]["spots"])
+    assert kept > 40 * len(cfg["nature"]["plants"]["spots"]) * 0.7   # most survive the new layout
