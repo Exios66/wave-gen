@@ -60,8 +60,10 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
     first and rejected: a lower bloom threshold or doubled bloom strength hazed
     the whole frame (score 0.82 to 0.78 and 0.80), and stronger lamp washers
     lowered the score (0.813 and 0.804).
-12. **Small ceiling downlights.** The reference has a few bright points high on
-    the right wall and ceiling. We have none.
+12. **Small ceiling downlights (fixed).** A row of small warm discs now sits in
+    the flat ceiling over the right walkway (`lights.downlights`), giving the
+    reference's bright points high on the right. They are glowing discs only,
+    with no lamp behind them, so they add no render time or noise.
 
 ### Camera and finish
 13. **Film softness.** The reference is soft, slightly hazy and low-contrast,

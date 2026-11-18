@@ -101,7 +101,10 @@
     "cove_power": 4400.0,
     "alcove_height": 0.66,
     "halo_radius": 0.9,
-    "halo_strength": 6.0
+    "halo_strength": 6.0,
+    "downlights": {
+      "count": 4
+    }
   },
   "atmosphere": {
     "dust_count": 90,

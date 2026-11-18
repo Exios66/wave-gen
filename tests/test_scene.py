@@ -777,3 +777,40 @@ def test_poolrooms_kerb_follows_the_notched_edge_and_never_sits_on_the_water(sce
     assert kerbed(px0 - h, (py0 + py1 - d) / 2) and kerbed(px1 + h, (py0 + py1) / 2)
     assert kerbed((px0 + px1) / 2, py0 - h)
     assert not kerbed(px0 + w / 2 - c, py1 + h)     # no kerb left stranded behind the step
+
+
+# ---- ceiling downlights --------------------------------------------------------
+
+def _downlights():
+    return sorted((o for o in bpy.data.objects if o.name.startswith("Downlight.")), key=lambda o: o.name)
+
+
+def test_no_ceiling_downlights_by_default():
+    cfg = config.load(None, ["atmosphere.dust_count=0"])
+    assert cfg["lights"]["downlights"]["count"] == 0
+    build_scene(cfg)
+    assert not _downlights()
+
+
+def test_poolrooms_has_a_row_of_small_downlights_over_the_right_walkway(scene):
+    cfg, sc = scene
+    bpy.context.view_layer.update()
+    room, dl = cfg["room"], cfg["lights"]["downlights"]
+    lamps = _downlights()
+    assert len(lamps) == dl["count"] >= 3
+    x1, inset = room["width"] / 2, room["ceiling_tray"]["inset"]
+    ys = [o.matrix_world.translation.y for o in lamps]
+    assert ys == sorted(ys) and len(set(round(y, 3) for y in ys)) == len(ys)
+    for o in lamps:
+        x, y, z = o.matrix_world.translation
+        assert x1 - inset < x < x1                              # on the flat margin beside the tray
+        assert 0 < room["height"] - z < 0.02                    # flush under the ceiling
+        assert -3.5 < y < -3.5 + room["depth"]
+        lo, hi = _world_bounds(o)
+        assert hi[0] - lo[0] <= 0.3                             # small points, not panels
+        em = o.material_slots[0].material.node_tree.nodes["Emission"]
+        assert em.inputs["Strength"].default_value >= 5
+        assert o.material_slots[0].material.cycles.emission_sampling == "NONE"   # a glow, not a light to sample
+    sc.frame_set(1)
+    seen = [p for p in (_project(sc, o) for o in lamps) if 0 < p.x < 1 and 0 < p.y < 1 and p.z > 0]
+    assert len(seen) >= 2 and all(p.x > 0.6 and p.y > 0.7 for p in seen)   # bright points high on the right
