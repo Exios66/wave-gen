@@ -10,10 +10,13 @@ poolrooms
 ├── catenary_nave
 ├── lavender_hall
 ├── palm_solarium
+│   └── palm_solarium_doorway
 ├── poolrooms_dusk
 │   └── lotus_court
+│       └── lotus_court_doorway
 ├── poolrooms_night
 │   └── moonlit_conservatory
+│       └── moonlit_conservatory_doorway
 └── rose_natatorium
 ```
 
@@ -41,11 +44,21 @@ Lavender hall: a tall violet room with one very wide back arch, matched to the W
 
 ![lotus_court](presets/lotus_court.jpg)
 
-Lotus court: the dusk room as a water garden, seen from the doorway looking down onto the water. Lily pads drift in clusters with pink blooms, ferns soften the edges, the floor is laid in honeycomb.
+Lotus court: the dusk room as a water garden. Lily pads drift in clusters with pink blooms, ferns soften the edges, the floor is laid in honeycomb.
 
 - Builds on `poolrooms_dusk` (lineage: lotus_court -> poolrooms_dusk -> poolrooms)
 - Tags: nature, dusk, pink, water-garden
-- Changes: palette (2), room (1), nature (7), camera (3)
+- Changes: palette (2), room (1), nature (7)
+
+## lotus_court_doorway
+
+![lotus_court_doorway](presets/lotus_court_doorway.jpg)
+
+Lotus court from the doorway: the same water garden seen from higher up, looking down onto the water, so the lily pads and their blooms show in full.
+
+- Builds on `lotus_court` (lineage: lotus_court_doorway -> lotus_court -> poolrooms_dusk -> poolrooms)
+- Tags: nature, dusk, pink, water-garden, doorway
+- Changes: camera (3)
 
 ## moonlit_conservatory
 
@@ -55,17 +68,37 @@ Moonlit conservatory: the night room under an open canopy. Pale moonbeams slant 
 
 - Builds on `poolrooms_night` (lineage: moonlit_conservatory -> poolrooms_night -> poolrooms)
 - Tags: nature, night, blue, moon
-- Changes: palette (1), nature (9), atmosphere (1), camera (3)
+- Changes: palette (1), nature (9), atmosphere (1)
+
+## moonlit_conservatory_doorway
+
+![moonlit_conservatory_doorway](presets/moonlit_conservatory_doorway.jpg)
+
+Moonlit conservatory from the doorway: the same night room seen from higher up, looking down the moonbeams onto the water.
+
+- Builds on `moonlit_conservatory` (lineage: moonlit_conservatory_doorway -> moonlit_conservatory -> poolrooms_night -> poolrooms)
+- Tags: nature, night, blue, moon, doorway
+- Changes: camera (3)
 
 ## palm_solarium
 
 ![palm_solarium](presets/palm_solarium.jpg)
 
-Palm solarium: an ivory greenhouse. Sun shafts slant through a leaf canopy and dapple the pool floor; areca palms and ferns in planters, lily pads on sea-green water, seen from the doorway.
+Palm solarium: an ivory greenhouse. Sun shafts slant through a leaf canopy into the haze and dapple the walls and water; areca palms and ferns in planters, lily pads on sea-green water.
 
 - Builds on `poolrooms` (lineage: palm_solarium -> poolrooms)
 - Tags: nature, day, green, sun
-- Changes: palette (9), nature (11), atmosphere (1), post (1), camera (3)
+- Changes: palette (9), nature (11), atmosphere (1), post (1)
+
+## palm_solarium_doorway
+
+![palm_solarium_doorway](presets/palm_solarium_doorway.jpg)
+
+Palm solarium from the doorway: the same greenhouse seen from higher up, looking down the room, so the sun's dapples on the pool floor and the lily pads show.
+
+- Builds on `palm_solarium` (lineage: palm_solarium_doorway -> palm_solarium -> poolrooms)
+- Tags: nature, day, green, sun, doorway
+- Changes: camera (3)
 
 ## poolrooms
 

@@ -101,7 +101,7 @@ setting fixes without costing elsewhere.
 Each is a preset: a JSON file of overrides on `wavegen/config.py`. Presets
 `poolrooms_dusk`, `poolrooms_night`, `rose_natatorium`, `lavender_hall`,
 `palm_solarium`, `catenary_nave`, `lotus_court` and `moonlit_conservatory`
-already exist; see [`PRESETS.md`](PRESETS.md) for thumbnails.
+already exist, the three nature rooms also as `*_doorway` views; see [`PRESETS.md`](PRESETS.md) for thumbnails.
 
 ### Possible today, with config values only
 - **Rose Natatorium** (`rose_natatorium`, done). Blush plaster, cream tile, peach
@@ -121,17 +121,19 @@ already exist; see [`PRESETS.md`](PRESETS.md) for thumbnails.
 ### Nature and biomimicry (the `nature` section, now built)
 - **Palm Solarium** (`palm_solarium`, done). Sun from beyond the far wall
   slants through a swaying leaf canopy as god rays (`nature.skylight.beams`)
-  and dapples the pool floor; areca palms and ferns, lily pads on sea-green
-  water. The camera stands back in the doorway, higher and looking down, so
-  the water shows its floor instead of mirroring the room.
+  and dapples the walls and water; areca palms and ferns, lily pads on
+  sea-green water. `palm_solarium_doorway` stands the camera back in the
+  doorway, higher and looking down, so the water shows its floor and the
+  sun's dapples on it instead of mirroring the room.
 - **Catenary Nave** (`catenary_nave`, done). Gaudí's poolroom: hanging-chain
   (`room.catenary`) arches, tree columns that branch into the ceiling like the
   Sagrada Família's, a honeycomb floor (`room.floor_pattern: "hex"`).
-- **Lotus Court** (`lotus_court`, done). The dusk room as a water garden,
-  seen from the same doorway camera: clustered lily pads in bloom, ferns,
-  honeycomb floor.
+- **Lotus Court** (`lotus_court`, done). The dusk room as a water garden:
+  clustered lily pads in bloom, ferns, honeycomb floor. `lotus_court_doorway`
+  looks down onto the water from the doorway, so the pads show in full.
 - **Moonlit Conservatory** (`moonlit_conservatory`, done). The night room with
-  pale moonbeams slanting through the canopy into the haze.
+  pale moonbeams slanting through the canopy into the haze; also from the
+  doorway as `moonlit_conservatory_doorway`.
 
 Why the beams need their own haze: the room's haze is lit by the cove and
 alcove lights everywhere, which lifts it as much as the sun lifts the shaft,

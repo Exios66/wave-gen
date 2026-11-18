@@ -1,0 +1,25 @@
+{
+  "name": "moonlit_conservatory_doorway",
+  "extends": "moonlit_conservatory",
+  "description": "Moonlit conservatory from the doorway: the same night room seen from higher up, looking down the moonbeams onto the water.",
+  "tags": [
+    "nature",
+    "night",
+    "blue",
+    "moon",
+    "doorway"
+  ],
+  "camera": {
+    "location": [
+      -0.5,
+      -2.4,
+      1.75
+    ],
+    "target": [
+      0.3,
+      12.0,
+      0.6
+    ],
+    "lens": 22.0
+  }
+}

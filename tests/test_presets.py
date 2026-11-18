@@ -109,3 +109,20 @@ def test_the_mood_presets_build_on_the_matched_poolrooms():
         assert cfg["room"] == base["room"] and cfg["pool"]["notch"] == base["pool"]["notch"]   # same room
         assert cfg["computer"]["tilt"] == base["computer"]["tilt"]
         assert cfg["palette"]["plaster"] != base["palette"]["plaster"]                         # its own mood
+
+
+DOORWAY = {"location": [-0.5, -2.4, 1.75], "lens": (22.0, 24.0)}
+
+
+def test_the_nature_rooms_keep_the_house_view_and_their_doorway_twins_look_down():
+    house = config.load("poolrooms")["camera"]
+    for room in ("palm_solarium", "lotus_court", "moonlit_conservatory"):
+        cfg = config.load(room)
+        assert cfg["camera"] == house, f"{room} keeps the house camera"
+        twin = config.load(f"{room}_doorway")
+        info = config.preset_info(f"{room}_doorway")
+        assert info["extends"] == room and "doorway" in info["description"]
+        assert twin["camera"]["location"] == DOORWAY["location"] and twin["camera"]["lens"] in DOORWAY["lens"]
+        twin.pop("camera"), cfg.pop("camera")
+        assert twin.pop("name") == f"{room}_doorway" and cfg.pop("name") == room
+        assert twin == cfg, f"{room}_doorway changes only the camera"
