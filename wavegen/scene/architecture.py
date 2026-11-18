@@ -14,10 +14,10 @@ from mathutils import Matrix
 
 from . import materials as M
 from ..frames import loop_frame_count
+from ..layout import Y0
 from .util import (arch_profile, bevel, box, boolean_cut_collection, collection,
                    cutter_collection_union, extruded_profile, look_at_matrix, obj_from_bmesh, smooth_shade)
 
-Y0 = -3.5
 
 
 def _spread(total: float, widths: list[float]) -> list[float]:
