@@ -103,10 +103,10 @@ def _skylight(cfg: dict, bounds) -> None:
     so.rotation_euler = look_at_matrix(so.location, tuple(so.location[k] - s[k] for k in range(3))).to_euler()
     collection("Lights").objects.link(so)
     if sky["beams"]["density"] > 0:
-        _sunbeams(cfg, bounds, so)
+        _sunbeams(cfg, bounds)
 
 
-def _sunbeams(cfg: dict, bounds, sun) -> None:
+def _sunbeams(cfg: dict, bounds) -> None:
     """Haze lit by the sun alone (Cycles light linking): every other light and glowing
     surface skips it. Light bounced off the walls and the sky can't be unlinked, so the
     haze fills only the sun's shaft, the opening swept down-sun to the floor (plus a
@@ -139,6 +139,15 @@ def _sunbeams(cfg: dict, bounds, sun) -> None:
     skip = bpy.data.collections.new("NoSunbeams")
     skip.objects.link(beams)
     skip.collection_objects[0].light_linking.link_state = "EXCLUDE"
+
+
+def _unlink_sunbeams() -> None:
+    """Keep every light and glowing surface but the sun off the beam haze. Run last, so
+    emitters built after the skylight (the lily hearts) are covered too."""
+    beams, sun = bpy.data.objects.get("Sunbeams"), bpy.data.objects.get("Sun")
+    if beams is None:
+        return
+    skip = bpy.data.collections["NoSunbeams"]
     for o in bpy.data.objects:
         if o is not sun and o is not beams and o.type in ("LIGHT", "MESH"):
             o.light_linking.receiver_collection = skip
@@ -491,3 +500,4 @@ def build(cfg: dict, bounds) -> None:
         _tree_columns(cfg)
     if nat.get("lily_pads", {}).get("enabled"):
         _lily_pads(cfg)
+    _unlink_sunbeams()

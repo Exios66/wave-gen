@@ -256,3 +256,14 @@ def test_sunbeam_haze_is_lit_by_the_sun_alone():
         entry = next(e for ob, e in zip(rc.objects, rc.collection_objects) if ob is beams)
         assert entry.light_linking.link_state == "EXCLUDE"
     assert beams.visible_shadow is False
+
+
+def test_glowing_lily_hearts_also_skip_the_sunbeams():
+    _build(*BEAMS, "nature.lily_pads.enabled=true", "nature.lily_pads.flowers=1")
+    hearts = [o for o in bpy.data.objects if o.name.startswith("LilyHeart.")]
+    assert hearts
+    beams = bpy.data.objects["Sunbeams"]
+    for o in hearts:                                             # built after the skylight, still excluded
+        rc = o.light_linking.receiver_collection
+        assert rc is not None and beams.name in rc.objects
+    assert bpy.data.objects["Sun"].light_linking.receiver_collection is None
