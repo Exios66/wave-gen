@@ -212,3 +212,58 @@ def test_tree_branches_stay_inside_the_walls():
         col = bpy.data.objects[f"TreeColumn.{i}"]
         xs = [(col.matrix_world @ v.co).x for v in col.data.vertices]
         assert -W / 2 < min(xs) and max(xs) < W / 2
+
+
+BEAMS = SKY + ["nature.skylight.beams.density=0.05"]
+
+
+def test_no_sunbeam_haze_unless_asked():
+    _build(*SKY)
+    assert "Sunbeams" not in bpy.data.objects
+
+
+def test_sunbeam_haze_fills_only_the_suns_shaft():
+    # bounced light and the sky can't be unlinked, so the haze must not reach past the shaft
+    from wavegen.scene.nature import sun_direction
+    cfg = _build(*BEAMS)
+    sky = cfg["nature"]["skylight"]
+    sx, sy, sz = sun_direction(sky["sun_elevation"], sky["sun_azimuth"])
+    o = bpy.data.objects["Sunbeams"]
+    vs = [o.matrix_world @ v.co for v in o.data.vertices]
+    top, low = max(v.z for v in vs), min(v.z for v in vs)
+    ring = lambda z: [v for v in vs if abs(v.z - z) < 1e-4]
+    mid = lambda pts, k: sum(p[k] for p in pts) / len(pts)
+    (cx, cy), (w, d) = sky["center"], sky["size"]
+    assert (mid(ring(top), 0), mid(ring(top), 1)) == pytest.approx((cx, cy), abs=1e-3)
+    drop = top - low                                           # the footprint slides down-sun
+    assert (mid(ring(low), 0), mid(ring(low), 1)) == pytest.approx((cx - sx / sz * drop, cy - sy / sz * drop), abs=1e-3)
+    span = max(v.x for v in ring(low)) - min(v.x for v in ring(low))
+    assert w < span < w + 1.0                                  # the opening plus a little penumbra, not the room
+
+
+def test_sunbeam_haze_skips_the_rooms_own_lights():
+    cfg = _build(*BEAMS)
+    beams = bpy.data.objects["Sunbeams"]
+    vol = beams.active_material.node_tree.nodes["Principled Volume"]
+    assert vol.inputs["Density"].default_value == pytest.approx(0.05)
+    assert vol.inputs["Anisotropy"].default_value == pytest.approx(cfg["nature"]["skylight"]["beams"]["anisotropy"])
+    sun = bpy.data.objects["Sun"]
+    assert sun.light_linking.receiver_collection is None            # the sun lights everything
+    others = [o for o in bpy.data.objects if o.type == "LIGHT" and o is not sun]
+    assert others
+    for o in others:                                                # every other light skips the beams
+        rc = o.light_linking.receiver_collection
+        entry = next(e for ob, e in zip(rc.objects, rc.collection_objects) if ob is beams)
+        assert entry.light_linking.link_state == "EXCLUDE"
+    assert beams.visible_shadow is False
+
+
+def test_glowing_lily_hearts_also_skip_the_sunbeams():
+    _build(*BEAMS, "nature.lily_pads.enabled=true", "nature.lily_pads.flowers=1")
+    hearts = [o for o in bpy.data.objects if o.name.startswith("LilyHeart.")]
+    assert hearts
+    beams = bpy.data.objects["Sunbeams"]
+    for o in hearts:                                             # built after the skylight, still excluded
+        rc = o.light_linking.receiver_collection
+        assert rc is not None and beams.name in rc.objects
+    assert bpy.data.objects["Sun"].light_linking.receiver_collection is None

@@ -102,6 +102,56 @@ def _skylight(cfg: dict, bounds) -> None:
     so.location = (cx, cy, cz + 3.0)
     so.rotation_euler = look_at_matrix(so.location, tuple(so.location[k] - s[k] for k in range(3))).to_euler()
     collection("Lights").objects.link(so)
+    if sky["beams"]["density"] > 0:
+        _sunbeams(cfg, bounds)
+
+
+def _sunbeams(cfg: dict, bounds) -> None:
+    """Haze for the sun's beams. Every other light and glowing surface skips it (Cycles
+    light linking), but light bounced off the walls and the sky can't be unlinked and
+    still reach it. So the haze fills only the sun's shaft, the opening swept down-sun
+    to the floor (plus a little for the penumbra): inside it the sun outshines that
+    faint fill, and the rest of the room stays clear."""
+    import bmesh
+
+    from .util import obj_from_bmesh
+    sky, room = cfg["nature"]["skylight"], cfg["room"]
+    tray = room["ceiling_tray"]
+    sx, sy, sz = sun_direction(sky["sun_elevation"], sky["sun_azimuth"])
+    (cx, cy), (w, d) = sky["center"], sky["size"]
+    pad = 0.25
+    top, low = bounds[4] + tray["steps"] * tray["step_height"], 0.02
+    dx, dy = -sx / sz * (top - low), -sy / sz * (top - low)
+    rect = [(cx - w / 2 - pad, cy - d / 2 - pad), (cx + w / 2 + pad, cy - d / 2 - pad),
+            (cx + w / 2 + pad, cy + d / 2 + pad), (cx - w / 2 - pad, cy + d / 2 + pad)]
+    bm = bmesh.new()
+    up = [bm.verts.new((x, y, top)) for x, y in rect]
+    down = [bm.verts.new((x + dx, y + dy, low)) for x, y in rect]
+    bm.faces.new(up)
+    bm.faces.new(list(reversed(down)))
+    for i in range(4):
+        j = (i + 1) % 4
+        bm.faces.new((down[i], down[j], up[j], up[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bms = sky["beams"]
+    beams = obj_from_bmesh("Sunbeams", bm, collection("Atmosphere"),
+                           M.volume_haze("Sunbeams", cfg["palette"]["haze"], bms["density"], bms["anisotropy"]))
+    beams.visible_shadow = False
+    skip = bpy.data.collections.new("NoSunbeams")
+    skip.objects.link(beams)
+    skip.collection_objects[0].light_linking.link_state = "EXCLUDE"
+
+
+def _unlink_sunbeams() -> None:
+    """Keep every light and glowing surface but the sun off the beam haze. Run last, so
+    emitters built after the skylight (the lily hearts) are covered too."""
+    beams, sun = bpy.data.objects.get("Sunbeams"), bpy.data.objects.get("Sun")
+    if beams is None:
+        return
+    skip = bpy.data.collections["NoSunbeams"]
+    for o in bpy.data.objects:
+        if o is not sun and o is not beams and o.type in ("LIGHT", "MESH"):
+            o.light_linking.receiver_collection = skip
 
 
 
@@ -451,3 +501,4 @@ def build(cfg: dict, bounds) -> None:
         _tree_columns(cfg)
     if nat.get("lily_pads", {}).get("enabled"):
         _lily_pads(cfg)
+    _unlink_sunbeams()
