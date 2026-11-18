@@ -70,7 +70,7 @@ python -m wavegen still --set camera.lens=18 --set palette.water=[0.7,0.9,1.0] \
 | `catenary_nave` | builds on `poolrooms`: Gaudí's poolroom, hanging-chain arches, branching tree columns, a honeycomb floor, sandstone and teal |
 | `lotus_court` | builds on `poolrooms_dusk`: a dusk water garden, lily pads in bloom, ferns, honeycomb floor |
 | `moonlit_conservatory` | builds on `poolrooms_night`: pale moonbeams slanting through the canopy into the haze, palms in the dark |
-| `palm_solarium_doorway`, `lotus_court_doorway`, `moonlit_conservatory_doorway` | the same three rooms from the doorway: higher and looking down, so the pool floor's sun dapples and the lily pads show |
+| `palm_solarium_doorway`, `lotus_court_doorway`, `moonlit_conservatory_doorway` | the same three rooms from the doorway: higher and looking down, so the water shows its floor and lily pads instead of mirroring the room (and, in the solarium, the sun's dapples on the pool floor) |
 
 [`docs/PRESETS.md`](docs/PRESETS.md) shows every preset with a thumbnail and its family tree.
 
