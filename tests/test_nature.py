@@ -101,3 +101,40 @@ def test_plants_sway_and_the_loop_still_closes():
 def test_a_plant_in_the_pool_is_refused():
     with pytest.raises(ValueError, match="in the pool"):
         _build("nature.plants.enabled=true", "nature.plants.spots=[[1.0,10.0,2.0]]")
+
+
+TREES = ["nature.tree_columns.enabled=true", "nature.tree_columns.spots=[[-5.5,12.0]]",
+         "nature.tree_columns.branches=4"]
+
+
+def test_ceiling_height_follows_the_tray_steps():
+    from wavegen.scene.nature import ceiling_z
+    cfg = config.load("poolrooms")
+    room, t = cfg["room"], cfg["room"]["ceiling_tray"]
+    H = room["height"]
+    assert ceiling_z(cfg, -room["width"] / 2 + 0.1, 10.0) == pytest.approx(H)            # beside the wall
+    assert ceiling_z(cfg, 0.0, 12.0) == pytest.approx(H + t["steps"] * t["step_height"])  # in the deepest step
+
+
+def test_tree_columns_are_off_by_default():
+    _build()
+    assert not any(n.startswith("TreeColumn") for n in bpy.data.objects.keys())
+
+
+def test_a_tree_column_stands_on_the_floor_and_its_branches_meet_the_ceiling():
+    from wavegen.scene.nature import ceiling_z
+    cfg = _build(*TREES)
+    col = bpy.data.objects["TreeColumn.0"]
+    zs = [(col.matrix_world @ v.co).z for v in col.data.vertices]
+    assert min(zs) == pytest.approx(0.0, abs=0.02)
+    tips = [tuple(col["tips"][i:i + 3]) for i in range(0, len(col["tips"]), 3)]
+    assert len(tips) == 4 * 2                                   # each limb forks once more
+    for x, y, z in tips:
+        assert z == pytest.approx(ceiling_z(cfg, x, y) + 0.05, abs=1e-4)
+    spread = max(math.hypot(x + 5.5, y - 12.0) for x, y, _ in tips)
+    assert 0.8 < spread <= cfg["nature"]["tree_columns"]["spread"] + 1e-6
+
+
+def test_a_tree_column_in_the_pool_is_refused():
+    with pytest.raises(ValueError, match="in the pool"):
+        _build("nature.tree_columns.enabled=true", "nature.tree_columns.spots=[[1.0,10.0]]")

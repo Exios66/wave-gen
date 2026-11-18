@@ -69,6 +69,7 @@ DEFAULTS: dict = {
         "sun": [1.0, 0.9, 0.74],
         "leaf": [0.2, 0.42, 0.14],
         "planter": [0.93, 0.9, 0.86],
+        "column": None,                         # tree columns; None = plaster
         "icon": [[1.0, 0.45, 0.65], [1.0, 0.85, 0.35], [0.45, 1.0, 0.65],
                  [0.40, 0.75, 1.0], [0.75, 0.50, 1.0], [1.0, 0.60, 0.40]],
     },
@@ -181,6 +182,15 @@ DEFAULTS: dict = {
             "pot_radius": 0.32,
             "sway": 0.025,              # radians of slow sway (0 = still)
             "sway_period": 9.0,         # seconds, rounded to whole cycles per loop
+        },
+        # branching columns that hold the ceiling up like trees (after the Sagrada Familia nave)
+        "tree_columns": {
+            "enabled": False,
+            "spots": [[7.25, 12.5], [7.25, 19.0]],   # between the default palms on the right walkway
+            "trunk_radius": 0.22,
+            "split": 0.5,               # where the trunk branches, as a share of the room height
+            "branches": 4,              # limbs from the trunk; each forks once more toward the ceiling
+            "spread": 1.5,              # how far the branch tips reach from the trunk (m)
         },
     },
     "atmosphere": {

@@ -1,4 +1,4 @@
-"""Natural features: sun through a skylight under a swaying leaf canopy, potted plants.
+"""Natural features: sun through a skylight under a swaying leaf canopy, potted plants, tree columns.
 
 Everything here is off by default (``cfg["nature"]``), so presets that do not ask
 for it render exactly as before.
@@ -252,9 +252,101 @@ def _plants(cfg: dict) -> None:
                       periodic_expr(0.0, pl["sway"], cyc + axis, rng.uniform(0, 6.28), n), axis)
 
 
+# ---- tree columns ------------------------------------------------------------------
+
+def ceiling_z(cfg: dict, x: float, y: float) -> float:
+    """Height of the ceiling's underside above (x, y): the flat ceiling, or the floor of
+    the deepest tray step that covers the point."""
+    from .architecture import Y0
+    room = cfg["room"]
+    W, D, H = room["width"], room["depth"], room["height"]
+    t = room["ceiling_tray"]
+    z = H
+    for i in range(t["steps"]):
+        ins = t["inset"] + i * 0.45
+        if -W / 2 + ins < x < W / 2 - ins and Y0 + ins + 1.0 < y < Y0 + D - ins:
+            z = H + (i + 1) * t["step_height"]
+    return z
+
+
+def _bezier(p0, p1, p2, n: int):
+    return [tuple((1 - t) ** 2 * p0[k] + 2 * (1 - t) * t * p1[k] + t * t * p2[k] for k in range(3))
+            for t in (i / n for i in range(n + 1))]
+
+
+def _tube(bm, pts, radius) -> None:
+    """A smooth tube through ``pts``; ``radius(t)`` gives the radius along it (t in 0..1)."""
+    from mathutils import Vector
+    rings, seg = [], 14
+    for i, p in enumerate(pts):
+        a, b = Vector(pts[max(i - 1, 0)]), Vector(pts[min(i + 1, len(pts) - 1)])
+        tan = (b - a).normalized()
+        ref = Vector((0, 0, 1)) if abs(tan.z) < 0.95 else Vector((1, 0, 0))
+        u = ref.cross(tan).normalized()
+        v = tan.cross(u)
+        r = radius(i / (len(pts) - 1))
+        rings.append([bm.verts.new(Vector(p) + (u * math.cos(2 * math.pi * j / seg) +
+                                                v * math.sin(2 * math.pi * j / seg)) * r) for j in range(seg)])
+    for r0, r1 in zip(rings, rings[1:]):
+        for j in range(seg):
+            bm.faces.new((r0[j], r0[(j + 1) % seg], r1[(j + 1) % seg], r1[j]))
+
+
+def _tree_columns(cfg: dict) -> None:
+    import random
+
+    import bmesh
+
+    from .util import obj_from_bmesh, smooth_shade
+    tc, pal, pool, room = cfg["nature"]["tree_columns"], cfg["palette"], cfg["pool"], cfg["room"]
+    (px0, px1), (py0, py1), c = pool["x"], pool["y"], pool["coping"]
+    H = room["height"]
+    col = collection("Nature")
+    mat = M.plaster("TreeColumn", pal.get("column") or pal["plaster"])
+    r0, reach = tc["trunk_radius"], tc["spread"]
+    for i, (x, y) in enumerate(tc["spots"]):
+        if px0 - c - r0 < x < px1 + c + r0 and py0 - c - r0 < y < py1 + c + r0:
+            raise ValueError(f"tree column {i} at ({x}, {y}) is in the pool; move it onto the floor")
+        rng = random.Random(cfg["seed"] * 977 + i)
+        bm = bmesh.new()
+        node = (x, y, tc["split"] * H)
+        # the trunk, flaring a little at its foot
+        _tube(bm, _bezier((x, y, 0.0), (x, y, node[2] / 2), node, 12),
+              lambda t: r0 * (1.0 + 0.35 * (1 - t) ** 4 - 0.2 * t))
+        joints = [(node, r0 * 0.8)]
+        tips = []
+        spin = rng.uniform(0, 2 * math.pi)
+        r1 = r0 * 0.72
+        for k in range(tc["branches"]):
+            th = spin + 2 * math.pi * k / tc["branches"] + rng.uniform(-0.15, 0.15)
+            mx, my = x + math.cos(th) * reach * 0.42, y + math.sin(th) * reach * 0.42
+            mz = node[2] + (ceiling_z(cfg, mx, my) - node[2]) * 0.5
+            mid = (mx, my, mz)
+            _tube(bm, _bezier(node, (x + (mx - x) * 0.25, y + (my - y) * 0.25, (node[2] + mz) / 2), mid, 10),
+                  lambda t: r0 * 0.8 + (r1 - r0 * 0.8) * t)
+            joints.append((mid, r1))
+            for fork in (-0.42, 0.42):
+                a = th + fork + rng.uniform(-0.08, 0.08)
+                tx, ty = x + math.cos(a) * reach, y + math.sin(a) * reach
+                tip = (tx, ty, ceiling_z(cfg, tx, ty) + 0.05)
+                ctrl = (mx + (tx - mx) * 0.3, my + (ty - my) * 0.3, mz + (tip[2] - mz) * 0.7)
+                # thinning toward the ceiling, then spreading into a small capital where it meets it
+                _tube(bm, _bezier(mid, ctrl, tip, 12),
+                      lambda t: r1 * (1 - 0.35 * t) * (1 + 1.2 * max(0.0, t - 0.82) / 0.18))
+                tips.append(tip)
+        for p, r in joints:
+            ball = bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=r)
+            bmesh.ops.translate(bm, verts=ball["verts"], vec=p)
+        obj = obj_from_bmesh(f"TreeColumn.{i}", bm, col, mat, smooth=True)
+        smooth_shade(obj, 60.0)
+        obj["tips"] = [v for t in tips for v in t]
+
+
 def build(cfg: dict, bounds) -> None:
     nat = cfg.get("nature") or {}
     if nat.get("skylight", {}).get("enabled"):
         _skylight(cfg, bounds)
     if nat.get("plants", {}).get("enabled"):
         _plants(cfg)
+    if nat.get("tree_columns", {}).get("enabled"):
+        _tree_columns(cfg)
