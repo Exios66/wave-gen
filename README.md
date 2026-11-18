@@ -135,8 +135,9 @@ chord order, and the result is deterministic for a given seed.
 - **Props:** a generic beige all-in-one CRT computer, keyboard and desk, plus a spinning, tumbling pastel screensaver icon.
 - **Nature** (off unless a preset asks): a skylight with sun falling through a swaying leaf canopy,
   casting dappled light across walls and water (`nature.skylight`). With
-  `nature.skylight.beams` a haze only the sun lights (Cycles light linking) turns
-  its path into god rays that stand out of the room's own glow.
+  `nature.skylight.beams` a haze confined to the sun's shaft turns its path into
+  god rays that stand out of the room's own glow. The room's lights are unlinked
+  from it (Cycles light linking); bounced light and the sky still reach it, faintly.
   Potted areca palms and Boston ferns grown from the seed, swaying gently (`nature.plants`).
   Tree columns that branch into the ceiling like a forest nave (`nature.tree_columns`).
   Water lilies drifting in loose clusters on the pool, some in flower (`nature.lily_pads`).

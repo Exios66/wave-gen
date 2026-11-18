@@ -178,7 +178,8 @@ DEFAULTS: dict = {
             "sun_azimuth": 270.0,       # 0 = behind the camera, 90 = right, 180 = beyond the far wall, 270 = left
             "sun_angle": 1.2,           # apparent sun diameter in degrees: larger = softer dapples
             "canopy": {"height": 2.0, "coverage": 0.4, "scale": 1.4, "sway": 0.12},
-            # a haze only the sun lights, so its shafts stand out of the room's own glow; 0 = none.
+            # a haze filling only the sun's shaft, unlit by the room's lights (bounced light and the
+            # sky still reach it, faintly), so the shaft stands out of the room's own glow; 0 = none.
             # Strongest looking toward the sun: put it beyond the far wall (azimuth ~180).
             "beams": {"density": 0.0, "anisotropy": 0.65},
         },

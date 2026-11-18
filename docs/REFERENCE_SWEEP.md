@@ -135,11 +135,13 @@ already exist; see [`PRESETS.md`](PRESETS.md) for thumbnails.
 
 Why the beams need their own haze: the room's haze is lit by the cove and
 alcove lights everywhere, which lifts it as much as the sun lifts the shaft,
-so no beam shows however thick it is. A second haze that only the sun lights
-has nothing but the shaft in it. Beams read best looking toward the sun
-(azimuth ~155, forward-scattering anisotropy 0.75). Bounced light and the sky
-can't be unlinked, so the beam haze fills only the sun's shaft, the opening
-swept down-sun to the floor, and the rest of the room stays clear.
+so no beam shows however thick it is. The beams get a second haze that the
+room's lights are unlinked from (Cycles light linking). Bounced light and the
+sky can't be unlinked, so they still reach it, and it fills only the sun's
+shaft, the opening swept down-sun to the floor: there the sun outshines that
+faint fill (about 3.5/255 with the sun off, on `palm_solarium`), and the rest
+of the room stays clear. Beams read best looking toward the sun (azimuth ~155,
+forward-scattering anisotropy 0.75).
 
 ### Need one new feature each
 - **Glowing Pool.** Underwater lights so the water lights the room from below.

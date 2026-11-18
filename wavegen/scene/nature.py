@@ -107,10 +107,11 @@ def _skylight(cfg: dict, bounds) -> None:
 
 
 def _sunbeams(cfg: dict, bounds) -> None:
-    """Haze lit by the sun alone (Cycles light linking): every other light and glowing
-    surface skips it. Light bounced off the walls and the sky can't be unlinked, so the
-    haze fills only the sun's shaft, the opening swept down-sun to the floor (plus a
-    little for the penumbra), and the rest of the room stays clear."""
+    """Haze for the sun's beams. Every other light and glowing surface skips it (Cycles
+    light linking), but light bounced off the walls and the sky can't be unlinked and
+    still reach it. So the haze fills only the sun's shaft, the opening swept down-sun
+    to the floor (plus a little for the penumbra): inside it the sun outshines that
+    faint fill, and the rest of the room stays clear."""
     import bmesh
 
     from .util import obj_from_bmesh

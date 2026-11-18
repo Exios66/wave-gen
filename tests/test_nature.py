@@ -241,7 +241,7 @@ def test_sunbeam_haze_fills_only_the_suns_shaft():
     assert w < span < w + 1.0                                  # the opening plus a little penumbra, not the room
 
 
-def test_sunbeam_haze_is_lit_by_the_sun_alone():
+def test_sunbeam_haze_skips_the_rooms_own_lights():
     cfg = _build(*BEAMS)
     beams = bpy.data.objects["Sunbeams"]
     vol = beams.active_material.node_tree.nodes["Principled Volume"]
