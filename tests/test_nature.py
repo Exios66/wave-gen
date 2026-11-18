@@ -186,7 +186,8 @@ def test_lily_pads_bob_and_the_loop_still_closes():
 def test_lily_pads_keep_off_the_notch_step():
     import random
     from wavegen.scene.nature import place_pads
-    cfg = config.load("poolrooms", ["nature.lily_pads.count=40", "nature.lily_pads.clusters=1"])
+    cfg = config.load("poolrooms", ["nature.lily_pads.count=40", "nature.lily_pads.clusters=1",
+                                    "nature.lily_pads.size=[0.15,0.3]"])
     (x0, _), (_, y1) = cfg["pool"]["x"], cfg["pool"]["y"]
     nw, nd = cfg["pool"]["notch"]
     for seed in range(25):
