@@ -1,4 +1,4 @@
-"""Natural features: sun through a skylight under a swaying leaf canopy, potted plants, tree columns.
+"""Natural features: sun through a skylight under a swaying leaf canopy, potted plants, tree columns, lily pads.
 
 Everything here is off by default (``cfg["nature"]``), so presets that do not ask
 for it render exactly as before.
@@ -342,6 +342,105 @@ def _tree_columns(cfg: dict) -> None:
         obj["tips"] = [v for t in tips for v in t]
 
 
+# ---- lily pads ---------------------------------------------------------------------
+
+def place_pads(cfg: dict, rng) -> list[tuple[float, float, float]]:
+    """(x, y, radius) for each pad: loose clusters inside the pool, none overlapping."""
+    lp, pool = cfg["nature"]["lily_pads"], cfg["pool"]
+    (x0, x1), (y0, y1) = pool["x"], pool["y"]
+    lo, hi = lp["size"]
+    nw, nd = pool.get("notch") or (0.0, 0.0)
+    m = hi + 0.1
+    centres = [(rng.uniform(x0 + m, x1 - m), rng.uniform(y0 + m, y1 - m)) for _ in range(max(1, lp["clusters"]))]
+    pads: list[tuple[float, float, float]] = []
+    for _ in range(20000):
+        if len(pads) == lp["count"]:
+            return pads
+        cx, cy = rng.choice(centres)
+        r = rng.uniform(lo, hi)
+        x, y = rng.gauss(cx, 1.1), rng.gauss(cy, 1.1)
+        if not (x0 + r + 0.05 < x < x1 - r - 0.05 and y0 + r + 0.05 < y < y1 - r - 0.05):
+            continue
+        if nw and nd:                            # the notch's step is floor, not water
+            qx, qy = min(max(x, x0), x0 + nw), min(max(y, y1 - nd), y1)
+            if math.hypot(x - qx, y - qy) < r + 0.05:
+                continue
+        if all(math.hypot(x - px, y - py) >= r + pr + 0.02 for px, py, pr in pads):
+            pads.append((x, y, r))
+    raise ValueError(f"only {len(pads)} of {lp['count']} lily pads fit on the pool; ask for fewer or smaller")
+
+
+def _pad_mesh(r: float):
+    """A round pad with a V notch to its centre and a slightly upturned rim."""
+    import bmesh
+    bm = bmesh.new()
+    notch, seg = 0.16, 30
+    centre = bm.verts.new((0, 0, 0))
+    inner, outer = [], []
+    for k in range(seg + 1):
+        a = notch + (2 * math.pi - 2 * notch) * k / seg
+        inner.append(bm.verts.new((0.82 * r * math.cos(a), 0.82 * r * math.sin(a), 0.0015)))
+        outer.append(bm.verts.new((r * math.cos(a), r * math.sin(a), 0.006)))
+    for k in range(seg):
+        bm.faces.new((centre, inner[k], inner[k + 1]))
+        bm.faces.new((inner[k], outer[k], outer[k + 1], inner[k + 1]))
+    return bm
+
+
+def _flower_mesh(size: float):
+    """Two rings of eight pointed petals opening upward."""
+    import bmesh
+    from mathutils import Vector
+    bm = bmesh.new()
+    for layer, (tilt, length, twist) in enumerate(((0.55, size, 0.0), (1.05, size * 0.8, math.pi / 8))):
+        for k in range(8):
+            a = twist + 2 * math.pi * k / 8
+            out = Vector((math.cos(a) * math.cos(tilt), math.sin(a) * math.cos(tilt), math.sin(tilt)))
+            side = Vector((-math.sin(a), math.cos(a), 0.0))
+            base = Vector((0, 0, 0.004 * layer))
+            w = length * 0.28
+            pts = (base, base + out * (length * 0.45) + side * w, base + out * length,
+                   base + out * (length * 0.45) - side * w)
+            bm.faces.new([bm.verts.new(v) for v in pts])
+    return bm
+
+
+def _lily_pads(cfg: dict) -> None:
+    import random
+
+    import bmesh
+
+    from ..loop import cycles_for, periodic_expr
+    from .util import obj_from_bmesh
+    lp, pal, pool = cfg["nature"]["lily_pads"], cfg["palette"], cfg["pool"]
+    rng = random.Random(cfg["seed"] * 389 + 5)
+    col = collection("Nature")
+    pad_mat = leaf_material("LilyPad", pal["lily_pad"])
+    petal = M.plastic("LilyPetal", pal["lily_flower"], roughness=0.45, sss=0.25)
+    heart = M.emission("LilyHeart", (1.0, 0.82, 0.3), 0.6)
+    n = loop_frame_count(cfg)
+    cyc = cycles_for(7.0, cfg["render"]["seconds"])
+    z0 = pool["water_level"] + 0.002
+    for i, (x, y, r) in enumerate(place_pads(cfg, rng)):
+        pad = obj_from_bmesh(f"LilyPad.{i}", _pad_mesh(r), col, pad_mat, smooth=True)
+        pad.location = (x, y, z0)
+        turn = rng.uniform(0, 2 * math.pi)
+        pad.rotation_euler.z = turn
+        pad["radius"] = r
+        if lp["bob"] > 0:
+            drive(pad, "location", periodic_expr(z0, lp["bob"], cyc, rng.uniform(0, 6.28), n), 2)
+            drive(pad, "rotation_euler", periodic_expr(turn, 0.04, cyc, rng.uniform(0, 6.28), n), 2)
+        if rng.random() < lp["flowers"]:
+            f = obj_from_bmesh(f"LilyFlower.{i}", _flower_mesh(min(0.11, r * 0.45)), col, petal, smooth=True)
+            f.parent = pad
+            f.location = (r * 0.25, 0.0, 0.008)
+            bm = bmesh.new()
+            bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=0.018)
+            c = obj_from_bmesh(f"LilyHeart.{i}", bm, col, heart, smooth=True)
+            c.parent = f
+            c.location = (0, 0, 0.012)
+
+
 def build(cfg: dict, bounds) -> None:
     nat = cfg.get("nature") or {}
     if nat.get("skylight", {}).get("enabled"):
@@ -350,3 +449,5 @@ def build(cfg: dict, bounds) -> None:
         _plants(cfg)
     if nat.get("tree_columns", {}).get("enabled"):
         _tree_columns(cfg)
+    if nat.get("lily_pads", {}).get("enabled"):
+        _lily_pads(cfg)

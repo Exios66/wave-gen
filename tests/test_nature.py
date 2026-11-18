@@ -138,3 +138,59 @@ def test_a_tree_column_stands_on_the_floor_and_its_branches_meet_the_ceiling():
 def test_a_tree_column_in_the_pool_is_refused():
     with pytest.raises(ValueError, match="in the pool"):
         _build("nature.tree_columns.enabled=true", "nature.tree_columns.spots=[[1.0,10.0]]")
+
+
+LILIES = ["nature.lily_pads.enabled=true", "nature.lily_pads.count=14", "nature.lily_pads.flowers=0.3"]
+
+
+def _pads():
+    return sorted((o for o in bpy.data.objects if o.name.startswith("LilyPad.")), key=lambda o: o.name)
+
+
+def test_lily_pads_are_off_by_default():
+    _build()
+    assert not _pads()
+
+
+def test_lily_pads_float_on_the_water_inside_the_pool_without_overlapping():
+    cfg = _build(*LILIES)
+    pool = cfg["pool"]
+    pads = _pads()
+    assert len(pads) == 14
+    (x0, x1), (y0, y1) = pool["x"], pool["y"]
+    for p in pads:
+        r = p["radius"]
+        assert x0 < p.location.x - r and p.location.x + r < x1 and y0 < p.location.y - r and p.location.y + r < y1
+        assert abs(p.location.z - pool["water_level"]) < 0.02
+    for i, a in enumerate(pads):
+        for b in pads[i + 1:]:
+            d = math.hypot(a.location.x - b.location.x, a.location.y - b.location.y)
+            assert d >= a["radius"] + b["radius"] - 1e-6
+
+
+def test_some_pads_carry_flowers():
+    _build(*LILIES)
+    flowers = [o for o in bpy.data.objects if o.name.startswith("LilyFlower.")]
+    assert 1 <= len(flowers) <= 14
+    for f in flowers:
+        assert f.parent is not None and f.parent.name.startswith("LilyPad.")
+
+
+def test_lily_pads_bob_and_the_loop_still_closes():
+    cfg = _build(*LILIES)
+    from wavegen.scene.loopcheck import driven_values
+    assert any(k.startswith("LilyPad.0:location") for k in driven_values(1))
+    assert loop_mismatches(cfg) == []
+
+
+def test_lily_pads_keep_off_the_notch_step():
+    import random
+    from wavegen.scene.nature import place_pads
+    cfg = config.load("poolrooms", ["nature.lily_pads.count=40", "nature.lily_pads.clusters=1"])
+    (x0, _), (_, y1) = cfg["pool"]["x"], cfg["pool"]["y"]
+    nw, nd = cfg["pool"]["notch"]
+    for seed in range(25):
+        for x, y, r in place_pads(cfg, random.Random(seed)):
+            # nearest point of the step's rectangle to the pad centre
+            qx, qy = min(max(x, x0), x0 + nw), min(max(y, y1 - nd), y1)
+            assert math.hypot(x - qx, y - qy) >= r, (seed, x, y, r)
