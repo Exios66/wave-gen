@@ -53,3 +53,23 @@ def test_variants_keep_the_plants_on_the_floor():
         layout.check_plants(v)                       # every pot in the room, none in the pool
         kept += len(v["nature"]["plants"]["spots"])
     assert kept > 40 * len(cfg["nature"]["plants"]["spots"]) * 0.7   # most survive the new layout
+
+
+def test_a_tree_column_may_stand_on_the_notch():
+    cfg = _cfg("nature.tree_columns.enabled=true")
+    (x0, _), (_, y1) = cfg["pool"]["x"], cfg["pool"]["y"]
+    cfg["nature"]["tree_columns"]["spots"] = [[x0 + 1.0, y1 - 0.3]]     # on the step of floor
+    layout.check_tree_columns(cfg)
+    cfg["nature"]["tree_columns"]["spots"] = [[1.0, 10.0]]
+    with pytest.raises(ValueError, match="tree column 0 .* in the pool"):
+        layout.check_tree_columns(cfg)
+
+
+def test_variants_keep_the_tree_columns_on_the_floor():
+    cfg = _cfg("nature.tree_columns.enabled=true")
+    kept = 0
+    for seed in range(40):
+        v = config.mutate(cfg, seed=seed)
+        layout.check_tree_columns(v)
+        kept += len(v["nature"]["tree_columns"]["spots"])
+    assert kept > 40 * len(cfg["nature"]["tree_columns"]["spots"]) * 0.7

@@ -46,6 +46,25 @@ def check_plants(cfg: dict) -> None:
         check_spot(cfg, f"plant {i}", x, y, pl["pot_radius"])
 
 
+def check_tree_columns(cfg: dict) -> None:
+    tc = cfg["nature"]["tree_columns"]
+    for i, (x, y) in enumerate(tc["spots"]):
+        check_spot(cfg, f"tree column {i}", x, y, tc["trunk_radius"] * 1.35)    # the flared foot
+
+
+def reach_inside(cfg: dict, x: float, y: float, angle: float, reach: float, margin: float) -> float:
+    """How far from (x, y) toward ``angle`` (radians) a branch may reach and still stay
+    ``margin`` inside the walls: ``reach``, or less near a wall."""
+    x0, x1, y0, y1 = room_box(cfg)
+    dx, dy = math.cos(angle), math.sin(angle)
+    for d, lo, hi, p in ((dx, x0, x1, x), (dy, y0, y1, y)):
+        if d > 1e-9:
+            reach = min(reach, (hi - margin - p) / d)
+        elif d < -1e-9:
+            reach = min(reach, (lo + margin - p) / d)
+    return max(0.0, reach)
+
+
 def fits(cfg: dict, x: float, y: float, r: float) -> bool:
     try:
         check_spot(cfg, "", x, y, r)
@@ -77,3 +96,7 @@ def refit_nature(old: dict, new: dict) -> None:
         kinds = pl["kinds"]
         pl["kinds"] = [kinds[i % len(kinds)] for i in keep] or kinds   # each plant keeps its kind
         pl["spots"] = [pl["spots"][i] for i in keep]
+    tc = (new.get("nature") or {}).get("tree_columns")
+    if tc:
+        keep = _refit(old, new, tc["spots"], tc["trunk_radius"] * 1.35)
+        tc["spots"] = [tc["spots"][i] for i in keep]

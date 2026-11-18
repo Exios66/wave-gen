@@ -146,3 +146,12 @@ def test_a_tree_column_stands_on_the_floor_and_its_branches_meet_the_ceiling():
 def test_a_tree_column_in_the_pool_is_refused():
     with pytest.raises(ValueError, match="in the pool"):
         _build("nature.tree_columns.enabled=true", "nature.tree_columns.spots=[[1.0,10.0]]")
+
+
+def test_tree_branches_stay_inside_the_walls():
+    cfg = _build("nature.tree_columns.enabled=true")              # the default spots stand 0.75 m off the right wall
+    W = cfg["room"]["width"]
+    for i in range(len(cfg["nature"]["tree_columns"]["spots"])):
+        col = bpy.data.objects[f"TreeColumn.{i}"]
+        xs = [(col.matrix_world @ v.co).x for v in col.data.vertices]
+        assert -W / 2 < min(xs) and max(xs) < W / 2
