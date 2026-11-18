@@ -62,8 +62,27 @@ python -m wavegen still --set camera.lens=18 --set palette.water=[0.7,0.9,1.0] \
 | preset | mood |
 |---|---|
 | `poolrooms` | faithful parallel of the reference: cyan tray light, warm alcoves, lavender foreground |
-| `poolrooms_dusk` | peach plaster, rose water, sweeter and slower pad |
-| `poolrooms_night` | after hours: deep blue, magenta neon, thick haze, long reverb |
+| `poolrooms_dusk` | builds on `poolrooms`: peach plaster, rose water, sweeter and slower pad |
+| `poolrooms_night` | builds on `poolrooms`: after hours, deep blue, magenta neon, thick haze, long reverb |
+
+Presets build on one another. A new design names its parent and lists only
+what it changes:
+
+```json
+{
+  "extends": "poolrooms",
+  "description": "Rose natatorium: blush plaster, cream tile, lilac water.",
+  "tags": ["pink", "day"],
+  "palette": {"plaster": [0.92, 0.70, 0.76], "water": [0.80, 0.78, 0.98]}
+}
+```
+
+Everything else, from the room geometry to the grade, comes from the parent,
+so improvements to `poolrooms` reach every preset built on it. A parent is
+looked up beside the child first, then among the bundled presets. A key the
+config does not have (a typo) is refused at load time. `description`, `tags`
+and `_`-prefixed notes never change the render, so rewording them does not
+invalidate frames you have already rendered.
 
 `variants` derives new rooms from any preset by seed. It changes arch count and
 widths, room proportions, pool footprint, lighting balance, palette, lens and

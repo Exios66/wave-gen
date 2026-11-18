@@ -1,6 +1,11 @@
 {
   "name": "poolrooms",
-  "_comment": "Faithful parallel of the reference clip. All values live in wavegen/config.py DEFAULTS; override anything here.",
+  "description": "Faithful parallel of the reference clip: a cyan tiled poolroom with warm lit alcoves, a stepped tray ceiling and a beige CRT on a lavender desk. The base most designs build on.",
+  "tags": [
+    "reference",
+    "day",
+    "cyan"
+  ],
   "render": {
     "exposure": -2.2,
     "lens": {

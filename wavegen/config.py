@@ -1,8 +1,13 @@
 """Preset / configuration handling.
 
-A preset is a JSON file of nested sections. Every preset is deep-merged on
-top of ``DEFAULTS`` so a preset only has to list what it changes. Values can be
-overridden from the CLI with dotted keys, e.g. ``--set render.samples=32``.
+A preset is a JSON file of nested sections that lists only what it changes.
+``"extends": "<preset>"`` builds it on another preset (which may itself extend
+one); the chain ends on ``DEFAULTS``. Values can be overridden from the CLI
+with dotted keys, e.g. ``--set render.samples=32``.
+
+Library notes (``extends``, ``description``, ``tags`` and any ``_``-prefixed
+key) describe a preset and never reach the config, so rewording them does not
+invalidate rendered frames. Any other key the config does not have is refused.
 """
 from __future__ import annotations
 
@@ -224,19 +229,104 @@ def deep_merge(base: dict, over: dict) -> dict:
     return out
 
 
+LIBRARY_KEYS = ("extends", "description", "tags")
+
+
 def list_presets() -> list[str]:
     return sorted(p.stem for p in PRESET_DIR.glob("*.json"))
+
+
+def find_preset(ref: str, near: Path | None = None) -> Path:
+    """Path of preset ``ref``: a path as given, else ``<ref>.json`` beside the preset
+    that asked for it (``near``), else a bundled preset."""
+    path = Path(ref)
+    if path.suffix == ".json" and path.exists():
+        return path
+    for d in ([Path(near)] if near else []) + [PRESET_DIR]:
+        cand = d / (ref if ref.endswith(".json") else f"{ref}.json")
+        if cand.exists():
+            return cand
+    if path.exists():
+        return path
+    raise FileNotFoundError(f"preset '{ref}' not found (have: {', '.join(list_presets())})")
+
+
+def _read(path: Path) -> dict:
+    data = json.loads(path.read_text())
+    if not isinstance(data, dict):
+        raise ValueError(f"preset {path} must be a JSON object")
+    return data
+
+
+def _chain(ref: str, near: Path | None = None) -> list[tuple[Path, dict]]:
+    """``[(path, body), ...]`` from the named preset back to its root ancestor."""
+    out: list[tuple[Path, dict]] = []
+    seen: list[str] = []
+    child = None
+    while ref is not None:
+        try:
+            path = find_preset(ref, near)
+        except FileNotFoundError:
+            if child is None:
+                raise
+            raise FileNotFoundError(f"preset '{child.stem}' extends '{ref}', which was not found "
+                                    f"(have: {', '.join(list_presets())})") from None
+        key = str(path.resolve())
+        if key in seen:
+            names = [p.stem for p, _ in out] + [path.stem]
+            raise ValueError(f"presets extend each other in a loop: {' -> '.join(names)}")
+        seen.append(key)
+        body = _read(path)
+        out.append((path, body))
+        child, near, ref = path, path.parent, body.get("extends")
+    return out
+
+
+def unknown_keys(over: dict, base: dict, path: str = "") -> list[str]:
+    """Dotted keys in ``over`` that ``base`` does not define (library notes excepted)."""
+    bad = []
+    for k, v in over.items():
+        p = f"{path}{k}"
+        if str(k).startswith("_") or (not path and k in LIBRARY_KEYS):
+            continue
+        if k not in base:
+            bad.append(p)
+        elif isinstance(v, dict) and isinstance(base[k], dict):
+            bad += unknown_keys(v, base[k], p + ".")
+    return bad
+
+
+def _strip_notes(node):
+    if isinstance(node, dict):
+        return {k: _strip_notes(v) for k, v in node.items() if not str(k).startswith("_")}
+    return node
+
+
+def lineage(preset: str) -> list[str]:
+    """Names from ``preset`` back to its root ancestor, e.g. ``["dusk", "poolrooms"]``."""
+    return [p.stem for p, _ in _chain(preset)]
+
+
+def preset_info(preset: str) -> dict:
+    """The library notes of one preset (not its parents')."""
+    path, body = _chain(preset)[0]
+    return {"name": body.get("name", path.stem), "extends": body.get("extends"),
+            "description": body.get("description", ""), "tags": list(body.get("tags", [])), "path": str(path)}
 
 
 def load(preset: str | None = None, overrides: list[str] | None = None) -> dict:
     cfg = copy.deepcopy(DEFAULTS)
     if preset:
-        path = Path(preset)
-        if not path.exists():
-            path = PRESET_DIR / f"{preset}.json"
-        if not path.exists():
-            raise FileNotFoundError(f"preset '{preset}' not found (have: {', '.join(list_presets())})")
-        cfg = deep_merge(cfg, json.loads(path.read_text()))
+        chain = _chain(preset)
+        for path, body in chain:
+            bad = unknown_keys(body, DEFAULTS)
+            if bad:
+                raise ValueError(f"preset '{path.stem}' sets keys the config does not have: {', '.join(bad)}")
+        for path, body in reversed(chain):          # root ancestor first, the named preset last
+            over = {k: v for k, v in _strip_notes(body).items() if k not in LIBRARY_KEYS}
+            cfg = deep_merge(cfg, over)
+        leaf_path, leaf = chain[0]
+        cfg["name"] = leaf.get("name", leaf_path.stem)
     for item in overrides or []:
         set_dotted(cfg, item)
     return cfg

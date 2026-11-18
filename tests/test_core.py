@@ -14,7 +14,7 @@ def test_presets_load_and_merge():
         assert len(cfg["render"]["resolution"]) == 2
     dusk = config.load("poolrooms_dusk")
     assert dusk["palette"]["plaster"] != config.DEFAULTS["palette"]["plaster"]
-    assert dusk["room"] == config.DEFAULTS["room"]  # untouched sections inherited
+    assert dusk["room"] == config.load("poolrooms")["room"]  # untouched sections come from its parent
 
 
 def test_dotted_overrides_parse_json():
