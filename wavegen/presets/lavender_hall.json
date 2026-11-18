@@ -1,0 +1,75 @@
+{
+  "name": "lavender_hall",
+  "extends": "poolrooms",
+  "description": "Lavender hall: a tall violet room with one very wide back arch, matched to the WAVE GEN emblem's purples.",
+  "tags": [
+    "purple",
+    "day",
+    "tall"
+  ],
+  "palette": {
+    "tile": [
+      0.9,
+      0.88,
+      0.98
+    ],
+    "floor_tile": [
+      0.82,
+      0.76,
+      0.96
+    ],
+    "plaster": [
+      0.76,
+      0.66,
+      0.92
+    ],
+    "ceiling": [
+      0.82,
+      0.74,
+      0.96
+    ],
+    "pool_tile": [
+      0.66,
+      0.6,
+      0.9
+    ],
+    "water": [
+      0.8,
+      0.74,
+      1.0
+    ],
+    "water_absorb": [
+      0.55,
+      0.5,
+      0.95
+    ],
+    "cool_light": [
+      0.86,
+      0.68,
+      1.0
+    ],
+    "accent_light": [
+      0.75,
+      0.45,
+      1.0
+    ]
+  },
+  "room": {
+    "height": 8.0,
+    "nested_arch": {
+      "arch": 0
+    },
+    "back_arches": [
+      8.4
+    ]
+  },
+  "post": {
+    "pink_wash": {
+      "color": [
+        0.9,
+        0.7,
+        1.0
+      ]
+    }
+  }
+}

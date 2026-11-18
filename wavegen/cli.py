@@ -12,6 +12,7 @@
   python -m wavegen variants --preset poolrooms --seeds 1 2 3 -o out/variants
   python -m wavegen presets  [list | show NAME [--resolved|--lineage]]
   python -m wavegen presets save rose_room --from poolrooms --set palette.water=[0.8,0.78,0.98] --tags pink,day
+  python -m wavegen presets catalog          # docs/PRESETS.md + a thumbnail per preset
   python -m wavegen presets save keeper --from poolrooms --config out/variants/poolrooms-v3/config.json
 
 Common flags: --preview (fast low-res draft), --set key.path=value (repeatable).
@@ -244,6 +245,33 @@ def cmd_presets_show(args):
         print(config.find_preset(args.name).read_text().rstrip())
 
 
+CATALOG_SETS = ["render.resolution=[480,270]", "render.samples=32", 'render.format="PNG"']
+
+
+def cmd_presets_catalog(args):
+    """Write PRESETS.md and (unless --no-render) a graded thumbnail per preset beside it."""
+    import subprocess
+    from . import catalog, lookdev
+    out = Path(args.out)
+    thumbs = out / "presets"
+    thumbs.mkdir(parents=True, exist_ok=True)
+    ents = catalog.entries()
+    if not args.no_render:
+        for e in ents:
+            still = thumbs / f"{e['name']}.png"
+            ns = argparse.Namespace(preset=e["name"], set=CATALOG_SETS, frame=None, out=str(still),
+                                    blend=None, preview=False, seconds=None, engine=None)
+            cmd_still(ns)
+            graded = lookdev.grade_still(still, thumbs / f"{e['name']}_graded.png", _cfg(ns))
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(graded), "-q:v", "3",
+                            str(thumbs / f"{e['name']}.jpg")], check=True)
+            still.unlink(missing_ok=True)
+            Path(graded).unlink(missing_ok=True)
+    have = {e["name"] for e in ents if (thumbs / f"{e['name']}.jpg").is_file()}
+    (out / "PRESETS.md").write_text(catalog.markdown(ents, "presets", have))
+    print(f"wrote {out / 'PRESETS.md'} ({len(ents)} presets)")
+
+
 def _parent_ref(parent: Path, dest: Path, name: str) -> str:
     """How the saved preset should name its parent: by name when that finds the same file
     from the destination folder, else by its full path. A preset that shadows its parent's
@@ -417,6 +445,10 @@ def main(argv: list[str] | None = None):
     q.add_argument("--dir", help="folder to save into (default: first WAVEGEN_PRESET_PATH folder, else bundled)")
     q.add_argument("--force", action="store_true", help="replace an existing preset, or shadow a bundled one")
     q.set_defaults(fn=cmd_presets_save)
+    q = ps.add_parser("catalog", help="write PRESETS.md with a rendered thumbnail per preset")
+    q.add_argument("--out", default="docs", help="folder for PRESETS.md and presets/ thumbnails (default: docs)")
+    q.add_argument("--no-render", action="store_true", help="rewrite the page only, keep existing thumbnails")
+    q.set_defaults(fn=cmd_presets_catalog)
 
     args = ap.parse_args(argv)
     from .frames import StaleFramesError
