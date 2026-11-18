@@ -108,11 +108,33 @@ def _skylight(cfg: dict, bounds) -> None:
 
 def _sunbeams(cfg: dict, bounds, sun) -> None:
     """Haze lit by the sun alone (Cycles light linking): every other light and glowing
-    surface skips it, so it shows only where the sun's shafts cross the room."""
-    x0, x1, y0, y1, H = bounds
-    bm = cfg["nature"]["skylight"]["beams"]
-    beams = box("Sunbeams", (x0 + 0.05, y0 + 0.05, 0.02), (x1 - 0.05, y1 - 0.05, H - 0.05), collection("Atmosphere"),
-                M.volume_haze("Sunbeams", cfg["palette"]["haze"], bm["density"], bm["anisotropy"]))
+    surface skips it. Light bounced off the walls and the sky can't be unlinked, so the
+    haze fills only the sun's shaft, the opening swept down-sun to the floor (plus a
+    little for the penumbra), and the rest of the room stays clear."""
+    import bmesh
+
+    from .util import obj_from_bmesh
+    sky, room = cfg["nature"]["skylight"], cfg["room"]
+    tray = room["ceiling_tray"]
+    sx, sy, sz = sun_direction(sky["sun_elevation"], sky["sun_azimuth"])
+    (cx, cy), (w, d) = sky["center"], sky["size"]
+    pad = 0.25
+    top, low = bounds[4] + tray["steps"] * tray["step_height"], 0.02
+    dx, dy = -sx / sz * (top - low), -sy / sz * (top - low)
+    rect = [(cx - w / 2 - pad, cy - d / 2 - pad), (cx + w / 2 + pad, cy - d / 2 - pad),
+            (cx + w / 2 + pad, cy + d / 2 + pad), (cx - w / 2 - pad, cy + d / 2 + pad)]
+    bm = bmesh.new()
+    up = [bm.verts.new((x, y, top)) for x, y in rect]
+    down = [bm.verts.new((x + dx, y + dy, low)) for x, y in rect]
+    bm.faces.new(up)
+    bm.faces.new(list(reversed(down)))
+    for i in range(4):
+        j = (i + 1) % 4
+        bm.faces.new((down[i], down[j], up[j], up[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bms = sky["beams"]
+    beams = obj_from_bmesh("Sunbeams", bm, collection("Atmosphere"),
+                           M.volume_haze("Sunbeams", cfg["palette"]["haze"], bms["density"], bms["anisotropy"]))
     beams.visible_shadow = False
     skip = bpy.data.collections.new("NoSunbeams")
     skip.objects.link(beams)
