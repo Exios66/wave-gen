@@ -92,3 +92,36 @@ def test_show_prints_the_preset_or_everything_it_resolves_to(capsys):
     full = json.loads(_run(capsys, "presets", "show", "poolrooms_night", "--resolved"))
     assert full == config.load("poolrooms_night")
     assert "poolrooms_night -> poolrooms" in _run(capsys, "presets", "show", "poolrooms_night", "--lineage")
+
+
+def test_shadowing_a_bundled_preset_points_at_the_bundled_file(lib, capsys):
+    # the new lib/poolrooms.json must not name itself as its parent
+    _run(capsys, "presets", "save", "poolrooms", "--from", "poolrooms", "--force",
+         "--set", "palette.water=[0.8,0.78,0.98]")
+    body = json.loads((lib / "poolrooms.json").read_text())
+    assert body["extends"] == str((config.PRESET_DIR / "poolrooms.json").resolve())
+    assert config.load("poolrooms")["palette"]["water"] == [0.8, 0.78, 0.98]
+
+
+def test_a_save_that_cannot_reload_leaves_nothing_behind(lib, capsys, monkeypatch):
+    def broken(*a, **k):
+        raise ValueError("presets extend each other in a loop: x -> x")
+    real = config.load
+    monkeypatch.setattr(config, "load", lambda p=None, o=None: broken() if str(p).endswith("x.json") else real(p, o))
+    with pytest.raises(SystemExit, match="nothing saved"):
+        _run(capsys, "presets", "save", "x", "--from", "poolrooms")
+    assert not (lib / "x.json").exists()
+
+
+def test_save_never_replaces_a_file_that_appears_meanwhile(lib, capsys, monkeypatch):
+    # another save writes the same name between our check and our write
+    real = config.find_preset
+
+    def racing(ref, near=None):
+        if near is not None:                    # the parent lookup runs after the exists-check
+            (lib / "rose.json").write_text('{"extends": "poolrooms"}\n')
+        return real(ref, near)
+    monkeypatch.setattr(config, "find_preset", racing)
+    with pytest.raises(SystemExit, match="already exists"):
+        _run(capsys, "presets", "save", "rose", "--from", "poolrooms", "--set", "render.samples=3")
+    assert (lib / "rose.json").read_text() == '{"extends": "poolrooms"}\n'
