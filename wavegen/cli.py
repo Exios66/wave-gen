@@ -244,11 +244,12 @@ def cmd_presets_show(args):
         print(config.find_preset(args.name).read_text().rstrip())
 
 
-def _parent_ref(parent: Path, dest: Path) -> str:
+def _parent_ref(parent: Path, dest: Path, name: str) -> str:
     """How the saved preset should name its parent: by name when that finds the same file
-    from the destination folder, else by its full path."""
+    from the destination folder, else by its full path. A preset that shadows its parent's
+    name always uses the path, since the name would find the preset itself."""
     try:
-        if config.find_preset(parent.stem, near=dest).resolve() == parent.resolve():
+        if parent.stem != name and config.find_preset(parent.stem, near=dest).resolve() == parent.resolve():
             return parent.stem
     except FileNotFoundError:
         pass
@@ -279,7 +280,7 @@ def cmd_presets_save(args):
             raise SystemExit(f"wavegen: preset '{name}' already exists at {existing}; "
                              f"pick another name or pass --force to replace or shadow it")
     strip = lambda c: {k: v for k, v in c.items() if k != "name"}   # noqa: E731
-    body = {"name": name, "extends": _parent_ref(parent, dest)}
+    body = {"name": name, "extends": _parent_ref(parent, dest, name)}
     if args.description:
         body["description"] = args.description
     if args.tags:
@@ -287,10 +288,21 @@ def cmd_presets_save(args):
     body.update(config.diff_config(strip(target), strip(base)))
     dest.mkdir(parents=True, exist_ok=True)
     old = path.read_text() if path.exists() else None
-    path.write_text(json.dumps(body, indent=2) + "\n")
-    if strip(config.load(str(path))) != strip(target):       # the saved preset must rebuild the same config
+    text = json.dumps(body, indent=2) + "\n"
+    try:                                       # without --force, never replace a file another save just wrote
+        with open(path, "w" if args.force else "x") as f:
+            f.write(text)
+    except FileExistsError:
+        raise SystemExit(f"wavegen: preset '{name}' already exists at {path}; "
+                         f"pick another name or pass --force to replace it") from None
+    try:                                       # the saved preset must rebuild the same config
+        ok = strip(config.load(str(path))) == strip(target)
+        why = "would not reproduce the config"
+    except (ValueError, FileNotFoundError) as e:
+        ok, why = False, f"would not load ({e})"
+    if not ok:
         path.write_text(old) if old is not None else path.unlink()
-        raise SystemExit(f"wavegen: saving {name} would not reproduce the config; nothing saved")
+        raise SystemExit(f"wavegen: saving {name} {why}; nothing saved")
     changed = len(body) - 2 - ("description" in body) - ("tags" in body)
     print(f"saved {path} (extends {body['extends']}, {changed} changed section{'s' if changed != 1 else ''})")
 
