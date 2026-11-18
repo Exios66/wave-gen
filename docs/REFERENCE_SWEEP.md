@@ -31,11 +31,17 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    the left-side pink error from 0.053 to 0.048. Still different: the
    reference's passage tile reads warm white with a strong glow. A stronger
    reshaping matched the pink better (0.042) but cost a point of score.
-6. **Ceiling (open).** The reference tray has a round medallion and a brighter
-   cyan glow in the cove. A stepped medallion at the tray centre was built and
-   dropped: our camera never sees the tray centre, and it shadowed the cove
-   light (score 0.820 to 0.816). The real gap is framing: the reference's tray
-   sits lower and nearer the camera than ours.
+   A brighter passage lamp (`room.bay.sconce_power` 220 and 400) and a weaker
+   wash (0.8) were also measured and scored lower (0.841, 0.842, 0.841 against
+   0.847), so the passage is unchanged. Larger and brighter dust made no
+   difference beyond run-to-run noise.
+6. **Ceiling (improved).** The tray now reaches close to the walls
+   (`room.ceiling_tray.inset` 2.0 to 0.6), so its stepped edge and cove glow
+   sit where the reference frames them. This was the largest single gain of
+   the sweep (score 0.828 to 0.847); insets of 1.6, 1.3 and 0.9 scored 0.828,
+   0.831 and 0.840. A lower ceiling scored worse (0.811 at 5.8 m) and a taller
+   one made no difference beyond noise. Still open: the reference's round
+   medallion at the tray centre, which our camera never sees.
 7. **Pool far corner (fixed).** The pool now has the reference's stepped notch
    in its far-left corner (`pool.notch`), with the lip following the step.
    The turquoise band at the reference's pool edge is the basin wall above
@@ -64,6 +70,16 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
     the flat ceiling over the right walkway (`lights.downlights`), giving the
     reference's bright points high on the right. They are glowing discs only,
     with no lamp behind them, so they add no render time or noise.
+
+### Where single settings stop helping
+After the tray change (score 0.847), each of these was measured on its own and
+none helped: a near-white or lavender-white desk (0.803, 0.817; the desk
+covers a large part of the frame, so a colour that looks closer by eye moves
+the whole palette), brighter alcove lamps or fill (0.840, 0.841), a stronger
+vignette (0.811), and more or less haze (0.847, 0.845). Region by region the
+render is now within about 0.1 of the references. What remains is the back
+alcoves reading a little dark and the floor a little bright, which no single
+setting fixes without costing elsewhere.
 
 ### Camera and finish
 13. **Film softness (improved).** A light mist-filter pass in post
