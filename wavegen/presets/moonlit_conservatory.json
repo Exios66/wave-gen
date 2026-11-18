@@ -1,0 +1,36 @@
+{
+  "name": "moonlit_conservatory",
+  "extends": "poolrooms_night",
+  "description": "Moonlit conservatory: the night room under an open canopy. Pale moonlight falls through the leaves from beyond the far wall, palms stand in the dark, a few lilies glow on the water.",
+  "tags": [
+    "nature",
+    "night",
+    "blue",
+    "moon"
+  ],
+  "palette": {
+    "sun": [
+      0.62,
+      0.74,
+      1.0
+    ]
+  },
+  "nature": {
+    "skylight": {
+      "enabled": true,
+      "sun_strength": 10,
+      "sun_elevation": 40,
+      "sun_azimuth": 180
+    },
+    "plants": {
+      "enabled": true
+    },
+    "lily_pads": {
+      "enabled": true,
+      "flowers": 0.2
+    }
+  },
+  "atmosphere": {
+    "haze_density": 0.012
+  }
+}

@@ -99,7 +99,8 @@ setting fixes without costing elsewhere.
 ## Other poolscapes the same toolkit can render
 
 Each is a preset: a JSON file of overrides on `wavegen/config.py`. Presets
-`poolrooms_dusk`, `poolrooms_night`, `rose_natatorium` and `lavender_hall`
+`poolrooms_dusk`, `poolrooms_night`, `rose_natatorium`, `lavender_hall`,
+`palm_solarium`, `catenary_nave`, `lotus_court` and `moonlit_conservatory`
 already exist; see [`PRESETS.md`](PRESETS.md) for thumbnails.
 
 ### Possible today, with config values only
@@ -117,9 +118,19 @@ already exist; see [`PRESETS.md`](PRESETS.md) for thumbnails.
 - **Seeded parallels.** `wavegen variants --seeds …` already mutates any preset
   into near-relatives for a series.
 
+### Nature and biomimicry (the `nature` section, now built)
+- **Palm Solarium** (`palm_solarium`, done). A skylight with a swaying leaf
+  canopy throws dappled sun on the walls; areca palms and ferns in planters,
+  lily pads on sea-green water.
+- **Catenary Nave** (`catenary_nave`, done). Gaudí's poolroom: hanging-chain
+  (`room.catenary`) arches, tree columns that branch into the ceiling like the
+  Sagrada Família's, a honeycomb floor (`room.floor_pattern: "hex"`).
+- **Lotus Court** (`lotus_court`, done). The dusk room as a water garden:
+  clustered lily pads in bloom, ferns, honeycomb floor.
+- **Moonlit Conservatory** (`moonlit_conservatory`, done). The night room with
+  pale moonlight through the canopy from beyond the far wall.
+
 ### Need one new feature each
-- **Skylight Atrium.** A roof opening with daylight shafts through the haze.
-  Needs a ceiling cut-out and a sun lamp.
 - **Glowing Pool.** Underwater lights so the water lights the room from below.
   Needs emissive fixtures in the basin.
 - **Sunken Grotto.** A round or L-shaped pool with steps. Needs a non-rectangular

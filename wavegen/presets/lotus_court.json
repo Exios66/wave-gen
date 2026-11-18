@@ -1,0 +1,71 @@
+{
+  "name": "lotus_court",
+  "extends": "poolrooms_dusk",
+  "description": "Lotus court: the dusk room as a water garden. Lily pads drift in clusters with pink blooms, ferns soften the edges, the floor is laid in honeycomb.",
+  "tags": [
+    "nature",
+    "dusk",
+    "pink",
+    "water-garden"
+  ],
+  "palette": {
+    "lily_pad": [
+      0.16,
+      0.34,
+      0.12
+    ],
+    "lily_flower": [
+      1.0,
+      0.62,
+      0.8
+    ]
+  },
+  "room": {
+    "floor_pattern": "hex"
+  },
+  "nature": {
+    "plants": {
+      "enabled": true,
+      "spots": [
+        [
+          7.1,
+          9.5,
+          1.1
+        ],
+        [
+          7.1,
+          15.5,
+          1.2
+        ],
+        [
+          -1.2,
+          20.8,
+          1.0
+        ],
+        [
+          3.6,
+          20.8,
+          1.1
+        ],
+        [
+          -5.6,
+          13.0,
+          1.0
+        ]
+      ],
+      "kinds": [
+        "fern",
+        "fern",
+        "fern",
+        "fern",
+        "fern"
+      ]
+    },
+    "lily_pads": {
+      "enabled": true,
+      "count": 34,
+      "clusters": 4,
+      "flowers": 0.55
+    }
+  }
+}

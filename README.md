@@ -66,6 +66,10 @@ python -m wavegen still --set camera.lens=18 --set palette.water=[0.7,0.9,1.0] \
 | `poolrooms_night` | builds on `poolrooms`: after hours, deep blue, magenta neon, thick haze, long reverb |
 | `rose_natatorium` | builds on `poolrooms`: blush plaster, cream tile, peach lamps, lilac water |
 | `lavender_hall` | builds on `poolrooms`: a tall violet room with one wide back arch, in the emblem's purples |
+| `palm_solarium` | builds on `poolrooms`: an ivory greenhouse with sun through a leaf canopy, areca palms, ferns and lily pads |
+| `catenary_nave` | builds on `poolrooms`: Gaudí's poolroom, hanging-chain arches, branching tree columns, a honeycomb floor, sandstone and teal |
+| `lotus_court` | builds on `poolrooms_dusk`: a dusk water garden, clustered lily pads in bloom, ferns, honeycomb floor |
+| `moonlit_conservatory` | builds on `poolrooms_night`: moonlight through the canopy from beyond the far wall, palms in the dark, a few lilies |
 
 [`docs/PRESETS.md`](docs/PRESETS.md) shows every preset with a thumbnail and its family tree.
 
