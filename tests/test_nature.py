@@ -103,6 +103,14 @@ def test_a_plant_in_the_pool_is_refused():
         _build("nature.plants.enabled=true", "nature.plants.spots=[[1.0,10.0,2.0]]")
 
 
+def test_a_plant_just_off_a_pool_corner_is_built():
+    cfg = config.load("poolrooms", LIGHT + ["pool.notch=null", "nature.plants.enabled=true"])
+    (_, x1), (y0, _), c = cfg["pool"]["x"], cfg["pool"]["y"], cfg["pool"]["coping"]
+    cfg["nature"]["plants"]["spots"] = [[x1 + c + 0.25, y0 - c - 0.30, 1.0]]
+    build_scene(cfg)
+    assert "Planter.0" in bpy.data.objects
+
+
 TREES = ["nature.tree_columns.enabled=true", "nature.tree_columns.spots=[[-5.5,12.0]]",
          "nature.tree_columns.branches=4"]
 

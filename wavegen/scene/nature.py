@@ -11,6 +11,7 @@ import bpy
 
 from . import materials as M
 from ..frames import loop_frame_count
+from ..layout import check_plants
 from ..loop import circle_expr
 from .util import box, collection, drive, look_at_matrix
 
@@ -218,8 +219,7 @@ def _plants(cfg: dict) -> None:
 
     from ..loop import cycles_for, periodic_expr
     from .util import obj_from_bmesh
-    pl, pal, pool = cfg["nature"]["plants"], cfg["palette"], cfg["pool"]
-    (px0, px1), (py0, py1), c = pool["x"], pool["y"], pool["coping"]
+    pl, pal = cfg["nature"]["plants"], cfg["palette"]
     col = collection("Nature")
     leaves = leaf_material("Leaf", pal["leaf"])
     pot_mat = M.plastic("Planter", pal["planter"], roughness=0.3, sss=0.0, coat=0.4)
@@ -227,9 +227,8 @@ def _plants(cfg: dict) -> None:
     n = loop_frame_count(cfg)
     cyc = cycles_for(pl["sway_period"], cfg["render"]["seconds"])
     r = pl["pot_radius"]
+    check_plants(cfg)
     for i, (x, y, hgt) in enumerate(pl["spots"]):
-        if px0 - c - r < x < px1 + c + r and py0 - c - r < y < py1 + c + r:
-            raise ValueError(f"plant {i} at ({x}, {y}) is in the pool; move it onto the floor")
         kind = pl["kinds"][i % len(pl["kinds"])]
         rng = random.Random(cfg["seed"] * 131 + i)
         pot_h = 0.5 if kind == "palm" else 0.42
