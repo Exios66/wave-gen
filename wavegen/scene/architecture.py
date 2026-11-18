@@ -367,8 +367,9 @@ def build(cfg: dict) -> dict:
             inward=True, skip=("+x", "-y", "-z"))
         # plaster front wall through the pier's middle; the passage arch springs off the pier
         front = box("Bay.front", (bx1 - bw - 1.2, py - 0.15, 0.0), (bx1, py + 0.15, H), col, mats["plaster"])
-        spring = bh - (bw - 0.1) / 2
-        cut = extruded_profile("BayArchCut", arch_profile(bw - 0.1, spring), 0.7, cut_col,
+        cat = room.get("catenary")
+        spring = bh - (cat * (bw - 0.1) if cat else (bw - 0.1) / 2)     # the crown stays at bh either way
+        cut = extruded_profile("BayArchCut", arch_profile(bw - 0.1, spring, catenary=cat), 0.7, cut_col,
                                Matrix.Translation((bx1 - bw / 2, py, 0.0)))
         boolean_cut_collection(front, cutter_collection_union("Cut.bay", [cut], cut_col))
         bevel(front, room["bevel"], 4, 30)
