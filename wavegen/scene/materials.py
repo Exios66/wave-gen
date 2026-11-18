@@ -93,9 +93,57 @@ def tile_grid(nt, size: float, grout: float):
     return mask, cell.outputs[0]
 
 
-def tiles(name, color, grout_color, size, grout, jitter=0.03, roughness=0.12):
+def hex_grid(nt, size: float, grout: float):
+    """World-space honeycomb on horizontal surfaces (x, y), ``size`` flat-to-flat.
+
+    Each point is matched to the nearer of two offset rectangular lattices of hexagon
+    centres; its offset from that centre gives both the distance to the cell's edge
+    (for the grout) and the cell itself (for per-tile variation). Returns
+    (grout_mask, cell_vector) like :func:`tile_grid`.
+    """
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Position"], sep.inputs[0])
+    scale = nt.nodes.new("ShaderNodeMath")
+    scale.name = "hex_scale"
+    scale.operation = "DIVIDE"
+    nt.links.new(sep.outputs[0], scale.inputs[0])
+    scale.inputs[1].default_value = size
+    # offset far from the origin so the truncating modulo never sees a negative value
+    px = _math(nt, "ADD", scale.outputs[0], 1000.0)
+    py = _math(nt, "ADD", _math(nt, "DIVIDE", sep.outputs[1], size), 1000.0 * 1.7320508)
+    rx, ry = 1.0, 1.7320508
+
+    def local(ox, oy):
+        lx = _math(nt, "SUBTRACT", _math(nt, "MODULO", _math(nt, "SUBTRACT", px, ox), rx), rx / 2)
+        ly = _math(nt, "SUBTRACT", _math(nt, "MODULO", _math(nt, "SUBTRACT", py, oy), ry), ry / 2)
+        return lx, ly, _math(nt, "ADD", _math(nt, "MULTIPLY", lx, lx), _math(nt, "MULTIPLY", ly, ly))
+
+    ax, ay, da = local(0.0, 0.0)
+    bx, by, db = local(rx / 2, ry / 2)
+    pick = _math(nt, "LESS_THAN", da, db)                      # 1 where lattice a's centre is nearer
+    gx = _math(nt, "ADD", bx, _math(nt, "MULTIPLY", pick, _math(nt, "SUBTRACT", ax, bx)))
+    gy = _math(nt, "ADD", by, _math(nt, "MULTIPLY", pick, _math(nt, "SUBTRACT", ay, by)))
+    ux, uy = _math(nt, "ABSOLUTE", gx), _math(nt, "ABSOLUTE", gy)
+    hexd = _math(nt, "MAXIMUM", ux, _math(nt, "ADD", _math(nt, "MULTIPLY", ux, 0.5), _math(nt, "MULTIPLY", uy, 0.8660254)))
+    dist = _math(nt, "MULTIPLY", _math(nt, "SUBTRACT", 0.5, hexd), size)     # metres to the cell's edge
+    line = nt.nodes.new("ShaderNodeMapRange")
+    line.interpolation_type = "SMOOTHSTEP"
+    nt.links.new(dist, line.inputs["Value"])
+    line.inputs["From Min"].default_value = grout * 0.5 + grout * 0.25
+    line.inputs["From Max"].default_value = grout * 0.5 - grout * 0.25
+    cell = nt.nodes.new("ShaderNodeCombineXYZ")
+    cell.name = "hex_cell"
+    nt.links.new(_math(nt, "SUBTRACT", px, gx), cell.inputs[0])
+    nt.links.new(_math(nt, "SUBTRACT", py, gy), cell.inputs[1])
+    return line.outputs["Result"], cell.outputs[0]
+
+
+def tiles(name, color, grout_color, size, grout, jitter=0.03, roughness=0.12, pattern="square"):
     mat, nt, out = _new(name)
-    mask, cell = tile_grid(nt, size, grout)
+    if pattern not in ("square", "hex"):
+        raise ValueError(f"unknown floor_pattern {pattern!r} (have: square, hex)")
+    mask, cell = (hex_grid if pattern == "hex" else tile_grid)(nt, size, grout)
     noise = nt.nodes.new("ShaderNodeTexWhiteNoise")
     noise.noise_dimensions = "3D"
     nt.links.new(cell, noise.inputs["Vector"])

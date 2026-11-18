@@ -857,3 +857,19 @@ def test_catenary_arches_shape_the_room():
                o.dimensions.x == pytest.approx(w, abs=1e-3))
     top = max((cut.matrix_world @ v.co).z for v in cut.data.vertices)
     assert top == pytest.approx(2.0 + 0.6 * w, abs=1e-3)
+
+
+def test_honeycomb_floor_tiles_only_the_floor():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=0", 'room.floor_pattern="hex"', "room.floor_tile_size=0.4"])
+    build_scene(cfg)
+    floor = bpy.data.materials["FloorTile"].node_tree.nodes
+    assert "hex_cell" in floor and "tile_cell" not in floor
+    assert floor["hex_scale"].inputs[1].default_value == pytest.approx(0.4)     # flat-to-flat width
+    wall = bpy.data.materials["Tile"].node_tree.nodes
+    assert "tile_cell" in wall and "hex_cell" not in wall                        # walls stay square
+
+
+def test_unknown_floor_pattern_is_refused():
+    cfg = config.load("poolrooms", ['room.floor_pattern="penrose"'])
+    with pytest.raises(ValueError, match="floor_pattern"):
+        build_scene(cfg)

@@ -118,7 +118,7 @@ def build(cfg: dict) -> dict:
         "pool_tile": M.tiles("PoolTile", pal["pool_tile"], pal["grout"], room["tile_size"], room["grout_width"], 0.02, 0.08),
         "kerb_tile": M.tiles("KerbTile", pal["pool_tile"], pal["grout"], room["tile_size"], room["grout_width"], 0.02, 0.08),
         "floor": M.tiles("FloorTile", pal.get("floor_tile") or pal["tile"], pal["grout"], room["floor_tile_size"], room["grout_width"],
-                         pal["tile_jitter"]),
+                         pal["tile_jitter"], pattern=room.get("floor_pattern", "square")),
         "plaster": M.plaster("Plaster", pal["plaster"]),
         "ceiling": M.plaster("Ceiling", pal["ceiling"], 0.7),
         "water": M.water("Water", pal["water"], pal["water_absorb"], pool["wave_scale"],

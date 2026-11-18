@@ -127,7 +127,7 @@ chord order, and the result is deterministic for a given seed.
 ## What's generated
 
 - **Architecture:** tiled floor, sunken pool with coping, arched walls (boolean-cut; round, flat-topped, or Gaudi-style catenary with `room.catenary`) and lit tiled alcoves, a 3-step tray ceiling with a hidden cove light, crown mouldings, a rounded pier with a lit tiled passage beside it.
-- **Materials:** a world-space tile shader (any orientation, per-tile jitter, grout bump, clearcoat), plaster, refractive water with animated 4D-noise ripples and absorption, aged beige plastic, and a CRT phosphor with scanlines, glow and glass.
+- **Materials:** a world-space tile shader (any orientation, per-tile jitter, grout bump, clearcoat; a honeycomb floor with `room.floor_pattern="hex"`), plaster, refractive water with animated 4D-noise ripples and absorption, aged beige plastic, and a CRT phosphor with scanlines, glow and glass.
 - **Props:** a generic beige all-in-one CRT computer, keyboard and desk, plus a spinning, tumbling pastel screensaver icon.
 - **Nature** (off unless a preset asks): a skylight with sun falling through a swaying leaf canopy,
   casting dappled light across walls and water (`nature.skylight`).
