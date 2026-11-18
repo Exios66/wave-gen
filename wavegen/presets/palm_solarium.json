@@ -1,7 +1,7 @@
 {
   "name": "palm_solarium",
   "extends": "poolrooms",
-  "description": "Palm solarium: an ivory greenhouse. Sun shafts slant through a leaf canopy and dapple the pool floor; areca palms and ferns in planters, lily pads on sea-green water, seen from the doorway.",
+  "description": "Palm solarium: an ivory greenhouse. Sun shafts slant through a leaf canopy into the haze and dapple the walls and water; areca palms and ferns in planters, lily pads on sea-green water.",
   "tags": [
     "nature",
     "day",
@@ -124,18 +124,5 @@
     "pink_wash": {
       "strength": 0.35
     }
-  },
-  "camera": {
-    "location": [
-      -0.5,
-      -2.4,
-      1.75
-    ],
-    "target": [
-      0.3,
-      12.0,
-      0.6
-    ],
-    "lens": 22.0
   }
 }

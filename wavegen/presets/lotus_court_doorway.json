@@ -1,0 +1,25 @@
+{
+  "name": "lotus_court_doorway",
+  "extends": "lotus_court",
+  "description": "Lotus court from the doorway: the same water garden seen from higher up, looking down onto the water, so the lily pads and their blooms show in full.",
+  "tags": [
+    "nature",
+    "dusk",
+    "pink",
+    "water-garden",
+    "doorway"
+  ],
+  "camera": {
+    "location": [
+      -0.5,
+      -2.4,
+      1.75
+    ],
+    "target": [
+      0.3,
+      12.0,
+      0.35
+    ],
+    "lens": 24.0
+  }
+}
