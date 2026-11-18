@@ -36,8 +36,14 @@ frame 1 beside them. Autoresearch score at the time: 0.7912.
    dropped: our camera never sees the tray centre, and it shadowed the cove
    light (score 0.820 to 0.816). The real gap is framing: the reference's tray
    sits lower and nearer the camera than ours.
-7. **Pool far corner.** The reference pool has a stepped notch at the far-left
-   corner and a raised kerb of turquoise tile. Ours is a plain rectangle.
+7. **Pool far corner (fixed).** The pool now has the reference's stepped notch
+   in its far-left corner (`pool.notch`), with the lip following the step.
+   The turquoise band at the reference's pool edge is the basin wall above
+   the water, which we already show. A raised kerb clad in pool tile was
+   built and measured (`pool.kerb`): it lowered the score (0.8247 to 0.8185)
+   because it adds a turquoise strip along the near edge that the reference
+   lacks, so the preset keeps the low white lip. The option stays for other
+   presets.
 
 ### Materials and light
 8. **Floor colour (improved).** The floor now has its own lavender tile

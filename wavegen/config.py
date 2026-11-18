@@ -96,6 +96,8 @@ DEFAULTS: dict = {
         "depth": 0.9,
         "water_level": -0.10,
         "coping": 0.30,             # width of the raised tiled lip
+        "kerb": {"height": 0.05, "pool_tile": False},   # lip height; pool_tile = clad it in the pool's tile
+        "notch": None,              # [width, depth] of a step filling the far-left corner; None = plain rectangle
         "wave_scale": 1.6,
         "wave_strength": 0.18,
         "wave_cycles": 1,           # ripple evolutions per loop (whole number)
