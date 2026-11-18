@@ -1,1 +1,1 @@
-{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.8250, "render_seconds_baseline": 24, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the ceiling downlights"}
+{"type": "config", "target": "poolrooms", "refs": "docs/ref/video/v25,v50,v75", "baseline": 0.8277, "render_seconds_baseline": 24, "min_delta": 0.003, "note": "re-baselined 2026-11-15 after the mist-filter diffusion pass"}

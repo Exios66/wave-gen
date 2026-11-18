@@ -55,6 +55,13 @@ def filtergraph(pc: dict, width: int, height: int) -> str:
               f"[base][h]blend=all_mode=screen:all_opacity={pc['halation']}[v1];")
     else:
         g += "[glow]nullsink;[base]null[v1];"
+    src = "[v1]"
+    soft = min(1.0, float(pc.get("diffusion", 0) or 0))
+    if soft > 0:
+        # a mist filter: mix the frame with a wide blur of itself (edges soften, shadows turn milky)
+        g += (f"{src}split[sharp][mist];[mist]gblur=sigma={max(3, round(height / 45))}[misty];"
+              f"[misty][sharp]blend=all_mode=normal:all_opacity={soft:.3f}[v1s];")   # opacity belongs to the first input
+        src = "[v1s]"
     wash = pc.get("pink_wash") or {}
     if wash.get("strength", 0) > 0:
         # multiply a left-to-right gradient (tint colour -> white) over the frame: tints, never brightens
@@ -63,10 +70,8 @@ def filtergraph(pc: dict, width: int, height: int) -> str:
         ramp = wash_ramp(wash, width)
         ch = {c: f"255*(1-{1 - v:.4f}*{ramp})" for c, v in zip("rgb", rgb)}
         g += (f"color=white:s={width}x{height},format=gbrp,geq=r='{ch['r']}':g='{ch['g']}':b='{ch['b']}'[wash];"
-              f"[v1]format=gbrp[v1g];[v1g][wash]blend=all_mode=multiply:shortest=1[v1w];")
+              f"{src}format=gbrp[v1g];[v1g][wash]blend=all_mode=multiply:shortest=1[v1w];")
         src = "[v1w]"
-    else:
-        src = "[v1]"
     tail = []
     if pc["chroma_shift"]:
         s = int(pc["chroma_shift"])

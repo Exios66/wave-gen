@@ -179,3 +179,37 @@ def test_tile_wav_rejects_a_source_whose_audio_is_cut_short(tmp_path):
     src.write_bytes(raw[:44])                      # header only: every read comes back empty
     with pytest.raises(ValueError, match="no audio"):
         post.tile_wav(src, tmp_path / "long.wav", 250, chunk_frames=64)
+
+
+def _grade(pc, img):
+    h, w = img.shape[:2]
+    raw = (np.clip(img, 0, 1) * 255).astype(np.uint8).tobytes()
+    out = subprocess.run(["ffmpeg", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-i", "-",
+                          "-filter_complex", post.filtergraph(pc, w, h), "-map", "[vout]", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                         input=raw, capture_output=True, check=True).stdout
+    return np.frombuffer(out, np.uint8).reshape(h, w, 3).astype(np.float32) / 255
+
+
+_PLAIN = {"grade": False, "halation": 0, "grain": 0, "chroma_shift": 0, "vignette": 0, "crt_on_tv": False}
+
+
+def test_diffusion_softens_edges_and_lifts_shadows_without_changing_exposure():
+    """The reference looks shot through a mist filter: soft edges, milky shadows, same overall level."""
+    img = np.full((180, 320, 3), 0.15, np.float32)
+    img[:, 160:] = 0.85                                   # a hard dark/bright edge down the middle
+    plain = _grade({**config.DEFAULTS["post"], **_PLAIN, "diffusion": 0.0}, img)
+    soft = _grade({**config.DEFAULTS["post"], **_PLAIN, "diffusion": 0.35}, img)
+    step = lambda a: np.abs(np.diff(a[90, :, 1])).max()   # noqa: E731
+    assert step(soft) < 0.8 * step(plain)                 # the edge is gentler
+    assert step(soft) > 0.55 * step(plain)                # but still an edge: mostly the sharp frame
+    assert soft[90, 157, 1] > plain[90, 157, 1] + 0.02    # light spills into the dark side
+    assert abs(soft[90, 20, 1] - plain[90, 20, 1]) < 0.02  # far from the edge nothing changes
+    assert abs(soft.mean() - plain.mean()) < 0.01
+
+
+def test_diffusion_is_off_by_default_and_on_in_poolrooms():
+    assert config.DEFAULTS["post"]["diffusion"] == 0.0
+    off = post.filtergraph({**config.DEFAULTS["post"], "halation": 0}, 1280, 720)
+    assert "gblur" not in off
+    assert 0.1 <= config.load("poolrooms")["post"]["diffusion"] <= 0.5
+    assert "gblur" in post.filtergraph({**config.load("poolrooms")["post"], "halation": 0}, 1280, 720)
