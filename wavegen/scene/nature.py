@@ -11,6 +11,7 @@ import bpy
 
 from . import materials as M
 from ..frames import loop_frame_count
+from ..layout import check_plants, check_tree_columns, reach_inside
 from ..loop import circle_expr
 from .util import box, collection, drive, look_at_matrix
 
@@ -218,8 +219,7 @@ def _plants(cfg: dict) -> None:
 
     from ..loop import cycles_for, periodic_expr
     from .util import obj_from_bmesh
-    pl, pal, pool = cfg["nature"]["plants"], cfg["palette"], cfg["pool"]
-    (px0, px1), (py0, py1), c = pool["x"], pool["y"], pool["coping"]
+    pl, pal = cfg["nature"]["plants"], cfg["palette"]
     col = collection("Nature")
     leaves = leaf_material("Leaf", pal["leaf"])
     pot_mat = M.plastic("Planter", pal["planter"], roughness=0.3, sss=0.0, coat=0.4)
@@ -227,9 +227,8 @@ def _plants(cfg: dict) -> None:
     n = loop_frame_count(cfg)
     cyc = cycles_for(pl["sway_period"], cfg["render"]["seconds"])
     r = pl["pot_radius"]
+    check_plants(cfg)
     for i, (x, y, hgt) in enumerate(pl["spots"]):
-        if px0 - c - r < x < px1 + c + r and py0 - c - r < y < py1 + c + r:
-            raise ValueError(f"plant {i} at ({x}, {y}) is in the pool; move it onto the floor")
         kind = pl["kinds"][i % len(pl["kinds"])]
         rng = random.Random(cfg["seed"] * 131 + i)
         pot_h = 0.5 if kind == "palm" else 0.42
@@ -298,15 +297,14 @@ def _tree_columns(cfg: dict) -> None:
     import bmesh
 
     from .util import obj_from_bmesh, smooth_shade
-    tc, pal, pool, room = cfg["nature"]["tree_columns"], cfg["palette"], cfg["pool"], cfg["room"]
-    (px0, px1), (py0, py1), c = pool["x"], pool["y"], pool["coping"]
+    tc, pal, room = cfg["nature"]["tree_columns"], cfg["palette"], cfg["room"]
     H = room["height"]
     col = collection("Nature")
     mat = M.plaster("TreeColumn", pal.get("column") or pal["plaster"])
     r0, reach = tc["trunk_radius"], tc["spread"]
+    check_tree_columns(cfg)
+    edge = r0 * 0.72 * 1.5 + 0.08              # the capital's flare, plus a little air before the wall
     for i, (x, y) in enumerate(tc["spots"]):
-        if px0 - c - r0 < x < px1 + c + r0 and py0 - c - r0 < y < py1 + c + r0:
-            raise ValueError(f"tree column {i} at ({x}, {y}) is in the pool; move it onto the floor")
         rng = random.Random(cfg["seed"] * 977 + i)
         bm = bmesh.new()
         node = (x, y, tc["split"] * H)
@@ -319,7 +317,8 @@ def _tree_columns(cfg: dict) -> None:
         r1 = r0 * 0.72
         for k in range(tc["branches"]):
             th = spin + 2 * math.pi * k / tc["branches"] + rng.uniform(-0.15, 0.15)
-            mx, my = x + math.cos(th) * reach * 0.42, y + math.sin(th) * reach * 0.42
+            lim = reach_inside(cfg, x, y, th, reach * 0.42, edge)        # a limb near a wall stays short
+            mx, my = x + math.cos(th) * lim, y + math.sin(th) * lim
             mz = node[2] + (ceiling_z(cfg, mx, my) - node[2]) * 0.5
             mid = (mx, my, mz)
             _tube(bm, _bezier(node, (x + (mx - x) * 0.25, y + (my - y) * 0.25, (node[2] + mz) / 2), mid, 10),
@@ -327,7 +326,8 @@ def _tree_columns(cfg: dict) -> None:
             joints.append((mid, r1))
             for fork in (-0.42, 0.42):
                 a = th + fork + rng.uniform(-0.08, 0.08)
-                tx, ty = x + math.cos(a) * reach, y + math.sin(a) * reach
+                far = reach_inside(cfg, x, y, a, reach, edge)
+                tx, ty = x + math.cos(a) * far, y + math.sin(a) * far
                 tip = (tx, ty, ceiling_z(cfg, tx, ty) + 0.05)
                 ctrl = (mx + (tx - mx) * 0.3, my + (ty - my) * 0.3, mz + (tip[2] - mz) * 0.7)
                 # thinning toward the ceiling, then spreading into a small capital where it meets it

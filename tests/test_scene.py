@@ -873,3 +873,16 @@ def test_unknown_floor_pattern_is_refused():
     cfg = config.load("poolrooms", ['room.floor_pattern="penrose"'])
     with pytest.raises(ValueError, match="floor_pattern"):
         build_scene(cfg)
+
+
+def test_catenary_shapes_the_bay_passage_arch_too():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=0", "room.catenary=0.6"])
+    build_scene(cfg)
+    from wavegen.scene.util import arch_profile
+    bw, bh = cfg["room"]["bay"]["width"] - 0.1, cfg["room"]["bay"]["height"]
+    cut = bpy.data.objects["BayArchCut"]
+    top = max((cut.matrix_world @ v.co).z for v in cut.data.vertices)
+    assert top == pytest.approx(bh, abs=1e-3)                    # the crown stays where it was
+    want = sorted(round(v, 3) for _, v in arch_profile(bw, bh - 0.6 * bw, catenary=0.6))
+    got = sorted({round((cut.matrix_world @ v.co).z, 3) for v in cut.data.vertices})
+    assert set(want) <= set(got)                                 # every height of the chain curve
