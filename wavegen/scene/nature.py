@@ -1,4 +1,4 @@
-"""Natural features: sun through a skylight under a swaying leaf canopy.
+"""Natural features: sun through a skylight under a swaying leaf canopy, potted plants.
 
 Everything here is off by default (``cfg["nature"]``), so presets that do not ask
 for it render exactly as before.
@@ -103,7 +103,158 @@ def _skylight(cfg: dict, bounds) -> None:
     collection("Lights").objects.link(so)
 
 
+
+
+# ---- plants ----------------------------------------------------------------------
+
+def leaf_material(name, leaf):
+    """Waxy leaves that glow a little when lit from behind; large-scale colour variation."""
+    mat, nt, out = M._new(name)
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    tint = nt.nodes.new("ShaderNodeTexNoise")
+    tint.inputs["Scale"].default_value = 3.0
+    nt.links.new(coord.outputs["Object"], tint.inputs["Vector"])
+    vary = nt.nodes.new("ShaderNodeMix")
+    vary.data_type = "RGBA"
+    vary.inputs["A"].default_value = M._rgb([c * 0.7 for c in leaf])
+    vary.inputs["B"].default_value = M._rgb([min(1.0, c * 1.3 + 0.03) for c in leaf])
+    nt.links.new(tint.outputs["Fac"], vary.inputs["Factor"])
+    waxy = M.principled(nt, leaf, 0.38)
+    waxy.inputs["Coat Weight"].default_value = 0.15
+    nt.links.new(vary.outputs["Result"], waxy.inputs["Base Color"])
+    glow = nt.nodes.new("ShaderNodeBsdfTranslucent")
+    nt.links.new(vary.outputs["Result"], glow.inputs["Color"])
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    mix.inputs["Fac"].default_value = 0.3
+    nt.links.new(waxy.outputs[0], mix.inputs[1])
+    nt.links.new(glow.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
+    return mat
+
+
+def _frond(bm, base, heading: float, length: float, rise: float, droop: float,
+           pairs: int, leaflet: float, width: float, rng, hang: float = 0.25) -> None:
+    """One pinnate frond: a rachis arching out along ``heading`` (radians about Z), with
+    ``pairs`` of tapered leaflets angled forward and down, longest mid-frond."""
+    from mathutils import Vector
+    h = Vector((math.cos(heading), math.sin(heading), 0.0))
+    up = Vector((0, 0, 1))
+    b = Vector(base)
+
+    def at(t):
+        return b + h * (length * t * math.cos(rise)) + up * (length * (t * math.sin(rise) - droop * t * t))
+
+    side = h.cross(up).normalized()
+    for i in range(1, pairs + 1):
+        t = i / (pairs + 1)
+        p, q = at(t), at(min(1.0, t + 0.02))
+        tang = (q - p).normalized()
+        ll = leaflet * math.sin(math.pi * t) ** 0.6 * rng.uniform(0.85, 1.1)
+        for sgn in (-1, 1):
+            d = (side * sgn * 0.85 + tang * 0.45 - up * rng.uniform(hang * 0.6, hang * 1.4)).normalized()
+            n = tang.cross(d).normalized()
+            tip, mid = p + d * ll, p + d * (ll * 0.45)
+            w = ll * width
+            fold = n * (w * 0.25)                  # a slight V along the leaflet's midrib
+            vs = [bm.verts.new(v) for v in (p, mid + tang * w + fold, tip, mid - tang * w + fold)]
+            bm.faces.new(vs)
+    # the rachis: a thin strip under the leaflets
+    prev = None
+    for i in range(0, 13):
+        t = i / 12
+        p = at(t)
+        a, c = bm.verts.new(p + side * 0.008), bm.verts.new(p - side * 0.008)
+        if prev:
+            bm.faces.new((prev[0], prev[1], c, a))
+        prev = (a, c)
+
+
+def _grow(kind: str, height: float, rng):
+    """Foliage bmesh for one plant, origin at the soil, top scaled to ``height``."""
+    import bmesh
+    from mathutils import Matrix
+    bm = bmesh.new()
+    if kind == "palm":
+        # an areca clump: a few slender canes, each crowned with arching fronds
+        for c in range(rng.randint(3, 5)):
+            ang = rng.uniform(0, 2 * math.pi)
+            foot = (math.cos(ang) * rng.uniform(0.03, 0.09), math.sin(ang) * rng.uniform(0.03, 0.09), 0.0)
+            lean = rng.uniform(0.08, 0.26)
+            cane = rng.uniform(0.6, 1.0)
+            top = (foot[0] + math.cos(ang) * math.sin(lean) * cane, foot[1] + math.sin(ang) * math.sin(lean) * cane,
+                   math.cos(lean) * cane)
+            ring = bmesh.ops.create_cone(bm, cap_ends=False, segments=6, radius1=0.016, radius2=0.009, depth=cane)
+            bmesh.ops.transform(bm, verts=ring["verts"],
+                                matrix=Matrix.Translation(((foot[0] + top[0]) / 2, (foot[1] + top[1]) / 2, top[2] / 2)) @
+                                Matrix.Rotation(lean, 4, _lean_axis(ang)))
+            for f in range(rng.randint(3, 5)):
+                _frond(bm, top, ang + rng.uniform(-1.6, 1.6), rng.uniform(0.8, 1.15),
+                       math.radians(rng.uniform(58, 82)), rng.uniform(0.85, 1.15),
+                       pairs=rng.randint(24, 30), leaflet=0.3, width=0.055, rng=rng, hang=0.5)
+    elif kind == "fern":
+        # a Boston fern: many short fronds spilling out and over the pot rim
+        for f in range(rng.randint(26, 32)):
+            _frond(bm, (0, 0, 0.02), rng.uniform(0, 2 * math.pi), rng.uniform(0.45, 0.7),
+                   math.radians(rng.uniform(25, 70)), rng.uniform(0.6, 1.0),
+                   pairs=rng.randint(20, 26), leaflet=0.055, width=0.2, rng=rng)
+    else:
+        raise ValueError(f"unknown plant kind {kind!r} (have: palm, fern)")
+    top = max(v.co.z for v in bm.verts)
+    s = height / max(top, 1e-6)
+    bmesh.ops.scale(bm, vec=(s, s, s), verts=bm.verts)
+    return bm
+
+
+def _lean_axis(angle: float):
+    """Horizontal axis perpendicular to the direction ``angle``: tilting about it leans that way."""
+    from mathutils import Vector
+    return Vector((-math.sin(angle), math.cos(angle), 0.0))
+
+
+def _plants(cfg: dict) -> None:
+    import random
+
+    import bmesh
+
+    from ..loop import cycles_for, periodic_expr
+    from .util import obj_from_bmesh
+    pl, pal, pool = cfg["nature"]["plants"], cfg["palette"], cfg["pool"]
+    (px0, px1), (py0, py1), c = pool["x"], pool["y"], pool["coping"]
+    col = collection("Nature")
+    leaves = leaf_material("Leaf", pal["leaf"])
+    pot_mat = M.plastic("Planter", pal["planter"], roughness=0.3, sss=0.0, coat=0.4)
+    soil = M.dark("Soil", (0.06, 0.045, 0.035), 0.9)
+    n = loop_frame_count(cfg)
+    cyc = cycles_for(pl["sway_period"], cfg["render"]["seconds"])
+    r = pl["pot_radius"]
+    for i, (x, y, hgt) in enumerate(pl["spots"]):
+        if px0 - c - r < x < px1 + c + r and py0 - c - r < y < py1 + c + r:
+            raise ValueError(f"plant {i} at ({x}, {y}) is in the pool; move it onto the floor")
+        kind = pl["kinds"][i % len(pl["kinds"])]
+        rng = random.Random(cfg["seed"] * 131 + i)
+        pot_h = 0.5 if kind == "palm" else 0.42
+        bm = bmesh.new()
+        bmesh.ops.create_cone(bm, cap_ends=True, segments=32, radius1=r * 0.72, radius2=r, depth=pot_h)
+        bmesh.ops.translate(bm, verts=bm.verts, vec=(0, 0, pot_h / 2))
+        pot = obj_from_bmesh(f"Planter.{i}", bm, col, pot_mat, smooth=True)
+        pot.location = (x, y, 0.0)
+        bm = bmesh.new()
+        bmesh.ops.create_circle(bm, cap_ends=True, segments=32, radius=r * 0.94)
+        dirt = obj_from_bmesh(f"Soil.{i}", bm, col, soil)
+        dirt.location = (x, y, pot_h - 0.04)
+        plant = obj_from_bmesh(f"Plant.{i}", _grow(kind, hgt - pot_h + 0.04, rng), col, leaves)
+        plant.location = (x, y, pot_h - 0.04)
+        plant.rotation_euler.z = rng.uniform(0, 2 * math.pi)
+        plant["kind"] = kind
+        if pl["sway"] > 0:
+            for axis in (0, 1):
+                drive(plant, "rotation_euler",
+                      periodic_expr(0.0, pl["sway"], cyc + axis, rng.uniform(0, 6.28), n), axis)
+
+
 def build(cfg: dict, bounds) -> None:
     nat = cfg.get("nature") or {}
     if nat.get("skylight", {}).get("enabled"):
         _skylight(cfg, bounds)
+    if nat.get("plants", {}).get("enabled"):
+        _plants(cfg)

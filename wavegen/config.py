@@ -68,6 +68,7 @@ DEFAULTS: dict = {
         "dust": [1.0, 0.97, 0.95],
         "sun": [1.0, 0.9, 0.74],
         "leaf": [0.2, 0.42, 0.14],
+        "planter": [0.93, 0.9, 0.86],
         "icon": [[1.0, 0.45, 0.65], [1.0, 0.85, 0.35], [0.45, 1.0, 0.65],
                  [0.40, 0.75, 1.0], [0.75, 0.50, 1.0], [1.0, 0.60, 0.40]],
     },
@@ -170,6 +171,15 @@ DEFAULTS: dict = {
             "sun_azimuth": 270.0,       # 0 = behind the camera, 90 = right, 180 = beyond the far wall, 270 = left
             "sun_angle": 1.2,           # apparent sun diameter in degrees: larger = softer dapples
             "canopy": {"height": 2.0, "coverage": 0.4, "scale": 1.4, "sway": 0.12},
+        },
+        # potted plants grown from the seed: [x, y, height] per spot, kinds used in turn
+        "plants": {
+            "enabled": False,
+            "spots": [[7.1, 9.5, 2.3], [7.1, 15.5, 2.7], [-1.2, 20.8, 1.9], [3.6, 20.8, 1.0]],
+            "kinds": ["palm", "palm", "palm", "fern"],   # palm | fern
+            "pot_radius": 0.32,
+            "sway": 0.025,              # radians of slow sway (0 = still)
+            "sway_period": 9.0,         # seconds, rounded to whole cycles per loop
         },
     },
     "atmosphere": {
