@@ -859,6 +859,22 @@ def test_catenary_arches_shape_the_room():
     assert top == pytest.approx(2.0 + 0.6 * w, abs=1e-3)
 
 
+def test_honeycomb_floor_tiles_only_the_floor():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=0", 'room.floor_pattern="hex"', "room.floor_tile_size=0.4"])
+    build_scene(cfg)
+    floor = bpy.data.materials["FloorTile"].node_tree.nodes
+    assert "hex_cell" in floor and "tile_cell" not in floor
+    assert floor["hex_scale"].inputs[1].default_value == pytest.approx(0.4)     # flat-to-flat width
+    wall = bpy.data.materials["Tile"].node_tree.nodes
+    assert "tile_cell" in wall and "hex_cell" not in wall                        # walls stay square
+
+
+def test_unknown_floor_pattern_is_refused():
+    cfg = config.load("poolrooms", ['room.floor_pattern="penrose"'])
+    with pytest.raises(ValueError, match="floor_pattern"):
+        build_scene(cfg)
+
+
 def test_catenary_shapes_the_bay_passage_arch_too():
     cfg = config.load("poolrooms", ["atmosphere.dust_count=0", "room.catenary=0.6"])
     build_scene(cfg)
@@ -870,3 +886,16 @@ def test_catenary_shapes_the_bay_passage_arch_too():
     want = sorted(round(v, 3) for _, v in arch_profile(bw, bh - 0.6 * bw, catenary=0.6))
     got = sorted({round((cut.matrix_world @ v.co).z, 3) for v in cut.data.vertices})
     assert set(want) <= set(got)                                 # every height of the chain curve
+
+
+@pytest.mark.parametrize("bad, why", [
+    ('room.floor_pattern="penrose"', "floor_pattern"),
+    ("nature.plants.enabled=true", "in the pool"),
+])
+def test_a_bad_config_is_refused_before_the_open_scene_is_touched(bad, why):
+    keep = bpy.data.objects.new("Keep", None)
+    bpy.context.scene.collection.objects.link(keep)
+    sets = [bad] + (["nature.plants.spots=[[1.0,10.0,2.0]]"] if "plants" in bad else [])
+    with pytest.raises(ValueError, match=why):
+        build_scene(config.load("poolrooms", sets))
+    assert "Keep" in bpy.data.objects                            # nothing was reset
