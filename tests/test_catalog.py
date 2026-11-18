@@ -56,5 +56,34 @@ def test_catalog_command_writes_the_page(tmp_path, monkeypatch, capsys):
     monkeypatch.delenv("WAVEGEN_PRESET_PATH", raising=False)
     cli.main(["presets", "catalog", "--out", str(tmp_path), "--no-render"])
     doc = (tmp_path / "PRESETS.md").read_text()
-    assert doc == catalog.markdown(catalog.entries(), "presets")
+    assert doc == catalog.markdown(catalog.entries(), "presets", have=set())
     assert "PRESETS.md" in capsys.readouterr().out
+
+
+def test_values_equal_to_the_parent_are_not_counted_as_changes(tmp_path, monkeypatch):
+    monkeypatch.setenv("WAVEGEN_PRESET_PATH", str(tmp_path))
+    same = config.load("poolrooms")["render"]["samples"]
+    _write(tmp_path, "twin", {"extends": "poolrooms", "render": {"samples": same}, "palette": {"water": [1, 0, 0]}})
+    e = {x["name"]: x for x in catalog.entries()}["twin"]
+    assert e["changes"] == {"palette": 1}
+
+
+def test_a_parent_named_by_file_or_path_still_hangs_under_it(tmp_path, monkeypatch):
+    monkeypatch.setenv("WAVEGEN_PRESET_PATH", str(tmp_path))
+    _write(tmp_path, "byfile", {"extends": "poolrooms.json"})
+    _write(tmp_path, "bypath", {"extends": str(config.PRESET_DIR / "poolrooms.json")})
+    ents = {x["name"]: x for x in catalog.entries()}
+    assert ents["byfile"]["extends"] == ents["bypath"]["extends"] == "poolrooms"
+    roots = [ln for ln in catalog.tree(list(ents.values())).splitlines() if not ln.startswith(("├", "└", "│", " "))]
+    assert roots == ["poolrooms"]
+
+
+def test_page_written_without_rendering_does_not_link_missing_thumbnails(tmp_path, monkeypatch):
+    from wavegen import cli
+    monkeypatch.delenv("WAVEGEN_PRESET_PATH", raising=False)
+    (tmp_path / "presets").mkdir()
+    (tmp_path / "presets" / "poolrooms.jpg").write_bytes(b"jpg")
+    cli.main(["presets", "catalog", "--out", str(tmp_path), "--no-render"])
+    doc = (tmp_path / "PRESETS.md").read_text()
+    assert "![poolrooms](presets/poolrooms.jpg)" in doc
+    assert "![lavender_hall]" not in doc and "no thumbnail yet" in doc

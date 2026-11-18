@@ -267,7 +267,8 @@ def cmd_presets_catalog(args):
                             str(thumbs / f"{e['name']}.jpg")], check=True)
             still.unlink(missing_ok=True)
             Path(graded).unlink(missing_ok=True)
-    (out / "PRESETS.md").write_text(catalog.markdown(ents, "presets"))
+    have = {e["name"] for e in ents if (thumbs / f"{e['name']}.jpg").is_file()}
+    (out / "PRESETS.md").write_text(catalog.markdown(ents, "presets", have))
     print(f"wrote {out / 'PRESETS.md'} ({len(ents)} presets)")
 
 
