@@ -122,7 +122,10 @@ def test_the_nature_rooms_keep_the_house_view_and_their_doorway_twins_look_down(
         twin = config.load(f"{room}_doorway")
         info = config.preset_info(f"{room}_doorway")
         assert info["extends"] == room and "doorway" in info["description"]
-        assert twin["camera"]["location"] == DOORWAY["location"] and twin["camera"]["lens"] in DOORWAY["lens"]
+        cam = twin["camera"]
+        assert cam["location"] == DOORWAY["location"]
+        assert cam["lens"] in DOORWAY["lens"]
+        assert cam["target"][2] < cam["location"][2], f"{room}_doorway looks down onto the water"
         twin.pop("camera"), cfg.pop("camera")
         assert twin.pop("name") == f"{room}_doorway" and cfg.pop("name") == room
         assert twin == cfg, f"{room}_doorway changes only the camera"
