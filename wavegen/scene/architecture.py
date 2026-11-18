@@ -43,15 +43,25 @@ def _alcove_pad(total: float, widths: list[float], pad: float = 0.35) -> float:
     return max(0.01, min(pad, gap / 2 - 0.005))
 
 
-def _horseshoe(width: float, spring: float, band: float, segments: int = 24, corner_radius: float | None = None):
+def _horseshoe(width: float, spring: float, band: float, segments: int = 24, corner_radius: float | None = None,
+               catenary: float | None = None):
     """Outline of an arch-shaped band ``band`` wide around an opening (u, v)."""
     outer_r = None if corner_radius is None else corner_radius + band
-    outer = arch_profile(width + 2 * band, spring, segments, bottom=0.0, corner_radius=outer_r)
-    inner = arch_profile(width, spring, segments, bottom=0.0, corner_radius=corner_radius)
+    outer_c = None if not catenary else (catenary * width + band) / (width + 2 * band)
+    outer = arch_profile(width + 2 * band, spring, segments, bottom=0.0, corner_radius=outer_r, catenary=outer_c)
+    inner = arch_profile(width, spring, segments, bottom=0.0, corner_radius=corner_radius, catenary=catenary)
     # outer goes CCW from bottom-left; walk it from bottom-right up and over, then the inner back
     o = [outer[1], outer[2], *outer[3:], outer[0]]          # (R,0) -> (R,s) -> arc -> (-R,s) -> (-R,0)
     i = [inner[0], inner[-1], *reversed(inner[3:-1]), inner[2], inner[1]]
     return o + i
+
+
+def _rise(width: float, room: dict) -> float:
+    """How far an arch of ``width`` climbs above its spring line."""
+    if room.get("catenary"):
+        return room["catenary"] * width
+    rc = room.get("arch_corner_radius")
+    return width / 2 if rc is None else min(rc, width / 2)
 
 
 def _pier_outline(width: float, depth: float, segments: int = 16) -> list[tuple[float, float]]:
@@ -168,7 +178,8 @@ def build(cfg: dict) -> dict:
 
     def arch(wall: str, centre: float, width: float, pad: float = 0.35):
         rc = room.get("arch_corner_radius")               # None = round-topped; else a flat top with rounded corners
-        rise = width / 2 if rc is None else min(rc, width / 2)
+        cat = room.get("catenary")                        # or a hanging-chain arch
+        rise = _rise(width, room)
         spring = min(room["spring_height"], H - 0.6 - rise)
         # sconces line up at one height in every alcove, whatever the arch width
         lamp_z = cfg["lights"]["alcove_height"] * room["spring_height"]
@@ -198,9 +209,9 @@ def build(cfg: dict) -> dict:
             xf = x0 + sd / 2 - 0.01 if wall == "left" else x1 - sd / 2 + 0.01
             face = Matrix.Translation((xf, centre, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z")
             into = (sign, 0, 0)
-        cutter = extruded_profile(f"ArchCut.{wall}.{centre:.1f}", arch_profile(width, spring, corner_radius=rc), T + 0.4, cut_col, m)
+        cutter = extruded_profile(f"ArchCut.{wall}.{centre:.1f}", arch_profile(width, spring, corner_radius=rc, catenary=cat), T + 0.4, cut_col, m)
         # moulded reveal: a horseshoe band standing proud of the wall around the opening
-        sur = extruded_profile(f"ArchSurround.{wall}.{centre:.1f}", _horseshoe(width, spring, sw, corner_radius=rc), sd, col, face,
+        sur = extruded_profile(f"ArchSurround.{wall}.{centre:.1f}", _horseshoe(width, spring, sw, corner_radius=rc, catenary=cat), sd, col, face,
                                mats["plaster"])
         bevel(sur, min(0.035, sd * 0.3), 3, 30)
         # two warm wall-washers per alcove: a small glowing dome + a light just in front, aimed back at the wall
@@ -256,11 +267,12 @@ def build(cfg: dict) -> dict:
         # a plaster screen across the alcove with a smaller arch in it, as in the clip's wide centre opening
         cx, w = _spread(W, room["back_arches"])[na["arch"]], room["back_arches"][na["arch"]]
         rc = room.get("arch_corner_radius")
-        rise = w / 2 if rc is None else min(rc, w / 2)
+        rise = _rise(w, room)
         spring = min(room["spring_height"], H - 0.6 - rise)
         iw, half = w - 2 * na["inset"], w / 2 + back_pad
         irc = None if rc is None else max(rc - na["inset"], 0.0)
-        inner = arch_profile(iw, spring - na["drop"], bottom=0.0, corner_radius=irc)
+        inner = arch_profile(iw, spring - na["drop"], bottom=0.0, corner_radius=irc,
+                             catenary=room.get("catenary"))
         frame = [inner[1], (half, 0.0), (half, spring + rise + 0.45), (-half, spring + rise + 0.45), (-half, 0.0),
                  inner[0], *reversed(inner[2:])]
         th = na.get("thickness", 0.3)

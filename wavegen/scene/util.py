@@ -57,17 +57,35 @@ def box(name, mn, mx, col, material=None, inward=False, skip=()) -> bpy.types.Ob
     return obj_from_bmesh(name, bm, col, material)
 
 
+def catenary_a(half: float, rise: float) -> float:
+    """The ``a`` of the hanging chain ``y = a (cosh(x / a) - 1)`` that drops ``rise``
+    over a half-span of ``half``."""
+    lo, hi = half / 700.0, half * 1e4                  # the drop falls as a grows
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if mid * (math.cosh(half / mid) - 1) > rise else (lo, mid)
+    return (lo + hi) / 2
+
+
 def arch_profile(width: float, spring: float, segments: int = 24, bottom: float = -0.05,
-                 corner_radius: float | None = None):
+                 corner_radius: float | None = None, catenary: float | None = None):
     """2D outline (u, v) of an arch opening, counter-clockwise.
 
     Round-topped by default. A ``corner_radius`` smaller than half the width gives a
     flat top with rounded corners (a basket-handle arch) that rises only ``corner_radius``
     above the spring line; a radius of zero or less gives a plain rectangle.
+    ``catenary`` instead gives an inverted hanging chain, the shape Gaudi built with,
+    rising ``catenary`` x ``width`` above the spring line.
     """
     r = width / 2
     pts = [(-r, bottom), (r, bottom), (r, spring)]
-    if corner_radius is None or corner_radius >= r:
+    if catenary:
+        rise = catenary * width
+        a = catenary_a(r, rise)
+        for i in range(1, segments):
+            u = r * math.cos(math.pi * i / segments)          # denser near the springs and the crown
+            pts.append((u, spring + rise - a * (math.cosh(u / a) - 1)))
+    elif corner_radius is None or corner_radius >= r:
         for i in range(1, segments):
             a = math.pi * i / segments
             pts.append((r * math.cos(a), spring + r * math.sin(a)))

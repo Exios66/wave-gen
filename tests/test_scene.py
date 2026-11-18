@@ -828,3 +828,32 @@ def test_poolrooms_ceiling_tray_reaches_close_to_the_walls(scene):
     r = cfg["lights"]["downlights"]["radius"]
     for o in _downlights():                                    # the lamps still fit on the margin
         assert room["width"] / 2 - inset + r < o.matrix_world.translation.x < room["width"] / 2 - r
+
+
+def test_catenary_arch_rises_as_asked_and_follows_a_hanging_chain():
+    from wavegen.scene.util import arch_profile
+    pts = arch_profile(3.0, 2.0, catenary=0.9)                  # rise = 0.9 x width = 2.7 m
+    assert max(v for _, v in pts) == pytest.approx(2.0 + 2.7)
+    assert (1.5, 2.0) in pts and (-1.5, 2.0) in pts
+    arc = [(u, v) for u, v in pts[3:-1]]
+    crown = 2.0 + 2.7
+    cs = [(abs(u), crown - v) for u, v in arc if abs(u) > 1e-6]
+    # every arc point lies on y = a (cosh(x / a) - 1) for one shared a
+    import math as m
+    lo, hi = 1e-3, 1e3
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if mid * (m.cosh(1.5 / mid) - 1) > 2.7 else (lo, mid)
+    for x, drop in cs:
+        assert drop == pytest.approx(lo * (m.cosh(x / lo) - 1), abs=1e-6)
+
+
+def test_catenary_arches_shape_the_room():
+    cfg = config.load("poolrooms", ["atmosphere.dust_count=0", "room.catenary=0.6", "room.nested_arch=null",
+                                    "room.spring_height=2.0"])
+    build_scene(cfg)
+    w = cfg["room"]["back_arches"][1]
+    cut = next(o for o in bpy.data.objects if o.name.startswith("ArchCut.back") and
+               o.dimensions.x == pytest.approx(w, abs=1e-3))
+    top = max((cut.matrix_world @ v.co).z for v in cut.data.vertices)
+    assert top == pytest.approx(2.0 + 0.6 * w, abs=1e-3)
