@@ -88,6 +88,7 @@ DEFAULTS: dict = {
         "alcove_tile_size": None,   # None = same as tile_size; the clip's alcove tiles are larger
         "alcove_wainscot": 2.4,     # alcove walls: tile below this height, plaster above
         "arch_corner_radius": None,  # None = round-topped arches; a radius gives flat tops with rounded corners
+        "catenary": None,                  # None = as above; a ratio = Gaudi hanging-chain arches rising ratio x width
         "arch_surround": {"width": 0.22, "depth": 0.12},   # moulded reveal around each arch
         # a second, smaller arch set inside one back alcove: {"arch": index into back_arches,
         # "inset": m narrower per side, "drop": m lower, "depth": m behind the wall, "thickness": m, "color": optional plaster colour}
