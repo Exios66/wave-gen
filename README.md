@@ -129,6 +129,8 @@ chord order, and the result is deterministic for a given seed.
 - **Architecture:** tiled floor, sunken pool with coping, arched walls (boolean-cut) and lit tiled alcoves, a 3-step tray ceiling with a hidden cove light, crown mouldings, a rounded pier with a lit tiled passage beside it.
 - **Materials:** a world-space tile shader (any orientation, per-tile jitter, grout bump, clearcoat), plaster, refractive water with animated 4D-noise ripples and absorption, aged beige plastic, and a CRT phosphor with scanlines, glow and glass.
 - **Props:** a generic beige all-in-one CRT computer, keyboard and desk, plus a spinning, tumbling pastel screensaver icon.
+- **Nature** (off unless a preset asks): a skylight with sun falling through a swaying leaf canopy,
+  casting dappled light across walls and water (`nature.skylight`).
 - **Atmosphere:** volumetric haze, drifting dust motes, a floating camera with independent look-at drift, and depth of field focused on the screen.
 - **Look:** AgX tone mapping, compositor bloom and lens dispersion, then an ffmpeg grade (lavender lift, halation, chroma shift, grain, vignette). An optional `crt_on_tv` mode adds the "filmed off a TV" look.
 - **Sound:** a detuned maj9 pad slowed ×0.975, FM glass bells, water lapping and drips, a 4.8 s room reverb, tape wow and hiss.

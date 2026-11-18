@@ -301,6 +301,11 @@ def build(cfg: dict) -> dict:
         ins = tray["inset"] + i * 0.45
         tray_cutters.append(box(f"TrayCut.{i}", (x0 + ins, Y0 + ins + 1.0, H - 0.2),
                                 (x1 - ins, Y1 - ins, H + (i + 1) * sh), cut_col))
+    sky = cfg.get("nature", {}).get("skylight", {})
+    if sky.get("enabled"):                         # an opening right through the slab, up to the canopy
+        (sx, sy), (sw_, sd_) = sky["center"], sky["size"]
+        tray_cutters.append(box("SkylightCut", (sx - sw_ / 2, sy - sd_ / 2, H - 0.3),
+                                (sx + sw_ / 2, sy + sd_ / 2, H + steps * sh + 0.6), cut_col))
     boolean_cut_collection(slab, cutter_collection_union("Cut.tray", tray_cutters, cut_col))
     bevel(slab, 0.03, 3, 30)
     ins = tray["inset"] + (steps - 1) * 0.45

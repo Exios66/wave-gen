@@ -8,7 +8,7 @@ from pathlib import Path
 def build_scene(cfg: dict, blend_path: str | Path | None = None) -> dict:
     import bpy
 
-    from . import architecture, atmosphere, camera, props, render, screensaver
+    from . import architecture, atmosphere, camera, nature, props, render, screensaver
 
     emblem_images = None
     cc = cfg.get("computer", {})
@@ -25,6 +25,7 @@ def build_scene(cfg: dict, blend_path: str | Path | None = None) -> dict:
     arch = architecture.build(cfg)
     pr = props.build(cfg, emblem_images)
     atmosphere.build(cfg, arch["bounds"])
+    nature.build(cfg, arch["bounds"])
     focus = pr.get("icon") or pr.get("screen")
     cam = camera.build(cfg, focus)
     if blend_path:
