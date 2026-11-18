@@ -886,3 +886,16 @@ def test_catenary_shapes_the_bay_passage_arch_too():
     want = sorted(round(v, 3) for _, v in arch_profile(bw, bh - 0.6 * bw, catenary=0.6))
     got = sorted({round((cut.matrix_world @ v.co).z, 3) for v in cut.data.vertices})
     assert set(want) <= set(got)                                 # every height of the chain curve
+
+
+@pytest.mark.parametrize("bad, why", [
+    ('room.floor_pattern="penrose"', "floor_pattern"),
+    ("nature.plants.enabled=true", "in the pool"),
+])
+def test_a_bad_config_is_refused_before_the_open_scene_is_touched(bad, why):
+    keep = bpy.data.objects.new("Keep", None)
+    bpy.context.scene.collection.objects.link(keep)
+    sets = [bad] + (["nature.plants.spots=[[1.0,10.0,2.0]]"] if "plants" in bad else [])
+    with pytest.raises(ValueError, match=why):
+        build_scene(config.load("poolrooms", sets))
+    assert "Keep" in bpy.data.objects                            # nothing was reset

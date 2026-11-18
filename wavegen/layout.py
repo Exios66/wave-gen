@@ -100,3 +100,18 @@ def refit_nature(old: dict, new: dict) -> None:
     if tc:
         keep = _refit(old, new, tc["spots"], tc["trunk_radius"] * 1.35)
         tc["spots"] = [tc["spots"][i] for i in keep]
+
+
+FLOOR_PATTERNS = ("square", "hex")
+
+
+def check(cfg: dict) -> None:
+    """Refuse a layout that cannot be built, before any slow (or destructive) work starts."""
+    pattern = cfg["room"].get("floor_pattern", "square")
+    if pattern not in FLOOR_PATTERNS:
+        raise ValueError(f"unknown floor_pattern {pattern!r} (have: {', '.join(FLOOR_PATTERNS)})")
+    nat = cfg.get("nature") or {}
+    if nat.get("plants", {}).get("enabled"):
+        check_plants(cfg)
+    if nat.get("tree_columns", {}).get("enabled"):
+        check_tree_columns(cfg)
