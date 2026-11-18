@@ -109,3 +109,49 @@ def test_a_plant_just_off_a_pool_corner_is_built():
     cfg["nature"]["plants"]["spots"] = [[x1 + c + 0.25, y0 - c - 0.30, 1.0]]
     build_scene(cfg)
     assert "Planter.0" in bpy.data.objects
+
+
+TREES = ["nature.tree_columns.enabled=true", "nature.tree_columns.spots=[[-5.5,12.0]]",
+         "nature.tree_columns.branches=4"]
+
+
+def test_ceiling_height_follows_the_tray_steps():
+    from wavegen.scene.nature import ceiling_z
+    cfg = config.load("poolrooms")
+    room, t = cfg["room"], cfg["room"]["ceiling_tray"]
+    H = room["height"]
+    assert ceiling_z(cfg, -room["width"] / 2 + 0.1, 10.0) == pytest.approx(H)            # beside the wall
+    assert ceiling_z(cfg, 0.0, 12.0) == pytest.approx(H + t["steps"] * t["step_height"])  # in the deepest step
+
+
+def test_tree_columns_are_off_by_default():
+    _build()
+    assert not any(n.startswith("TreeColumn") for n in bpy.data.objects.keys())
+
+
+def test_a_tree_column_stands_on_the_floor_and_its_branches_meet_the_ceiling():
+    from wavegen.scene.nature import ceiling_z
+    cfg = _build(*TREES)
+    col = bpy.data.objects["TreeColumn.0"]
+    zs = [(col.matrix_world @ v.co).z for v in col.data.vertices]
+    assert min(zs) == pytest.approx(0.0, abs=0.02)
+    tips = [tuple(col["tips"][i:i + 3]) for i in range(0, len(col["tips"]), 3)]
+    assert len(tips) == 4 * 2                                   # each limb forks once more
+    for x, y, z in tips:
+        assert z == pytest.approx(ceiling_z(cfg, x, y) + 0.05, abs=1e-4)
+    spread = max(math.hypot(x + 5.5, y - 12.0) for x, y, _ in tips)
+    assert 0.8 < spread <= cfg["nature"]["tree_columns"]["spread"] + 1e-6
+
+
+def test_a_tree_column_in_the_pool_is_refused():
+    with pytest.raises(ValueError, match="in the pool"):
+        _build("nature.tree_columns.enabled=true", "nature.tree_columns.spots=[[1.0,10.0]]")
+
+
+def test_tree_branches_stay_inside_the_walls():
+    cfg = _build("nature.tree_columns.enabled=true")              # the default spots stand 0.75 m off the right wall
+    W = cfg["room"]["width"]
+    for i in range(len(cfg["nature"]["tree_columns"]["spots"])):
+        col = bpy.data.objects[f"TreeColumn.{i}"]
+        xs = [(col.matrix_world @ v.co).x for v in col.data.vertices]
+        assert -W / 2 < min(xs) and max(xs) < W / 2
